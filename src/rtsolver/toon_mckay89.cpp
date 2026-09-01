@@ -135,7 +135,13 @@ torch::Tensor ToonMcKay89Impl::forward(torch::Tensor prop,
                                           /*squash_dims=*/{2, 3})
                     .add_output(flx)
                     .add_input(prop)
-                    .add_input(be)
+                    // Give `be` the same RANK as the declared shape. Under
+                    // declare_static_shape, compute_strides walks each operand's
+                    // stride array using the STATIC shape's rank, so a bare 3-D
+                    // operand causes an out-of-bounds read of strides()[3].
+                    // Contiguous for the same reason `prop` is above: the impl
+                    // walks it as a raw pointer, one level at a time.
+                    .add_owned_input(be.unsqueeze(-1).contiguous())
                     .add_owned_input(bc->at("albedo").view({nwave, ncol, 1, 1}))
                     .build();
 
