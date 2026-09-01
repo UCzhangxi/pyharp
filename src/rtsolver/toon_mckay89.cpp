@@ -128,6 +128,22 @@ torch::Tensor ToonMcKay89Impl::forward(torch::Tensor prop,
 
     auto be = bbflux_wavenumber(wave_lo, wave_hi, temf.value());
 
+    // [S73] Optional r^2 area scaling (Zhang+2023, Inhomogeneity III, App. A):
+    // solving the plane-parallel equation with source r^2*B returns r^2-weighted
+    // fluxes, so an area-weighted flux divergence conserves POWER on a spherical
+    // shell whose area grows with height.  Pass `area_scale` = (r/r_ref)^2 per
+    // LEVEL, shape (nlvl,) or (ncol, nlvl); the caller divides the result by the
+    // same factor, so r_ref cancels here.  Only the THERMAL source needs this: the
+    // shortwave equation is linear and homogeneous in the beam, so its r^2 weight
+    // is a single CONSTANT (r_TOA^2) absorbed by the fbeam boundary condition --
+    // with scattering too.  Absent -> unscaled plane-parallel, bit-identical.
+    if (bc->find(bname + "area_scale") != bc->end()) {
+      auto ascale = bc->at(bname + "area_scale");
+      TORCH_CHECK(ascale.size(-1) == nlyr + 1,
+                  "ToonMcKay89::forward: bc->area_scale.size(-1) != nlyr + 1");
+      be = be * ascale;
+    }
+
     auto iter = at::TensorIteratorConfig()
                     .resize_outputs(false)
                     .check_all_same_dtype(true)
