@@ -1,0 +1,29 @@
+source src/rtsolver/toon_mckay89_shortwave_impl.h sha256 fac397bc460e538709c3e4fdb550fca7ba5e96ebd6e83a6d3542d989ef8e92d2
+source src/rtsolver/toon_mckay89_longwave_impl.h sha256 f9c42a1cd22d39db9510acec23528b38c0608c1d497427c305e056f6c70e0bef
+source src/radiation/radiation_band.cpp sha256 ccc959a7b0cc0055e9b1bef70ea8bad761106dc6a8b80835aa6877669cb79329
+[C1] PASS SW scaled omega = Wiscombe eq. 20b: `w0[i] = ((1.0 - g_sq) * W_IN(i)) / (1.0 - W_IN(i) * g_sq);`  minus reference = 0
+[C2] PASS SW scaled tau = Wiscombe eq. 20a: `dtau[i] = (1.0 - W_IN(i) * g_sq) * DTAU_IN(i);`  minus reference = 0
+[C3] PASS SW scaled g = Wiscombe eq. 14: `hg[i] = G_IN(i) / (1.0 + G_IN(i));`  minus reference = 0
+[C4] PASS SW gamma1 = Toon Table 1 quadrature: `T g1 = sqrt3d2 * (2.0 - w0[i] * (1.0 + hg[i]));`  minus reference = 0
+[C5] PASS SW gamma2 = Toon Table 1 quadrature: `T g2 = (sqrt3d2 * w0[i]) * (1.0 - hg[i]);`  minus reference = 0
+[C6] PASS SW gamma3 = Toon Table 1 quadrature: `T g3 = (1.0 - sqrt3 * hg[i] * mu_zm[i]) / 2.0;`  minus reference = 0
+[C7] PASS SW gamma4 = 1 - gamma3 (Table 1 footnote): `T g4 = 1.0 - g3;`  minus reference = 0
+[C8] PASS SW lambda = Toon eq. 21: `T lam = sqrt(g1 * g1 - g2 * g2);`  minus reference = 0
+[C9] PASS SW Gamma = Toon eq. 22: `gam[i] = (g1 - lam) / g2;`  minus reference = 0
+[C10] PASS SW denominator of eqs. 23-24: `T denom = (lam * lam) - 1.0 / (mu_zm[i] * mu_zm[i]);`  minus reference = 0
+[C11] PASS SW C+ amplitude = Toon eq. 23 (F0 = pi F_s): `Ap[i] = F0_in * w0[i] * (g3 * (g1 - 1.0 / mu_zm[i]) + g2 * g4) / denom;`  minus reference = 0
+[C12] PASS SW C- amplitude = Toon eq. 24: `Am[i] = F0_in * w0[i] * (g4 * (g1 + 1.0 / mu_zm[i]) + g2 * g3) / denom;`  minus reference = 0
+[C13] PASS LW a^2 = (g1-g2)/(g1+g2), Toon HM: `alp[k] = sqrt((1.0 - w0[k]) / (1.0 - w0[k] * hg[k]));`
+[C14] PASS LW lambda^2 = g1^2 - g2^2 (Toon eq. 21): `lam[k] = alp[k] * (1.0 - w0[k] * hg[k]) / ubari;`
+[C15] PASS LW Gamma = (g1-lambda)/g2 (Toon eq. 22), parametrised by a: `gam[k] = (1.0 - alp[k]) / (1.0 + alp[k]);`
+[C16] PASS LW 1/(gamma1+gamma2) of Toon eq. 27: `term[k] = ubari / (1.0 - w0[k] * hg[k]);`  minus reference = 0
+[C17] PASS LW C+(0) = Toon eq. 27 divided by 2 pi mu1 = pi: `Cpm1[k] = B0[k] + B1[k] * term[k];`
+[C18] PASS LW C-(0) = Toon eq. 27 divided by 2 pi mu1 = pi: `Cmm1[k] = B0[k] - B1[k] * term[k];`
+[C19] PASS LW Table 3 offset 1/(g1+g2) - mu1, mu1 = 1/2: `T term_val = ubari * w0[n] * hg[n] / (1.0 - w0[n] * hg[n]);`  minus reference = 0
+[C20] PASS LW Toon Table 3 G with (Y1 +- Y2) -> pi xk1, pi xk2: `g[n] = twopi * w0[n] * xk1[n] * (1.0 + hg[n] * alp[n]) / common_den;`  diff = 0
+[C21] PASS LW Toon Table 3 H with (Y1 +- Y2) -> pi xk1, pi xk2: `h[n] = twopi * w0[n] * xk2[n] * (1.0 - hg[n] * alp[n]) / common_den;`  diff = 0
+[C22] PASS LW Toon Table 3 J with (Y1 +- Y2) -> pi xk1, pi xk2: `xj[n] = twopi * w0[n] * xk1[n] * (1.0 - hg[n] * alp[n]) / common_den;`  diff = 0
+[C23] PASS LW Toon Table 3 K with (Y1 +- Y2) -> pi xk1, pi xk2: `xk[n] = twopi * w0[n] * xk2[n] * (1.0 + hg[n] * alp[n]) / common_den;`  diff = 0
+[C24] PASS SSA clamp 1e-12 (f64) / 1e-6 (f32) in RadiationBandImpl::forward; none in the Toon kernels: band clamp present: True; kernel clamp absent: True
+[C25] PASS LW optional delta-Eddington (delta_eddington_lw) uses the SW scaling lines verbatim: 3 of 3 lines
+check_ch02_toon_coefficients: 25 of 25 claims pass
