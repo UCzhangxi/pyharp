@@ -8,11 +8,13 @@
 #   [S1] ctest with GPUs visible, [S2] ctest with CUDA_VISIBLE_DEVICES= (as on CI's CPU runners),
 #   [S3] each unregistered C++ test file built out of tree (extra_tests/CMakeLists.txt) and run,
 #   [S4] each top-level Python test file (pytest, from a copy of tests/ as ctest would stage it),
-#   [S5] each tests/spectra file (pytest from the source root, as CI runs its three),
+#   [S5] each tests/spectra file (pytest from the source root, as CI runs its three), with the one intermittent test
+#        (FLAKY below) deselected so the output is deterministic; flaky_rerun.sh measures that test on its own,
 #   [S6] tests/test_rayleigh.py three times: exit status and any glibc heap-corruption abort.
 # Exit status 0; the numbers are the result.
 SRC=$(cd "$1" && pwd); SCR=$(mkdir -p "$2" && cd "$2" && pwd)
 HERE=$(cd "$(dirname "$0")" && pwd)
+FLAKY="tests/spectra/test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache"
 clean() { sed -E -e "s#$SRC#<src>#g" -e "s#$SCR#<scratch>#g" -e 's/ in [0-9.]+s( \([0-9:]+\))?//' -e 's/ +[0-9.]+ sec$//'; }
 python -c "import pyharp, pydisort, torch, sys; print(f'[S0] pyharp {pyharp.__version__}, pydisort {pydisort.__version__}, torch {torch.__version__}, Python {sys.version.split()[0]}')"
 
@@ -47,8 +49,8 @@ for f in $(cd "$SRC/tests" && ls test_*.py); do
   echo "[S4] tests/$f: exit $rc, $(grep -E '[0-9]+ (passed|failed)' "$SCR/py_$f.txt" | tail -1 | sed 's/=//g; s/^ *//') ${abort:+| $abort}" | clean
 done
 for f in $(cd "$SRC/tests/spectra" && ls test_*.py); do
-  (cd "$SRC" && timeout 900 python -m pytest -q -p no:cacheprovider "tests/spectra/$f" > "$SCR/sp_$f.txt" 2>&1); rc=$?
-  echo "[S5] tests/spectra/$f: exit $rc, $(grep -E '[0-9]+ (passed|failed)' "$SCR/sp_$f.txt" | tail -1 | sed 's/=//g; s/^ *//')" | clean
+  (cd "$SRC" && timeout 900 python -m pytest -q -p no:cacheprovider --deselect "$FLAKY" "tests/spectra/$f" > "$SCR/sp_$f.txt" 2>&1); rc=$?
+  echo "[S5] tests/spectra/$f: exit $rc, $(grep -E '[0-9]+ (passed|failed|deselected)' "$SCR/sp_$f.txt" | tail -1 | sed 's/=//g; s/^ *//')" | clean
   grep -E '^FAILED' "$SCR/sp_$f.txt" | sed 's/ - .*//; s/^/[S5]   /'
 done
 for i in 1 2 3; do
