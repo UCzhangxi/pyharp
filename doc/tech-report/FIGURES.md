@@ -30,6 +30,16 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch04-shortwave-system` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_system.py` | - |
 | `fig-ch04-shortwave-thick-layer` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_thick_layer.py` | `src/pyharp_report/ch04/data/shortwave_thick_layer.csv` |
 
+## ch05
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch05-analytic-e3` | `05-comparison/_analytic.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_analytic_e3.py` | `src/pyharp_report/ch05/data/analytic.json` |
+| `fig-ch05-cost-time` | `05-comparison/_cost.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_cost.py` | `src/pyharp_report/ch05/data/cost.json` |
+| `fig-ch05-map` | `05-comparison.qmd` | `pyharp_report/ch05/figures/fig_chapter_map.py` | - |
+| `fig-ch05-reference-convergence` | `05-comparison/_reference.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_reference_convergence.py` | `src/pyharp_report/ch05/data/convergence.json`<br>`src/pyharp_report/ch05/data/gs85.json` |
+| `fig-ch05-toon-accuracy-split` | `05-comparison/_toon-accuracy.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_toon_error_split.py` | `src/pyharp_report/ch05/data/toon_vs_disort.json` |
+
 ## ch09
 
 | figure | section file | code | data (written by) |
