@@ -1,0 +1,74 @@
+versions: python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pyharp 2.7.9.dev0+gf34506f9d.d20261022, pydisort 1.7.1, scipy 1.17.1, mpmath 1.3.0; CUDA 12.6, NVIDIA GeForce GTX 1080 Ti
+environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
+[C1] PASS SW numerical error max |Toon - exact ODE|/F_inc, omega < 1 (720 columns): 2.665e-15 (tol <= 1.0e-12)
+[C2] EXPECTED-FAIL SW numerical error max |Toon - exact ODE|/F_inc, omega = 1 exactly (144 columns): 1.366e+00 (defect present when > 1.0e-06)
+[C3] INFO SW total (Toon - DISORT), all omega<1: abs max 8.65e-02 med 1.06e-03; frac max 0.493 med 6.59e-03; n 4320, n_frac 3569
+[C4] INFO SW approximation (exact ODE - DISORT), all omega<1: abs max 8.65e-02
+[C5] INFO SW total (Toon - DISORT), tau<=0.1, omega<=0.6: abs max 2.72e-02 med 1.48e-04; frac max 0.390 med 5.90e-04; n 576, n_frac 460
+[C6] INFO SW approximation (exact ODE - DISORT), tau<=0.1, omega<=0.6: abs max 2.72e-02
+[C7] INFO SW total (Toon - DISORT), tau<=0.1, omega=0.9: abs max 3.83e-02 med 2.64e-04; frac max 0.437 med 7.21e-04; n 288, n_frac 238
+[C8] INFO SW approximation (exact ODE - DISORT), tau<=0.1, omega=0.9: abs max 3.83e-02
+[C9] INFO SW total (Toon - DISORT), tau<=0.1, omega 0.99-0.999: abs max 4.12e-02 med 2.62e-04; frac max 0.453 med 6.86e-04; n 576, n_frac 477
+[C10] INFO SW approximation (exact ODE - DISORT), tau<=0.1, omega 0.99-0.999: abs max 4.12e-02
+[C11] INFO SW total (Toon - DISORT), 0.3<=tau<=1, omega<=0.6: abs max 4.41e-02 med 3.63e-03; frac max 0.417 med 2.39e-02; n 576, n_frac 504
+[C12] INFO SW approximation (exact ODE - DISORT), 0.3<=tau<=1, omega<=0.6: abs max 4.41e-02
+[C13] INFO SW total (Toon - DISORT), 0.3<=tau<=1, omega=0.9: abs max 7.40e-02 med 3.70e-03; frac max 0.357 med 1.48e-02; n 288, n_frac 262
+[C14] INFO SW approximation (exact ODE - DISORT), 0.3<=tau<=1, omega=0.9: abs max 7.40e-02
+[C15] INFO SW total (Toon - DISORT), 0.3<=tau<=1, omega 0.99-0.999: abs max 8.65e-02 med 3.36e-03; frac max 0.386 med 8.05e-03; n 576, n_frac 526
+[C16] INFO SW approximation (exact ODE - DISORT), 0.3<=tau<=1, omega 0.99-0.999: abs max 8.65e-02
+[C17] INFO SW total (Toon - DISORT), tau>=3, omega<=0.6: abs max 2.58e-02 med 2.73e-04; frac max 0.441 med 3.78e-02; n 576, n_frac 323
+[C18] INFO SW approximation (exact ODE - DISORT), tau>=3, omega<=0.6: abs max 2.58e-02
+[C19] INFO SW total (Toon - DISORT), tau>=3, omega=0.9: abs max 5.17e-02 med 9.61e-03; frac max 0.493 med 6.47e-02; n 288, n_frac 251
+[C20] INFO SW approximation (exact ODE - DISORT), tau>=3, omega=0.9: abs max 5.17e-02
+[C21] INFO SW total (Toon - DISORT), tau>=3, omega 0.99-0.999: abs max 6.43e-02 med 7.62e-03; frac max 0.214 med 2.40e-02; n 576, n_frac 528
+[C22] INFO SW approximation (exact ODE - DISORT), tau>=3, omega 0.99-0.999: abs max 6.43e-02
+[C23] INFO SW total (Toon - DISORT), g=0: abs max 5.40e-02 med 7.63e-04; frac max 0.407 med 5.23e-03; n 1080, n_frac 906
+[C24] INFO SW approximation (exact ODE - DISORT), g=0: abs max 5.40e-02
+[C25] INFO SW total (Toon - DISORT), g>=0.5: abs max 8.65e-02 med 1.18e-03; frac max 0.493 med 7.55e-03; n 3240, n_frac 2663
+[C26] INFO SW approximation (exact ODE - DISORT), g>=0.5: abs max 8.65e-02
+[C27] INFO SW total (Toon - DISORT), mu0=0.2: abs max 8.65e-02 med 2.92e-03; frac max 0.493 med 2.37e-02; n 1440, n_frac 1202
+[C28] INFO SW approximation (exact ODE - DISORT), mu0=0.2: abs max 8.65e-02
+[C29] INFO SW total (Toon - DISORT), mu0>=0.5: abs max 5.40e-02 med 6.80e-04; frac max 0.462 med 3.23e-03; n 2880, n_frac 2367
+[C30] INFO SW approximation (exact ODE - DISORT), mu0>=0.5: abs max 5.40e-02
+[C31] INFO SW total (Toon - DISORT), omega=1 exactly: abs max 1.37e+00 med 3.72e-01; frac max 98.186 med 9.46e-01; n 864, n_frac 766
+[C32] INFO SW boundary quantity R, omega < 1: abs max 8.62e-02 med 4.62e-03; frac max 0.441 med 3.17e-02; n 720, n_frac 640
+[C33] INFO SW boundary quantity T, omega < 1: abs max 8.65e-02 med 3.29e-03; frac max 0.194 med 1.08e-02; n 720, n_frac 655
+[C34] INFO SW boundary quantity A_col, omega < 1: abs max 5.54e-02 med 3.27e-03; frac max 0.208 med 4.39e-02; n 720, n_frac 496
+[C35] INFO SW fluxes >= 1 % of F_inc with frac error > 10 %: 461 of 3569; upward 344, at mu0 = 0.2 243
+[C36] INFO SW worst frac error: 0.493 on F+ = 0.0179 F_inc at middle; tau=10, ssa=0.9, g=0.85, mu0=0.2, albedo=0
+[C37] INFO LW total (Toon hard_surface - DISORT), all: abs max 4.80e-02 med 6.52e-04; frac max 0.325 med 2.63e-03; n 4320, n_frac 3692
+[C38] INFO LW total (Toon hard_surface - DISORT), tau<=0.1, omega=0: abs max 1.97e-04 med 9.96e-05; frac max 0.019 med 1.76e-04; n 288, n_frac 208
+[C39] INFO LW total (Toon hard_surface - DISORT), tau<=0.1, omega 0.3-0.6: abs max 4.71e-03 med 2.57e-04; frac max 0.117 med 6.84e-04; n 576, n_frac 393
+[C40] INFO LW total (Toon hard_surface - DISORT), tau<=0.1, omega 0.9-0.99: abs max 7.83e-03 med 4.58e-04; frac max 0.325 med 8.64e-04; n 576, n_frac 381
+[C41] INFO LW total (Toon hard_surface - DISORT), 0.3<=tau<=1, omega=0: abs max 1.29e-04 med 2.02e-05; frac max 0.006 med 6.05e-05; n 288, n_frac 272
+[C42] INFO LW total (Toon hard_surface - DISORT), 0.3<=tau<=1, omega 0.3-0.6: abs max 7.99e-03 med 8.75e-04; frac max 0.080 med 2.67e-03; n 576, n_frac 541
+[C43] INFO LW total (Toon hard_surface - DISORT), 0.3<=tau<=1, omega 0.9-0.99: abs max 1.70e-02 med 2.61e-03; frac max 0.257 med 8.77e-03; n 576, n_frac 537
+[C44] INFO LW total (Toon hard_surface - DISORT), tau>=3, omega=0: abs max 1.22e-05 med 3.75e-07; frac max 0.000 med 5.30e-07; n 288, n_frac 272
+[C45] INFO LW total (Toon hard_surface - DISORT), tau>=3, omega 0.3-0.6: abs max 2.06e-02 med 2.91e-03; frac max 0.054 med 7.45e-03; n 576, n_frac 544
+[C46] INFO LW total (Toon hard_surface - DISORT), tau>=3, omega 0.9-0.99: abs max 4.80e-02 med 7.40e-03; frac max 0.123 med 2.21e-02; n 576, n_frac 544
+[C47] INFO LW total (Toon hard_surface - DISORT), g=0: abs max 2.57e-02 med 2.58e-04; frac max 0.082 med 1.19e-03; n 1080, n_frac 935
+[C48] INFO LW total (Toon hard_surface - DISORT), g>=0.5: abs max 4.80e-02 med 8.96e-04; frac max 0.325 med 3.73e-03; n 3240, n_frac 2757
+[C49] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), all: abs max 3.49e-02 med 5.58e-04; frac max 0.304 med 2.03e-03; n 4320, n_frac 3692
+[C50] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau<=0.1, omega=0: abs max 1.97e-04 med 9.96e-05; frac max 0.019 med 1.76e-04; n 288, n_frac 208
+[C51] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau<=0.1, omega 0.3-0.6: abs max 4.12e-03 med 2.54e-04; frac max 0.110 med 6.37e-04; n 576, n_frac 393
+[C52] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau<=0.1, omega 0.9-0.99: abs max 7.28e-03 med 4.55e-04; frac max 0.304 med 8.64e-04; n 576, n_frac 381
+[C53] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), 0.3<=tau<=1, omega=0: abs max 1.29e-04 med 2.02e-05; frac max 0.006 med 6.05e-05; n 288, n_frac 272
+[C54] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), 0.3<=tau<=1, omega 0.3-0.6: abs max 6.17e-03 med 7.49e-04; frac max 0.068 med 2.25e-03; n 576, n_frac 541
+[C55] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), 0.3<=tau<=1, omega 0.9-0.99: abs max 1.74e-02 med 2.27e-03; frac max 0.224 med 8.13e-03; n 576, n_frac 537
+[C56] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau>=3, omega=0: abs max 1.22e-05 med 3.75e-07; frac max 0.000 med 5.30e-07; n 288, n_frac 272
+[C57] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau>=3, omega 0.3-0.6: abs max 7.99e-03 med 1.15e-03; frac max 0.036 med 2.65e-03; n 576, n_frac 544
+[C58] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), tau>=3, omega 0.9-0.99: abs max 3.49e-02 med 4.68e-03; frac max 0.101 med 1.33e-02; n 576, n_frac 544
+[C59] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), g=0: abs max 2.57e-02 med 2.58e-04; frac max 0.082 med 1.19e-03; n 1080, n_frac 935
+[C60] INFO LW total (Toon hard_surface + delta_eddington_lw - DISORT), g>=0.5: abs max 3.49e-02 med 7.01e-04; frac max 0.304 med 2.28e-03; n 3240, n_frac 2757
+[C61] PASS LW multi-layer invariance, isothermal slab omega=0.0 g=0.0: 1 vs 16 layers, boundary fluxes/piB: 1.358e-16 (tol <= 1.0e-10)
+[C62] PASS LW multi-layer invariance, isothermal slab omega=0.6 g=0.5: 1 vs 16 layers, boundary fluxes/piB: 2.851e-13 (tol <= 1.0e-10)
+[C63] PASS LW multi-layer invariance, isothermal slab omega=0.9 g=0.85: 1 vs 16 layers, boundary fluxes/piB: 6.791e-16 (tol <= 1.0e-10)
+[C64] PASS LW Planck integrals, opaque isothermal slab 200 K: |Toon up_TOA - DISORT up_TOA|/piB: 4.235e-08 (tol <= 1.0e-05)
+[C65] PASS LW Planck integrals, opaque isothermal slab 300 K: |Toon up_TOA - DISORT up_TOA|/piB: 4.824e-07 (tol <= 1.0e-05)
+[C66] INFO test_toon.py cases, |Toon - DISORT|/DISORT, sw nstr=4: max 9.166e-02; 0.0241 0.0917 0.0732 0.0808 0.0461
+[C67] INFO test_toon.py cases, |Toon - DISORT|/DISORT, sw nstr=64: max 8.415e-02; 0.0225 0.0842 0.0645 0.0733 0.0443
+[C68] INFO test_toon.py cases, |Toon - DISORT|/DISORT, lw iso omega=0 nstr=4: max 4.824e-07; 0.0000 0.0000 0.0000
+[C69] INFO test_toon.py cases, |Toon - DISORT|/DISORT, lw iso omega=0 nstr=32: max 4.824e-07; 0.0000 0.0000 0.0000
+[C70] INFO test_toon.py cases, |Toon - DISORT|/DISORT, lw scattering nstr=4: max 3.387e-02; 0.0012 0.0086 0.0339 0.0101 0.0020
+[C71] INFO test_toon.py cases, |Toon - DISORT|/DISORT, lw scattering nstr=32: max 3.542e-02; 0.0017 0.0109 0.0354 0.0118 0.0037
+== check_ch05_toon_vs_disort: 71 labels, 0 FAIL
