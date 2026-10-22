@@ -11,6 +11,8 @@ project:
   # generation.
   pre-render:
     - ../tools/gen_reader_reference.py  # first-use glossary notes, from tools/reader-glossary.json
+    - ../tools/gen_test_index.py
+    - ../tools/gen_task_map.py
     - ../tools/gen_derivation_index.py
     - ../tools/gen_notation_index.py
     - ../tools/gen_topic_index.py     # Appendix F, the topic index, from tools/topic-index.yaml

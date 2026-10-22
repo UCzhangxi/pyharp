@@ -63,7 +63,6 @@ HOME = "pyharp"
 PREFIX_REPOS = {
     "pyharp": "chengcli/pyharp",
     "snapy": "chengcli/snapy",
-    "pyharp": "chengcli/pyharp",
     "paddle": "chengcli/paddle",
     "pydisort": "zoeyzyhu/pydisort",
 }
@@ -73,7 +72,7 @@ NOTE_DIR = "docs/"
 
 # STYLE 3.1: the repositories the report may cite, each from the only owner it may be cited from.
 ALLOWED_REPOS = ("chengcli/pyharp", "UCzhangxi/pyharp", "chengcli/snapy", "UCzhangxi/snapy",
-                 "chengcli/pyharp", "chengcli/paddle", "happysky19/pyharp", "zoeyzyhu/pydisort")
+                 "chengcli/paddle", "happysky19/pyharp", "zoeyzyhu/pydisort")
 
 HEX = re.compile(r"[0-9a-f]+")
 

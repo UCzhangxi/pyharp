@@ -28,10 +28,6 @@ env:
   QUARTO_VERSION: "1.10.19"
   # Universal Ctags finds the line ranges of the code citations (tools/code_anchors.py, which names the same version)
   CTAGS_VERSION: "6.2.1"
-  # Gates that fail on the branch as it stands and are reported, not failed, here (render_gate.py's report mode), as
-  # a comma-separated list of gate names. None today: every gate failure fails the run.
-  # Items of the "log" gate that are reported, not failed: overfull boxes are typography, and their count depends on
-  # the TeX Live release. A log gate with any other item (missing character, multiply defined, ...) fails the run.
 
 jobs:
   render:

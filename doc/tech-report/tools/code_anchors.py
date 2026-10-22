@@ -255,7 +255,7 @@ def lead_start(text: list[str], start: int, python: bool) -> int:
 class Snapshot:
     """The files and symbols of the cited repository at one commit."""
 
-    _memo: dict[str, "Snapshot"] = {}
+    _memo: dict[tuple[str, str], "Snapshot"] = {}
 
     def __init__(self, repo: str, sha: str):
         self.repo, self.sha = repo, sha
