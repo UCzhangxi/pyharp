@@ -1,7 +1,7 @@
 [
   {
     "number": 1,
-    "url": "https://api.crossref.org/works/10.1364%2FAO.27.002502?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1364%2FAO.27.002502",
     "message": {
       "publisher": "Optica Publishing Group",
       "issue": "12",
@@ -64,7 +64,7 @@
   },
   {
     "number": 2,
-    "url": "https://api.crossref.org/works/10.1029%2FJD094iD13p16287?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1029%2FJD094iD13p16287",
     "message": {
       "publisher": "American Geophysical Union (AGU)",
       "issue": "D13",
@@ -127,7 +127,7 @@
   },
   {
     "number": 3,
-    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2011.03.019?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2011.03.019",
     "message": {
       "publisher": "Elsevier BV",
       "issue": "12",
@@ -175,7 +175,7 @@
   },
   {
     "number": 4,
-    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2888%2990031-3?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2888%2990031-3",
     "message": {
       "publisher": "Elsevier BV",
       "issue": "1",
@@ -219,7 +219,7 @@
   },
   {
     "number": 5,
-    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281977%29034%3C1408%3ATDMRYA%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281977%29034%3C1408%3ATDMRYA%3E2.0.CO%3B2",
     "message": {
       "publisher": "American Meteorological Society",
       "issue": "9",
@@ -259,7 +259,7 @@
   },
   {
     "number": 6,
-    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281976%29033%3C2452%3ATDEAFR%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281976%29033%3C2452%3ATDEAFR%3E2.0.CO%3B2",
     "message": {
       "publisher": "American Meteorological Society",
       "issue": "12",
@@ -307,7 +307,7 @@
   },
   {
     "number": 7,
-    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281980%29037%3C0630%3ATSATRT%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281980%29037%3C0630%3ATSATRT%3E2.0.CO%3B2",
     "message": {
       "publisher": "American Meteorological Society",
       "issue": "3",
@@ -351,7 +351,7 @@
   },
   {
     "number": 8,
-    "url": "https://api.crossref.org/works/10.1029%2F90JD01945?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1029%2F90JD01945",
     "message": {
       "publisher": "American Geophysical Union (AGU)",
       "issue": "D5",
@@ -406,7 +406,7 @@
   },
   {
     "number": 9,
-    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281992%29049%3C2139%3AOTCDMF%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281992%29049%3C2139%3AOTCDMF%3E2.0.CO%3B2",
     "message": {
       "publisher": "American Meteorological Society",
       "issue": "22",
@@ -450,7 +450,7 @@
   },
   {
     "number": 10,
-    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2889%2990044-7?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2889%2990044-7",
     "message": {
       "publisher": "Elsevier BV",
       "issue": "6",
@@ -502,7 +502,7 @@
   },
   {
     "number": 11,
-    "url": "https://api.crossref.org/works/10.1088%2F0004-637X%2F808%2F2%2F182?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1088%2F0004-637X%2F808%2F2%2F182",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "2",
@@ -548,7 +548,7 @@
   },
   {
     "number": 12,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fab1b51?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fab1b51",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "1",
@@ -611,7 +611,7 @@
   },
   {
     "number": 13,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fac9f48?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fac9f48",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "2",
@@ -674,7 +674,7 @@
   },
   {
     "number": 14,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fae47ff?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fae47ff",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "1",
@@ -765,7 +765,7 @@
   },
   {
     "number": 15,
-    "url": "https://api.crossref.org/works/10.1088%2F0067-0049%2F215%2F1%2F4?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1088%2F0067-0049%2F215%2F1%2F4",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "1",
@@ -815,7 +815,7 @@
   },
   {
     "number": 16,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faa8907?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faa8907",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "2",
@@ -870,7 +870,7 @@
   },
   {
     "number": 17,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-3881%2F153%2F2%2F56?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-3881%2F153%2F2%2F56",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "2",
@@ -960,7 +960,7 @@
   },
   {
     "number": 18,
-    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201323169?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201323169",
     "message": {
       "publisher": "EDP Sciences",
       "published-print": {
@@ -1032,7 +1032,7 @@
   },
   {
     "number": 19,
-    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201629322?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201629322",
     "message": {
       "publisher": "EDP Sciences",
       "published-print": {
@@ -1096,7 +1096,7 @@
   },
   {
     "number": 20,
-    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2015.02.014?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2015.02.014",
     "message": {
       "publisher": "Elsevier BV",
       "published-print": {
@@ -1159,7 +1159,7 @@
   },
   {
     "number": 21,
-    "url": "https://api.crossref.org/works/10.1175%2FJAS-D-17-0233.1?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1175%2FJAS-D-17-0233.1",
     "message": {
       "publisher": "American Meteorological Society",
       "issue": "1",
@@ -1219,7 +1219,7 @@
   },
   {
     "number": 22,
-    "url": "https://api.crossref.org/works/10.1007%2F978-3-662-49538-4_1?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1007%2F978-3-662-49538-4_1",
     "message": {
       "publisher": "Springer Berlin Heidelberg",
       "published-print": {
@@ -1276,7 +1276,7 @@
   },
   {
     "number": 23,
-    "url": "https://api.crossref.org/works/10.21105%2Fjoss.06442?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.21105%2Fjoss.06442",
     "message": {
       "publisher": "The Open Journal",
       "issue": "103",
@@ -1318,7 +1318,7 @@
   },
   {
     "number": 24,
-    "url": "https://api.crossref.org/works/10.1017%2F9781316148549?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1017%2F9781316148549",
     "message": {
       "publisher": "Cambridge University Press",
       "published-print": {
@@ -1372,7 +1372,7 @@
   },
   {
     "number": 25,
-    "url": "https://api.crossref.org/works/10.1080%2F00411458508211687?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1080%2F00411458508211687",
     "message": {
       "publisher": "Informa UK Limited",
       "issue": "4",
@@ -1425,7 +1425,7 @@
   },
   {
     "number": 26,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Facca79?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Facca79",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "1",
@@ -1484,7 +1484,7 @@
   },
   {
     "number": 27,
-    "url": "https://api.crossref.org/works/10.5194%2Fgmd-13-6501-2020?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.5194%2Fgmd-13-6501-2020",
     "message": {
       "publisher": "Copernicus GmbH",
       "issue": "12",
@@ -1530,7 +1530,7 @@
   },
   {
     "number": 28,
-    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2010.01.002?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2010.01.002",
     "message": {
       "publisher": "Elsevier BV",
       "issue": "11",
@@ -1570,7 +1570,7 @@
   },
   {
     "number": 29,
-    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2009.04.006?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2009.04.006",
     "message": {
       "publisher": "Elsevier BV",
       "issue": "17",
@@ -1614,7 +1614,7 @@
   },
   {
     "number": 30,
-    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F202039040?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F202039040",
     "message": {
       "publisher": "EDP Sciences",
       "published-print": {
@@ -1663,7 +1663,7 @@
   },
   {
     "number": 31,
-    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2014.11.006?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2014.11.006",
     "message": {
       "publisher": "Elsevier BV",
       "published-print": {
@@ -1702,7 +1702,7 @@
   },
   {
     "number": 32,
-    "url": "https://api.crossref.org/works/10.1093%2Fmnras%2Fstac680?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.1093%2Fmnras%2Fstac680",
     "message": {
       "publisher": "Oxford University Press (OUP)",
       "issue": "3",
@@ -1781,7 +1781,7 @@
   },
   {
     "number": 33,
-    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faad199?mailto=tianhaol%40umich.edu",
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faad199",
     "message": {
       "publisher": "American Astronomical Society",
       "issue": "2",

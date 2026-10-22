@@ -5,12 +5,12 @@ name: tech-report
 
 on:
   pull_request:
-    branches: [tech-report, "tianhao/pyharp-report-skeleton"]
+    branches: [tech-report]
     paths:
       - "doc/tech-report/**"
       - ".github/workflows/tech-report.yml"
   push:
-    branches: [tech-report, "tianhao/pyharp-report-skeleton"]
+    branches: [tech-report]
     paths:
       - "doc/tech-report/**"
       - ".github/workflows/tech-report.yml"
