@@ -1,0 +1,329 @@
+## Toon's error against converged DISORT (`solver: toon`) {#sec-ch05-toon-accuracy}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml); pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+sources: src/rtsolver/toon_mckay89.cpp, src/rtsolver/toon_mckay89_shortwave_impl.h,
+  src/rtsolver/toon_mckay89_longwave_impl.h, src/radiation/radiation_band.cpp, tests/test_toon.py
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+Toon's solver replaces the angular field by two hemispheric fluxes and solves the resulting pair of linear
+differential equations exactly in every homogeneous layer. Its fluxes therefore differ from the true ones for two
+separate reasons: the round-off of solving those equations, and the approximation of replacing many directions by
+two. This section measures both on the chapter's grid. The first is at round-off; the second is up to
+$8.7\times10^{-2}$ of the incident flux, with a median of $1.1\times10^{-3}$. The section closes with tolerances for
+pyharp's tests that follow from these numbers, and with one input on which the solver fails: a single-scattering
+albedo of exactly one.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Split Toon's flux error into numerical and approximation parts, @eq-ch05-toon-accuracy-split.
+
+**Data.** Toon and DISORT fluxes on the grid of @sec-ch05-reference.
+
+**Placement.** A measurement on the solver; nothing in pyharp runs it.
+
+**Activation.** `solver: toon` in the band YAML; `flags` for thermal options.
+
+**Guarantee / limits.** Round-off for $\omega < 1$; wrong at $\omega = 1$ exactly.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $e^{\mathrm{num}}$, $e^{\mathrm{app}}$, $e^{\mathrm{tot}}$ the numerical, approximation and total
+flux errors [-]; $r$ the fractional error [-]; $\mathsf M$ the $3\times3$ matrix of the shortwave system [-];
+$\mathbf v$ its state vector; $x$ the unknown upward flux at the top. The two-stream symbols $\gamma_1$ to
+$\gamma_4$, $\lambda$ and $\Gamma$, the scaled variables $\omega'$, $\tau'$, $g'$, and the margin $\delta\omega$ are
+those of the ch2 notation.
+
+These tolerances are proposed for `tests/test_toon.py` in place of the 20 % gate against 4-stream DISORT: 10 % on
+shortwave fluxes against DISORT at 64 streams, $10^{-5}$ on non-scattering thermal fluxes, 5 % on scattering thermal
+fluxes, and a new numerical gate of $10^{-12}$ against the exact two-stream solution. The Tests layer gives the
+measurement behind each.
+
+### Derivation
+
+**The equations Toon solves.** In each layer pyharp first applies the $\delta$-Eddington scaling, which moves the
+forward peak of the phase function into the direct beam [@reading06]:
+
+$$
+\begin{aligned}
+\omega' &= \frac{(1-g^2)\,\omega}{1-\omega g^2} \\
+\Delta\tau' &= (1-\omega g^2)\,\Delta\tau \\
+g' &= \frac{g}{1+g} ,
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-scaling}
+<!-- equation-check: eq-ch05-toon-accuracy-scaling check_ch05_toon_vs_disort.py [C1] -->
+<!-- equation-source: eq-ch05-toon-accuracy-scaling delta-Eddington scaling of Joseph et al. 1976 -->
+
+with $\Delta\tau$ [-] the layer optical thickness. It then uses the quadrature closure of Toon et al.
+[@reading02, Table 1, p. 16,289], with $\mu_0$ the cosine of the solar zenith angle:
+
+$$
+\begin{aligned}
+\gamma_1 &= \tfrac{\sqrt3}{2}\,\bigl(2 - \omega'(1+g')\bigr) \\
+\gamma_2 &= \tfrac{\sqrt3}{2}\,\omega'(1-g') \\
+\gamma_3 &= \tfrac12\,\bigl(1 - \sqrt3\, g'\mu_0\bigr) \\
+\gamma_4 &= 1 - \gamma_3 .
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-gamma}
+<!-- equation-check: eq-ch05-toon-accuracy-gamma check_ch05_toon_vs_disort.py [C1] -->
+<!-- equation-source: eq-ch05-toon-accuracy-gamma Toon et al. 1989, Table 1 -->
+
+@eq-ch05-toon-accuracy-scaling and @eq-ch05-toon-accuracy-gamma are computed in `toon_mckay89_shortwave`
+({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}). With $\tau'$ the scaled optical
+depth from the top, the diffuse fluxes then obey [@reading02, eqs. 11-14, p. 16,289]
+
+$$
+\begin{aligned}
+\frac{\mathrm{d}F^{+}}{\mathrm{d}\tau'} &= \gamma_1 F^{+} - \gamma_2 F^{-} - \gamma_3\,\omega' F_0\, e^{-\tau'/\mu_0} \\
+\frac{\mathrm{d}F^{-}}{\mathrm{d}\tau'} &= \gamma_2 F^{+} - \gamma_1 F^{-} + \gamma_4\,\omega' F_0\, e^{-\tau'/\mu_0} ,
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-ode}
+<!-- equation-check: eq-ch05-toon-accuracy-ode check_ch05_toon_vs_disort.py [C1] -->
+<!-- equation-source: eq-ch05-toon-accuracy-ode Toon et al. 1989, eqs. 11-14 -->
+
+with no diffuse radiation entering at the top, $F^{-}(0) = 0$, and a Lambertian surface at $\tau_0'$,
+$F^{+}(\tau_0') = A_s\bigl(F^{-}(\tau_0') + \mu_0 F_0\, e^{-\tau_0'/\mu_0}\bigr)$. pyharp solves
+@eq-ch05-toon-accuracy-ode layer by layer with exponentials $e^{\pm\lambda\tau'}$, $\lambda^2 = \gamma_1^2 - \gamma_2^2$,
+joined by a tridiagonal system (`toon_mckay89_shortwave`,
+{{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}); the solution method itself is the
+subject of the Toon chapter.
+
+**An independent exact solution.** For a homogeneous slab, collect $\mathbf v = (F^{+}, F^{-}, e^{-\tau'/\mu_0})$
+with $F_0 = 1$. @eq-ch05-toon-accuracy-ode becomes the linear system $\mathrm{d}\mathbf v/\mathrm{d}\tau' =
+\mathsf M\,\mathbf v$, with
+
+$$
+\mathsf M = \begin{pmatrix} \gamma_1 & -\gamma_2 & -\gamma_3\,\omega' \\ \gamma_2 & -\gamma_1 & \gamma_4\,\omega' \\ 0 & 0 & -1/\mu_0 \end{pmatrix} .
+$$
+
+Its solution from the top is $\mathbf v(\tau') = \exp(\mathsf M\tau')\,\mathbf v(0)$ with $\mathbf v(0) = (x, 0, 1)$,
+where $x$ is the unknown upward flux at the top. Write $\mathsf P = \exp(\mathsf M\tau_0')$. The surface condition
+is linear in $x$:
+
+$$
+\begin{aligned}
+P_{11}x + P_{13} &= A_s\,\bigl(P_{21}x + P_{23} + \mu_0 P_{33}\bigr) \\
+x &= -\frac{P_{13} - A_s P_{23} - A_s \mu_0 P_{33}}{P_{11} - A_s P_{21}} .
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-shoot}
+<!-- equation-check: eq-ch05-toon-accuracy-shoot check_ch05_toon_vs_disort.py [C1] -->
+
+Shooting from the top amplifies round-off by $e^{\lambda\tau_0'}$, which reaches $e^{35}$ on the grid, so the check
+evaluates @eq-ch05-toon-accuracy-shoot in 50-digit arithmetic (`exact_sw` in
+`derivation-checks/check_ch05_toon_vs_disort.py`); the result is exact to double precision.
+
+**The error split.** With $\hat F$ fluxes normalised by $F_{\mathrm{inc}}$ (@eq-ch05-reference-finc),
+
+$$
+\begin{aligned}
+e^{\mathrm{tot}} &= \hat F_{\mathrm{Toon}} - \hat F_{\mathrm{DISORT}} \\
+                 &= \bigl(\hat F_{\mathrm{Toon}} - \hat F_{\mathrm{exact}}\bigr) + \bigl(\hat F_{\mathrm{exact}} - \hat F_{\mathrm{DISORT}}\bigr) \\
+                 &= e^{\mathrm{num}} + e^{\mathrm{app}} ,
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-split}
+<!-- equation-check: eq-ch05-toon-accuracy-split check_ch05_toon_vs_disort.py [C3] -->
+
+where $\hat F_{\mathrm{exact}}$ solves @eq-ch05-toon-accuracy-ode exactly and $\hat F_{\mathrm{DISORT}}$ is the
+reference of @sec-ch05-reference. The reference's own error, below $1.05\times10^{-5}$ by @eq-ch05-reference-bound,
+is part of $e^{\mathrm{app}}$. Toon et al. judge accuracy by the fractional error relative to the exact value
+[@reading02, p. 16,294]; on fluxes of at least 1 % of the incident flux it is
+
+$$
+r = \frac{|e^{\mathrm{tot}}|}{|\hat F_{\mathrm{DISORT}}|} .
+$$ {#eq-ch05-toon-accuracy-frac}
+<!-- equation-check: eq-ch05-toon-accuracy-frac check_ch05_toon_vs_disort.py [C35] -->
+<!-- equation-source: eq-ch05-toon-accuracy-frac fractional error of Toon et al. 1989, p. 16,294 -->
+
+**Why $\omega = 1$ breaks the kernel.** At $\omega = 1$, @eq-ch05-toon-accuracy-scaling gives $\omega' = 1$ for any
+$g$, and @eq-ch05-toon-accuracy-gamma gives $\gamma_1 = \gamma_2 = \tfrac{\sqrt3}{2}(1-g') \equiv \gamma$. Then
+
+$$
+\begin{aligned}
+\lambda^2 &= \gamma_1^2 - \gamma_2^2 = 0 \\
+\Gamma &= \frac{\gamma_1 - \lambda}{\gamma_2} = 1 .
+\end{aligned}
+$$ {#eq-ch05-toon-accuracy-degenerate}
+<!-- equation-check: eq-ch05-toon-accuracy-degenerate check_ch05_toon_vs_disort.py [C2] -->
+
+The homogeneous part of @eq-ch05-toon-accuracy-ode becomes $\mathrm{d}F^{\pm}/\mathrm{d}\tau' = \gamma\,(F^{+} -
+F^{-})$. Subtracting the two lines gives $\mathrm{d}(F^{+} - F^{-})/\mathrm{d}\tau' = 0$, so its general solution is
+
+$$
+\begin{aligned}
+F^{+} - F^{-} &= c \\
+F^{-} &= b + \gamma c\,\tau' ,
+\end{aligned}
+$$
+
+with two constants $b$ and $c$. The kernel's basis is $F^{+} = k_1 e^{\lambda\tau'} + \Gamma k_2 e^{-\lambda\tau'}$,
+$F^{-} = \Gamma k_1 e^{\lambda\tau'} + k_2 e^{-\lambda\tau'}$ [@reading02, eqs. 19-20, p. 16,290]. At
+$\lambda = 0$ and $\Gamma = 1$ both terms are the constant $k_1 + k_2$, so the basis spans only $c = 0$: it has lost
+the mode that carries a net diffuse flux. The two boundary conditions can then not both be met. Toon et al. avoid
+the limit by taking $1 - \omega_0$ equal to ten times the machine precision [@reading02, p. 16,291];
+`RadiationBandImpl::forward` clamps $\omega \le 1 - \delta\omega$ with $\delta\omega = 10^{-12}$ in double and
+$10^{-6}$ in single precision ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), but the
+kernel itself applies no margin. That the lost mode is the cause is read from the code; the measured symptom in the
+Tests layer, equal upward and downward fluxes at every level, is what it predicts.
+
+What is exact and what is truncated: @eq-ch05-toon-accuracy-shoot is exact; Toon's kernel is exact for
+@eq-ch05-toon-accuracy-ode up to round-off for $\omega < 1$; the truncation is the two-stream closure, which
+$e^{\mathrm{app}}$ measures. The check is `check_ch05_toon_vs_disort.py` (Tests layer).
+
+**Thermal emission.** Toon's thermal kernel does not solve a two-stream equation for the fluxes it returns: it
+uses the hemispheric-mean two-stream solution only for the scattering source and integrates the emergent radiance
+over five Gauss directions [@reading02, eqs. 52-56, p. 16,293]. Its numerical part is therefore bounded in two
+ways that need no exact solution: a homogeneous isothermal slab gives the same fluxes as one layer or as sixteen,
+and its band Planck integral agrees with DISORT's on an opaque slab. Everything else in its error is approximation.
+
+### Numerical method
+
+Each column of the grid of @sec-ch05-reference is solved four ways: Toon's shortwave kernel; the exact solution
+@eq-ch05-toon-accuracy-shoot at the levels $\tau' = 0$, $\tau_0'/2$, $\tau_0'$; DISORT at 64 streams (beam); and,
+for thermal emission, Toon with `hard_surface` and with `hard_surface,delta_eddington_lw` against DISORT at
+32 streams. Statistics are taken over all levels and both channels, per regime of optical depth and single-scattering
+albedo.
+
+```{python}
+#| label: fig-ch05-toon-accuracy-split
+#| fig-cap: "Toon's shortwave flux error on the chapter grid, by regime of optical depth (thin: tau0 up to 0.1, mid: 0.3 to 1, thick: 3 and 10) and single-scattering albedo (low: up to 0.6; 0.9; high: 0.99 and 0.999). Vermillion bars: largest approximation error; hatched green bars: largest numerical error; open circles: median total error; all divided by the incident flux. The numerical part sits at 1e-15 in every regime, so the whole error is the two-stream approximation."
+#| fig-alt: "Bar chart on a log axis from 1e-17 to 1. In each of nine regimes a tall bar near 3e-2 to 9e-2 for the approximation error, a short hatched bar near 1e-15 for the numerical error, and a circle between 1e-4 and 1e-2 for the median total error."
+#| echo: false
+from pyharp_report.ch05.figures.fig_toon_error_split import make_fig
+make_fig()
+```
+
+@fig-ch05-toon-accuracy-split shows the split for the shortwave.
+
+| regime | $\omega \le 0.6$ | $\omega = 0.9$ | $\omega = 0.99$ to $0.999$ |
+|---|---|---|---|
+| $\tau_0 \le 0.1$ | $2.7\times10^{-2}$ / $1.5\times10^{-4}$ | $3.8\times10^{-2}$ / $2.6\times10^{-4}$ | $4.1\times10^{-2}$ / $2.6\times10^{-4}$ |
+| $0.3 \le \tau_0 \le 1$ | $4.4\times10^{-2}$ / $3.6\times10^{-3}$ | $7.4\times10^{-2}$ / $3.7\times10^{-3}$ | $8.7\times10^{-2}$ / $3.4\times10^{-3}$ |
+| $\tau_0 \ge 3$ | $2.6\times10^{-2}$ / $2.7\times10^{-4}$ | $5.2\times10^{-2}$ / $9.6\times10^{-3}$ | $6.4\times10^{-2}$ / $7.6\times10^{-3}$ |
+
+: Toon's shortwave error by regime, as a fraction of the incident flux (largest / median over all levels and both channels). {#tbl-ch05-toon-accuracy-regimes}
+
+The numbers behind each cell are in the Tests layer and its footnote.
+
+### Code
+
+@tbl-ch05-toon-accuracy-code lists the code the measurement runs through.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| shortwave kernel | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `toon_mckay89_shortwave` | `solver: toon` |
+| thermal kernel | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `toon_mckay89_longwave` | `flags: planck` |
+| boundary conditions, channels | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `ToonMcKay89Impl::forward` | always |
+| flag parsing | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::has_flag repo=pyharp >}} | `has_flag` | `flags` |
+| $\omega$ margin $\delta\omega$ | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `RadiationBandImpl::forward` | always in a band |
+
+: Code map of the Toon accuracy measurement. {#tbl-ch05-toon-accuracy-code}
+
+1. `ToonMcKay89Impl::forward` checks the shapes of the properties and of `umu0`, `fbeam` and `albedo`, pads the
+   properties to three channels, and calls the shortwave kernel, or the thermal kernel when the `planck` flag is set
+   ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}). The thermal path refuses a call without
+   `temf`.
+2. `toon_mckay89_shortwave` applies @eq-ch05-toon-accuracy-scaling and @eq-ch05-toon-accuracy-gamma, moves $\mu_0$
+   off the resonance $\lambda\mu_0 = 1$ by $\sqrt{\epsilon_{\mathrm{mach}}}$ where needed, and solves the tridiagonal
+   system ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+3. `has_flag` reads the comma-separated `flags` without regard to case or spaces
+   ({{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::has_flag repo=pyharp >}}); an unknown flag is ignored, not
+   refused.
+
+### Tests
+
+@tbl-ch05-toon-accuracy-tests lists the checks and the pyharp tests.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch05_toon_vs_disort.py` [C1] | $\max|e^{\mathrm{num}}|$, shortwave, $\omega < 1$ | $10^{-12}$ | 100 times the measured round-off, $2.7\times10^{-15}$ |
+| `check_ch05_toon_vs_disort.py` [C61]-[C63] | thermal multi-layer invariance | $10^{-10}$ | round-off of the tridiagonal solve; measured $2.9\times10^{-13}$ |
+| `check_ch05_toon_vs_disort.py` [C64]-[C65] | thermal Planck integrals, Toon against DISORT | $10^{-5}$ | measured $4.8\times10^{-7}$ |
+| `check_ch05_gs85.py` [C14] | Toon against Toon et al. Table 4 | $6\times10^{-4}$ | half-unit of their third decimal |
+| `tests/test_toon.py` (pytest) | `test_toon_sw_vs_disort`: surface flux ratio to 4-stream DISORT | 0.8 to 1.2 | not stated; proposal below |
+| `tests/test_toon.py` (pytest) | `test_toon_lw_isothermal`, `test_toon_lw_isothermal_scattering` | 20 % | not stated; proposal below |
+
+: Tests of Toon's accuracy. {#tbl-ch05-toon-accuracy-tests}
+
+**Numerical part.** Over the 720 shortwave columns with $\omega < 1$, $\max|e^{\mathrm{num}}| = 2.7\times10^{-15}$
+of the incident flux, and the largest fractional numerical error is $1.0\times10^{-13}$. Toon's kernel solves
+@eq-ch05-toon-accuracy-ode to round-off, so $e^{\mathrm{tot}} = e^{\mathrm{app}}$ to every digit shown below. The
+thermal kernel's multi-layer invariance holds to $2.9\times10^{-13}$ of $\pi B$, and its Planck integrals agree with
+DISORT's to $4.8\times10^{-7}$ (300 K) and $4.2\times10^{-8}$ (200 K).[^ch05-toon-run]
+
+**Approximation part, shortwave.** Over all fluxes with $\omega < 1$ the largest error is $8.65\times10^{-2}$ of
+the incident flux and the median $1.06\times10^{-3}$; the fractional error of @eq-ch05-toon-accuracy-frac has median
+$6.6\times10^{-3}$ and maximum 0.49. By regime the errors are those of @tbl-ch05-toon-accuracy-regimes.
+
+At $\mu_0 = 0.2$ the median is $2.9\times10^{-3}$, at
+$\mu_0 \ge 0.5$ it is $6.8\times10^{-4}$. For the boundary quantities the largest errors are $8.6\times10^{-2}$ in
+reflectance, $8.7\times10^{-2}$ in transmitted flux and $5.5\times10^{-2}$ in column absorption. Of the 3569 fluxes
+of at least 1 % of the incident flux, 461 have $r > 10\,\%$: 344 of them are upward fluxes and 243 are at
+$\mu_0 = 0.2$. The largest, $r = 0.49$, is the mid-level upward flux of $0.018$ of the incident flux at
+$\tau_0 = 10$, $\omega = 0.9$, $g = 0.85$, $\mu_0 = 0.2$.[^ch05-toon-run]
+
+**Approximation part, thermal.** With `hard_surface`, the largest error is $4.8\times10^{-2}$ of $\pi B(300\,K)$ and
+the median $6.5\times10^{-4}$; adding `delta_eddington_lw` lowers them to $3.5\times10^{-2}$ and $5.6\times10^{-4}$.
+Without scattering the error is below $2\times10^{-4}$ for all optical depths. The largest error is in thick slabs
+with $\omega = 0.9$ to $0.99$, where the fractional error reaches 0.12 (0.10 with `delta_eddington_lw`).[^ch05-toon-run]
+
+**Against Toon et al.** On the five Garcia-Siewert problems, with the asymmetry parameters Toon et al. used (0.794
+and 0.848) and $\omega = 1$ run at $1 - 10^{-12}$, pyharp reproduces the approximate reflected and diffusely
+transmitted fluxes of their Table 4 [@reading02, p. 16,295] to every printed digit: the largest difference is
+$3.5\times10^{-4}$. With $g = \chi_1$ of the benchmark moment table, Toon's errors against the exact Table 22 values
+are 0.1 % to 8.6 %, except the diffuse transmission of the thick absorbing cloud (problem 5, $4.7\times10^{-7}$ of
+the incident flux), which is off by 78 %.[^ch05-toon-gs] Toon et al. state that the errors "are typically less than
+10 % unless the flux or heating rate is 1 % or less" of the incident flux [@reading02, p. 16,296]. On this grid
+that holds for the median, not for every flux: 13 % of the fluxes above 1 % of the incident flux have errors above
+10 %, almost all small upward fluxes at low sun and strong forward scattering.
+
+**Tolerances for `tests/test_toon.py`.** Measured on the cases those tests run:[^ch05-toon-run]
+
+- `test_toon_sw_vs_disort`: measured 9.2 % against 4 streams and 8.4 % against the reference; proposed 10 %,
+  against DISORT at 64 streams, which covers 8.4 % while 4 streams is not converged.
+- `test_toon_lw_isothermal`: measured $4.8\times10^{-7}$ against both; proposed $10^{-5}$, since only the Planck
+  integrals differ.
+- `test_toon_lw_isothermal_scattering`: measured 3.4 % against 4 streams and 3.5 % against the reference; proposed
+  5 %.
+- New, a numerical gate: measured $2.7\times10^{-15}$; proposed $10^{-12}$, 100 times round-off.
+
+The thermal tolerance of 20 % hides any regression five orders of
+magnitude below it. Only the numerical gate can see an implementation error smaller than the two-stream error.
+
+All Toon measurements run on the CPU in double precision; CUDA is the subject of the GPU chapter.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **Candidate defect: $\omega = 1$ exactly in a direct call.** `ToonMcKay89` called directly with $\omega = 1$
+  returns equal upward and downward fluxes at every level. On the grid the error reaches 1.37 of the incident
+  flux, and on the thick conservative cloud (problem 4) the diffuse transmission is 100 % off. A band run through
+  `RadiationBandImpl::forward` is not affected, because it clamps $\omega$ first
+  ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}). The cause, the lost mode of
+  @eq-ch05-toon-accuracy-degenerate, is read from the code. This is one run; it stays a candidate until a second, independent run agrees.[^ch05-toon-run]
+- **Small upward fluxes at low sun.** Fractional errors reach 49 % on upward fluxes of 1 % to 5 % of the incident
+  flux at $\mu_0 = 0.2$ and $g = 0.85$; tolerances on such fluxes must be absolute, not relative.
+- **Reflecting surfaces.** Over a Lambertian surface Toon carries the reflected field with two streams and misses
+  the exact upward flux by $6.2\times10^{-3}$ of the incident flux even without scattering (@sec-ch05-analytic), as
+  Toon et al. note [@reading02, p. 16,291].
+- **Not measured.** Inhomogeneous columns, the `zenith_correction` flag, `top_emission_flag` other than 0, thermal
+  runs without `hard_surface` against DISORT, and single precision.
+:::
+
+[^ch05-toon-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the grid of `derivation-checks/ch05_common.py` and the cases of
+`tests/test_toon.py` at the pin; run: `python3 derivation-checks/check_ch05_toon_vs_disort.py`, CPU, double;
+Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, mpmath 1.3.0 (50 digits); pyharp built by `derivation-checks/ch05_setup.sh` (gcc 11.5.0,
+nvcc 12.6 with its CUDA-architecture patch; AMD Ryzen 9 7950X, GTX 1080 Ti); all ch05 outputs regenerate with
+`derivation-checks/ch05_run.sh <venv>`;
+output `derivation-checks/check_ch05_toon_vs_disort.out`, lines [C1]-[C71]; the $\omega = 1$ reflectance from
+`derivation-checks/check_ch05_analytic.out`, line [C30].]
+
+[^ch05-toon-gs]: [sha and run record as in the footnote above; deck: Garcia and Siewert 1985, Tables 21-22, and
+Toon et al. 1989, Table 4, in `derivation-checks/check_ch05_gs85.py`; run:
+`python3 derivation-checks/check_ch05_gs85.py`, CPU, double; output `derivation-checks/check_ch05_gs85.out`,
+lines [C9]-[C20].]
