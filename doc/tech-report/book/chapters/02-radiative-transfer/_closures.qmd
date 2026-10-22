@@ -1,0 +1,276 @@
+## Two-stream closures: the Meador-Weaver coefficients (Toon solver, `flags: planck`) {#sec-ch02-closures}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89_shortwave_impl.h, src/rtsolver/toon_mckay89_longwave_impl.h,
+  src/rtsolver/toon_mckay89.hpp, src/rtsolver/toon_mckay89.cpp, src/radiation/radiation_band.cpp
+status: draft
+author: Isaac Malsky
+reviewer: requested
+-->
+
+### Summary
+
+A two-stream method keeps only the upward and downward fluxes of a layer and drops the angular detail of the
+intensity. The equations for the two fluxes are exact moments of the transfer equation, but they contain two angular
+integrals that the fluxes alone do not determine. A *closure* fixes them with an assumed angular shape of the
+intensity. Every closure then gives the same pair of linear equations with four coefficients $\gamma_1$ to
+$\gamma_4$ [@reading07]. pyharp's Toon solver uses the quadrature closure for the shortwave path and the hemispheric
+mean for the longwave path [@reading02].
+
+::: {.callout-note title="At a glance"}
+**Purpose.** The coefficients of @eq-ch02-closures-ode for each closure.
+
+**Data.** Per layer: $\omega$, $g$ [-] and, for the beam, $\mu_0$ [-]; out: $\gamma_1$ to $\gamma_4$ [-].
+
+**Placement.** Inside the layer loop of the Toon kernels, after delta scaling (@sec-ch02-delta-scaling).
+
+**Activation.** `solver: toon`; `flags: planck` selects the longwave path; default shortwave.
+
+**Guarantee / limits.** Exact algebra; the two-stream error itself is not bounded here.
+
+**Evidence.** See the Tests layer.
+:::
+
+Local symbols: $\omega$, single-scattering albedo [-]; $g$, asymmetry parameter [-];
+$\mu_0$, cosine of the beam zenith angle [-]; $F_0$, beam flux through a surface normal to the beam
+[$\mathrm{W\,m^{-2}}$]; $F^{+}$, $F^{-}$, upward and downward diffuse fluxes [$\mathrm{W\,m^{-2}}$]; $I(\tau,\mu)$,
+azimuth-integrated diffuse intensity [$\mathrm{W\,m^{-2}}$]; $P(\mu,\mu')$, azimuth-averaged phase function, normalised
+so that $\tfrac12\int_{-1}^{1}P\,\mathrm{d}\mu' = 1$ [-]; $\gamma_1$ to $\gamma_4$, two-stream coefficients [-];
+$\mu_1$, closure angle cosine [-]; $\beta_0$, $\beta_1$, $\beta$, backscattered fractions [-]; $\lambda$, eigenvalue
+[-]; $\Gamma$, coupling ratio [-]; $a$, hemispheric-mean auxiliary [-]. Here $\mu$ is positive upward and $\tau$
+increases downward from the top.
+
+The default, without `planck`, is the shortwave path: Toon's quadrature row on delta-scaled inputs, the
+"delta-quadrature" of Toon Table 2. With `planck` the longwave kernel uses the hemispheric-mean row and no beam.
+Aliases: Coakley-Chylek models 1 and 2 (delta-function and hemispheric-constant rows), Shettle-Weinman (Eddington),
+Liou (quadrature).
+
+### Derivation
+
+**Step 1: the exact flux equations.** For the diffuse intensity, integrated over azimuth, the transfer equation
+with a collimated beam incident in direction $-\mu_0$ is Meador and Weaver's eq. (7), written with $\omega$ outside
+the phase function:
+
+$$
+\mu\frac{\partial I(\tau,\mu)}{\partial\tau} = I(\tau,\mu)
+  - \frac{\omega}{2}\int_{-1}^{1} P(\mu,\mu')\,I(\tau,\mu')\,\mathrm{d}\mu'
+  - \frac{\omega}{2} F_0\, P(\mu,-\mu_0)\, e^{-\tau/\mu_0} .
+$$
+
+Integrating it over $0 < \mu \le 1$, and over $-1 \le \mu < 0$ after replacing $\mu$ by $-\mu$, with
+$F^{\pm}(\tau) = \int_0^1 \mu\, I(\tau,\pm\mu)\,\mathrm{d}\mu$ and the reciprocity
+$P(\mu,-\mu_0) = P(\mu_0,-\mu)$, gives Meador and Weaver's eqs. (10) and (11) in this report's notation:
+
+$$
+\begin{aligned}
+\frac{\mathrm{d}F^{+}}{\mathrm{d}\tau} &= \int_0^1 I(\tau,\mu)\,\mathrm{d}\mu
+  - \frac{\omega}{2}\int_0^1\!\!\int_{-1}^{1} P(\mu,\mu')\,I(\tau,\mu')\,\mathrm{d}\mu'\,\mathrm{d}\mu
+  - \omega F_0 \beta_0\, e^{-\tau/\mu_0} , \\
+\frac{\mathrm{d}F^{-}}{\mathrm{d}\tau} &= -\int_0^1 I(\tau,-\mu)\,\mathrm{d}\mu
+  + \frac{\omega}{2}\int_0^1\!\!\int_{-1}^{1} P(-\mu,\mu')\,I(\tau,\mu')\,\mathrm{d}\mu'\,\mathrm{d}\mu
+  + \omega F_0 (1-\beta_0)\, e^{-\tau/\mu_0} ,
+\end{aligned}
+$$ {#eq-ch02-closures-moments}
+<!-- equation-check: eq-ch02-closures-moments check_ch02_closures.py [C1] -->
+
+with the backscattered fraction of the beam $\beta_0 = \tfrac12\int_0^1 P(\mu_0,-\mu')\,\mathrm{d}\mu'$. Meador and
+Weaver's $p$ contains $\omega$ (their eq. 2); here $\omega$ is written out. No approximation has been made yet.
+
+**Step 2: the closure.** Each integral over $I$ in @eq-ch02-closures-moments is a linear functional of the
+intensity. An assumed shape $I(\tau,\pm\mu) = a_{\pm}(\mu)F^{+} + b_{\pm}(\mu)F^{-}$ that reproduces the definition of
+$F^{\pm}$ turns the system into
+
+$$
+\begin{aligned}
+\frac{\mathrm{d}F^{+}}{\mathrm{d}\tau} &= \gamma_1 F^{+} - \gamma_2 F^{-} - \gamma_3\,\omega F_0\, e^{-\tau/\mu_0} , \\
+\frac{\mathrm{d}F^{-}}{\mathrm{d}\tau} &= \gamma_2 F^{+} - \gamma_1 F^{-} + \gamma_4\,\omega F_0\, e^{-\tau/\mu_0} ,
+\end{aligned}
+$$ {#eq-ch02-closures-ode}
+<!-- equation-check: eq-ch02-closures-ode check_ch02_closures.py [C21] -->
+
+which is Toon's eqs. (11) to (14) with $F_0 = \pi F_s$. @eq-ch02-closures-ode is solved per layer in
+`toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}});
+in the thermal form, with the beam terms replaced by the Planck source of @sec-ch02-conservation, in
+`toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}).
+The same coefficient must multiply $F^{+}$ in the upward equation and $F^{-}$ in the downward one; the check confirms
+this symmetry for every closure below.
+
+**Step 3: Eddington.** The Eddington shape is $I(\tau,\pm\mu) = \tfrac12[(2\pm3\mu)F^{+} + (2\mp3\mu)F^{-}]$
+(Meador-Weaver eq. 30), with $P$ truncated after its $l = 1$ Legendre term, $P(\mu,\mu') = 1 + 3g\mu\mu'$. The two
+integrals of @eq-ch02-closures-moments become
+
+$$
+\begin{aligned}
+\int_0^1 I(\tau,\mu)\,\mathrm{d}\mu &= \tfrac14\left(7F^{+} + F^{-}\right) , \\
+\frac12\int_0^1\!\!\int_{-1}^{1} P\,I\,\mathrm{d}\mu'\,\mathrm{d}\mu &=
+  \tfrac14\left[(4+3g)F^{+} + (4-3g)F^{-}\right] ,
+\end{aligned}
+$$
+
+and comparison with @eq-ch02-closures-ode gives
+
+$$
+\begin{aligned}
+\gamma_1 &= \tfrac14\left[7 - \omega(4+3g)\right] , \\
+\gamma_2 &= -\tfrac14\left[1 - \omega(4-3g)\right] , \\
+\gamma_3 &= \beta_0 = \tfrac14\left(2 - 3g\mu_0\right) ,
+\end{aligned}
+$$ {#eq-ch02-closures-eddington}
+<!-- equation-check: eq-ch02-closures-eddington check_ch02_closures.py [C2] -->
+<!-- equation-source: eq-ch02-closures-eddington reference row, not evaluated by the Toon kernels -->
+
+and $\gamma_4 = 1 - \gamma_3$, the Eddington rows of Meador-Weaver Table 1 and Toon Table 1. Shettle and Weinman's
+method is this row (Toon p. 16,290; Meador-Weaver p. 633).[^ch02-closures-papers]
+
+**Step 4: quadrature.** The quadrature shape puts all the intensity at one angle,
+$I(\tau,\pm\mu) = F^{\pm}\,\delta(\mu - \mu_1)/\mu_1$ with $\mu_1 = 3^{-1/2}$. Then
+$\int_0^1 I\,\mathrm{d}\mu = F^{\pm}/\mu_1$, and the scattering integral becomes
+$(\omega/\mu_1)[(1-\beta_1)F^{+} + \beta_1F^{-}]$ with $\beta_1 = \tfrac12\int_0^1 P(\mu_1,-\mu')\,\mathrm{d}\mu'$
+(Meador-Weaver eqs. 34, 37, 38). Liou's rule evaluates that integral and $\beta_0$ with the same single point,
+$\beta_1 = \tfrac12 P(\mu_1,-\mu_1) = \tfrac12(1 - 3g\mu_1^2) = \tfrac12(1-g)$, so
+
+$$
+\begin{aligned}
+\gamma_1 &= \frac{\sqrt3}{2}\left[2 - \omega(1+g)\right] , \\
+\gamma_2 &= \frac{\sqrt3}{2}\,\omega(1-g) , \\
+\gamma_3 &= \tfrac12\left(1 - \sqrt3\, g\mu_0\right) ,
+\end{aligned}
+$$ {#eq-ch02-closures-quadrature}
+<!-- equation-check: eq-ch02-closures-quadrature check_ch02_toon_coefficients.py [C4] -->
+
+with $\gamma_4 = \tfrac12(1 + \sqrt3\, g\mu_0)$ from the same rule (Meador-Weaver eq. 42).
+@eq-ch02-closures-quadrature is computed as `g1`, `g2`, `g3` and `g4` in `toon_mckay89_shortwave`
+({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}), on the delta-scaled
+$\omega$ and $g$.
+
+**Step 5: hemispheric mean.** The hemispheric-mean shape is constant in each hemisphere, $I(\tau,\pm\mu) = 2F^{\pm}$,
+and the phase function is $1+g$ in the forward hemisphere and $1-g$ in the backward one (Toon Table 1, footnote). The
+backscattered fraction is then $\beta = \tfrac12(1-g)$, which in Meador and Weaver's hemispheric-constant row
+$\gamma_1 = 2[1 - \omega(1-\beta)]$, $\gamma_2 = 2\omega\beta$ gives
+
+$$
+\begin{aligned}
+\gamma_1 &= 2 - \omega(1+g) , \\
+\gamma_2 &= \omega(1-g) .
+\end{aligned}
+$$ {#eq-ch02-closures-hemispheric}
+<!-- equation-check: eq-ch02-closures-hemispheric check_ch02_closures.py [C11] -->
+
+@eq-ch02-closures-hemispheric is the row of `toon_mckay89_longwave`
+({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}). Toon gives no $\gamma_3$
+for this row: the longwave path has no beam. The kernel does not form $\gamma_1$ and $\gamma_2$.
+It writes the eigenvalue and the coupling ratio of @sec-ch02-conservation through
+$a = [(1-\omega)/(1-\omega g)]^{1/2}$. From @eq-ch02-closures-hemispheric, $\gamma_1 - \gamma_2 = 2(1-\omega)$ and
+$\gamma_1 + \gamma_2 = 2(1-\omega g)$. With $u = 1 - \omega g$ this is $\gamma_1 = u(1+a^2)$ and
+$\gamma_2 = u(1-a^2)$, so
+
+$$
+\begin{aligned}
+\lambda &= \left(\gamma_1^2 - \gamma_2^2\right)^{1/2} = 2a(1-\omega g) , \\
+\Gamma &= \frac{\gamma_1 - \lambda}{\gamma_2} = \frac{(1-a)^2}{(1-a)(1+a)} = \frac{1-a}{1+a} ,
+\end{aligned}
+$$ {#eq-ch02-closures-hm-a}
+<!-- equation-check: eq-ch02-closures-hm-a check_ch02_toon_coefficients.py [C15] -->
+
+which `toon_mckay89_longwave` computes as `alp`, `lam` and `gam`
+({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}). The kernel's `term` is
+$1/(\gamma_1+\gamma_2)$ of Toon's eq. (27), and its source-function factors `g`, `h`, `xj`, `xk` equal Toon's Table 3
+$G$, $H$, $J$, $K$ once Toon's $Y_1 \pm Y_2$ are read as $\pi$ times the kernel's `xk1`, `xk2`.
+
+**Step 6: the other named closures.** The same procedure with the true phase function kept in $\beta_0$, $\beta_1$
+or $\beta$ gives the remaining Meador-Weaver rows exactly: modified Eddington, modified quadrature, hemispheric
+constant (Coakley-Chylek model 2, Meador-Weaver p. 637), delta function ($\mu_1 = \mu_0$, $\beta_1 = \beta_0$;
+Coakley-Chylek model 1, p. 638) and the hybrid of their eq. (58). The closures of King and Harshvardhan and of
+Wiscombe and Grams are named in the outline but are not reproduced: neither is defined in a paper read for this
+chapter.
+
+**Step 7: discrete ordinates with two streams.** The discrete-ordinate equations of Stamnes et al. [@reading01]
+with $N = 1$ use the double-Gauss node $\mu_1 = \tfrac12$ with weight 1. The two coupling matrices of their eq. (7b)
+are then numbers, equal to $-\gamma_1$ and $\gamma_2$; their eigenvalue $k$ is $\lambda$, and the ratio of the
+eigenvector components is $\Gamma$. The coefficients are
+
+$$
+\begin{aligned}
+\gamma_1 &= 2 - \omega\left(1 + \tfrac34 g\right) , \\
+\gamma_2 &= \omega\left(1 - \tfrac34 g\right) ,
+\end{aligned}
+$$ {#eq-ch02-closures-nstr2}
+<!-- equation-check: eq-ch02-closures-nstr2 check_ch02_closures.py [C20] -->
+<!-- equation-source: eq-ch02-closures-nstr2 DISORT with two streams, not evaluated by the Toon kernels -->
+
+which is Meador-Weaver eqs. (37)-(38) with $\mu_1 = \tfrac12$ and $\beta_1 = \tfrac12 - \tfrac38 g$. Each differs from
+@eq-ch02-closures-hemispheric by $\omega g/4$: DISORT with two streams is not the hemispheric mean unless $g = 0$.
+
+**What is exact.** @eq-ch02-closures-moments is exact. The closure is the only approximation, and its error is a
+property of the radiation field, not a power of a step size. Every coefficient above follows from its ansatz without
+further approximation, and every coefficient the Toon kernels evaluate equals its table entry identically. The check
+is `derivation-checks/check_ch02_closures.py` (the closures) with `derivation-checks/check_ch02_toon_coefficients.py`
+(the code).
+
+### Numerical method
+
+The closure has no discretisation of its own. Its coefficients are constants per layer, spectral point and column,
+evaluated in closed form in the layer loop of each Toon kernel, with the round-off of a few multiplications. The
+exception is $\omega = 1$, where $\lambda$ is a difference of equal numbers (@sec-ch02-conservation). The figure of this scheme is not provided: its module is not written yet.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| shortwave coefficients | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `g1`..`g4`, `lam`, `gam` | always |
+| longwave coefficients | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `alp`, `lam`, `gam`, `term` | `planck` |
+| path selection | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `options->planck()` | `planck` |
+| flag | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::planck repo=pyharp >}} | `has_flag("planck")` | `flags` |
+| YAML | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `flags`, `toon` | `solver: toon` |
+
+: Code map of the two-stream closures. {#tbl-ch02-closures-code}
+
+1. `RadiationBandOptionsImpl::from_yaml` ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}})
+   copies the band's `flags` for `solver: toon`; a `toon:` block may set them again.
+2. `ToonMcKay89OptionsImpl::planck` ({{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::planck repo=pyharp >}})
+   is true when `flags` contains `planck`.
+3. `ToonMcKay89Impl::forward` ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) picks
+   the kernel; the longwave path requires level temperatures.
+4. `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}})
+   forms @eq-ch02-closures-quadrature per layer; `g2` exactly 0 becomes `1e-10`.
+5. `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}})
+   forms @eq-ch02-closures-hm-a per layer.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_toon.release` | `ToonConfig.planck_flag_controls_thermal_emission`: no beam gives zero shortwave flux; `planck` gives nonzero flux | `allclose` defaults | the test |
+| check (`check_ch02_closures.py`) | every printed row from its ansatz (`[C1]`-`[C10]`); family relations (`[C11]`-`[C15]`); a negative control (`[C16]`); the two-stream discrete ordinates (`[C17]`-`[C20]`) | exact | symbolic difference is 0 |
+| check (`check_ch02_toon_coefficients.py`) | the kernels' coefficients equal Toon's Table 1, eqs. (21)-(24), (27) and Table 3 (`[C4]`-`[C23]`) | exact | symbolic difference is 0 |
+
+: Tests of the two-stream closures. {#tbl-ch02-closures-tests}
+
+All 22 claims of the closure check and all 25 of the code check pass.[^ch02-closures-run] The checks are symbolic and
+device independent. The pyharp test was read at the pin, not run; no pyharp test asserts a two-stream coefficient
+(`DeviceTest.simple_toon_mckay89` runs both paths but asserts nothing).
+
+### Limits
+
+- The two-stream approximation error is not bounded in this section; the solver-comparison chapter measures it.
+- King-Harshvardhan and Wiscombe-Grams closures: not provided, because their papers were not read for this chapter.
+- The longwave path has no beam: `toon_mckay89_longwave` takes no beam input, so a nonzero `fbeam` on a `planck`
+  band has no effect (from reading `ToonMcKay89Impl::forward`, not run).
+- A two-stream DISORT run (@eq-ch02-closures-nstr2) is not a substitute for the hemispheric mean.
+
+[^ch02-closures-papers]: Source: Meador and Weaver [@reading07] Table 1 (p. 633), eqs. (30)-(47) and (58); Toon et
+    al. [@reading02] Table 1 (p. 16,289), eqs. (11)-(27) and Table 3 (p. 16,293); Stamnes et al. [@reading01] eqs.
+    (6b), (7a)-(8e), p. 2503-2504. Papers identified through Meador and Weaver and not read here, with their
+    Crossref-verified DOIs: Coakley and Chylek 1975, `doi:10.1175/1520-0469(1975)032<0409:ttsair>2.0.co;2`; Shettle and
+    Weinman 1970, `doi:10.1175/1520-0469(1970)027<1048:ttosit>2.0.co;2`; Liou 1974,
+    `doi:10.1175/1520-0469(1974)031<1473:atsafs>2.0.co;2`. Named in the outline and not reproduced: King and Harshvardhan
+    1986, `doi:10.1175/1520-0469(1986)043<0784:caosms>2.0.co;2`; Wiscombe and Grams 1976,
+    `doi:10.1175/1520-0469(1976)033<2440:tbfits>2.0.co;2`.
+
+[^ch02-closures-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck:
+    `derivation-checks/check_ch02_closures.py` and `derivation-checks/check_ch02_toon_coefficients.py`, all claims;
+    run: `python3 derivation-checks/check_ch02_closures.py`, then
+    `python3 derivation-checks/check_ch02_toon_coefficients.py`, CPU, exact symbolic arithmetic; Python 3.13.15,
+    sympy 1.14.0, mpmath 1.3.0, numpy 2.5.4]. Outputs: `derivation-checks/check_ch02_closures.out`,
+    `derivation-checks/check_ch02_toon_coefficients.out`.
