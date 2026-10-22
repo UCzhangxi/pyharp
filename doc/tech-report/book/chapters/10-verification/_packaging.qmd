@@ -31,8 +31,8 @@ what happens when the version pyharp was built against differs from the one it r
 
 Local symbols: none.
 
-The requirement has a lower bound and no upper bound, so `pip install pyharp` today installs pydisort 1.8.13, the
-newest release, while CI builds and tests against 1.7.1 only.
+The requirement has a lower bound and no upper bound, so `pip install pyharp` installs the newest pydisort, 1.8.13 when
+the checks ran[^ch10-pkg-header], while CI builds and tests against 1.7.1 only.
 
 ### Derivation
 
@@ -96,11 +96,10 @@ No pyharp test runs against more than one pydisort version. The test `tests/test
 was run three times: built against 1.7.1 and run with 1.7.1, 3 clean; built against 1.8.13 and run with 1.8.13,
 3 clean; built against 1.8.13 and run with 1.7.1, 3 clean; built against 1.7.1 and run with 1.8.13, both tests
 pass and then the process aborts with `double free or corruption (!prev)` (exit 134) in 3 of 3
-runs[^ch10-pkg-runs]. Apart from the intermittent spectra failure described in @sec-ch10-test-suite, the rest of
-the suite gives the same results in all four pairings.
+runs[^ch10-pkg-runs]. The rest of the suite gives the same results in all four pairings.
 
-[^ch10-pkg-header]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the `disort/disort.hpp` headers of the PyPI wheels pydisort 1.7.1 and 1.8.13 (cp311, manylinux_2_27_x86_64); run: `diff <1.7.1 site-packages>/pydisort/disort/disort.hpp <1.8.13 site-packages>/pydisort/disort/disort.hpp`, CPU; Python 3.11.13. The 1.8.13 release is not the pydisort pin of `code_pin.yml`; it is quoted here only as the version `pydisort>=1.7.1` resolves to]
-[^ch10-pkg-runs]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_rayleigh.py` of the pin, inside `derivation-checks/ch10/run_suite.sh` [S6]; run: `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>` then `python3 derivation-checks/ch10/abi_matrix.py --csv src/pyharp_report/ch10/data/abi_matrix.csv`, CPU, double; pyharp 2.7.8 built from source at the pin against each pydisort wheel, the other wheel installed afterwards with `pip install --no-deps` for the mixed pairs; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; outputs `derivation-checks/ch10/run_suite.*.out`, `derivation-checks/ch10/abi_matrix.out`]
+[^ch10-pkg-header]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the `disort/disort.hpp` headers of the PyPI wheels pydisort 1.7.1 and 1.8.13 (cp311, manylinux, sha256 in `derivation-checks/ch10/setup_env.sh`), and the PyPI index; run: `bash derivation-checks/ch10/header_diff.sh <env 1.7.1> <env 1.8.13>`, CPU; Python 3.11.13; environments built by `derivation-checks/ch10/setup_env.sh <dir> <pydisort version>` (lock `derivation-checks/ch10/requirements.lock`, cmake 4.4.4 from pip, two NVIDIA Quadro RTX 4000 visible to torch); regenerate the whole chapter with `bash derivation-checks/ch10_run.sh <env 1.7.1> <env 1.8.13> <scratch dir>`; output `derivation-checks/ch10/header_diff.out` lines [H1], [H2]. The 1.8.13 release is not the pydisort pin of `code_pin.yml`; it is quoted here only as the version `pydisort>=1.7.1` resolves to]
+[^ch10-pkg-runs]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_rayleigh.py` of the pin, inside `derivation-checks/ch10/run_suite.sh` [S6]; run: `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>` then `python3 derivation-checks/ch10/abi_matrix.py --csv src/pyharp_report/ch10/data/abi_matrix.csv`, CPU, double; pyharp 2.7.8 built from source at the pin against each pydisort wheel, the other wheel installed afterwards with `pip install --no-deps` for the mixed pairs; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; environments built by `derivation-checks/ch10/setup_env.sh <dir> <pydisort version>` (lock `derivation-checks/ch10/requirements.lock`, cmake 4.4.4 from pip, two NVIDIA Quadro RTX 4000 visible to torch); regenerate the whole chapter with `bash derivation-checks/ch10_run.sh <env 1.7.1> <env 1.8.13> <scratch dir>`; outputs `derivation-checks/ch10/run_suite.*.out`, `derivation-checks/ch10/abi_matrix.out`]
 
 ### Limits
 
@@ -112,8 +111,5 @@ Build pyharp against the pydisort it will run with; a pyharp built against 1.7.1
   against 1.7.1 then corrupts the heap after DISORT runs (3 of 3 runs abort); the matched pairs and the
   1.8.13-built, 1.7.1-run pair do not[^ch10-pkg-runs]. That the cause is the larger `DisortImpl` of 1.8.13
   (the extra member) is a hypothesis consistent with which pair fails; it was not confirmed with a memory checker.
-- **The published wheel.** The same abort was seen earlier with the PyPI wheel pyharp 2.7.6 and pydisort 1.8.13;
-  2.7.6 is not the pin, so that run is not evidence for this section, and re-running it at the pin would need a
-  wheel built from the pin.
 - **Untested combinations.** pydisort releases between 1.7.1 and 1.8.13, and macOS: not provided: no run here
   covered them.

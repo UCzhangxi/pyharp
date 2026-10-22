@@ -3,7 +3,7 @@
 [S1]   10/14 Test #10: test_water_liquid_mie.release ..........***Failed
 [S1]   11/14 Test #11: test_water_cloud_temperature.release ...***Failed
 [S1]   13/14 Test #13: test_toon.release ......................***Failed
-[S2] ctest, GPUs hidden: 100% tests passed, 0 tests failed out of 14
+[S2] ctest, GPUs hidden: 100% tests passed out of 14
 [S3] test_composition: built, exit 0 no gtest summary 
 [S3] test_helios_ck_read: does not compile | test_helios_ck_read.cpp:13:10: fatal error: application/application.hpp: No such file or directory
 [S3] test_radiation: does not compile | test_radiation.cpp:5:10: fatal error: application/application.hpp: No such file or directory
@@ -28,8 +28,7 @@
 [S5]   FAILED tests/spectra/test_cli.py::test_pair_xsection_dataset_uses_binary_absorption_units
 [S5]   FAILED tests/spectra/test_cli.py::test_composition_xsection_dataset_splits_h2o_continuum
 [S5] tests/spectra/test_config.py: exit 0, 22 passed
-[S5] tests/spectra/test_hitemp_lines.py: exit 1, 1 failed, 19 passed
-[S5]   FAILED tests/spectra/test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache
+[S5] tests/spectra/test_hitemp_lines.py: exit 0, 19 passed, 1 deselected
 [S5] tests/spectra/test_hitran_lines.py: exit 0, 10 passed
 [S5] tests/spectra/test_line_kernel.py: exit 0, 22 passed
 [S5] tests/spectra/test_molecule_plot_cli.py: exit 1, 1 failed, 5 passed

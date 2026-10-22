@@ -97,7 +97,7 @@ The comparison finds 16 options with no binding and 29 with no stub declaration[
 The comparison runs against the installed module of each source build and gives the same lines for both pydisort
 versions. The outline's target, zero missing, is not met.
 
-[^ch10-bind]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the option structs under `src/`, the module `pyharp` built from the pin, and `python/*.pyi`; run: `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree> --csv src/pyharp_report/ch10/data/bindings_gaps.csv`, CPU; Python 3.11.13, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, torch 2.10.0+cu128; outputs `derivation-checks/ch10/bindings_diff.pydisort-1.7.1.out` and `bindings_diff.pydisort-1.8.13.out`]
+[^ch10-bind]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the option structs under `src/`, the module `pyharp` built from the pin, and `python/*.pyi`; run: `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree> --csv src/pyharp_report/ch10/data/bindings_gaps.csv`, CPU; Python 3.11.13, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, torch 2.10.0+cu128; environments built by `derivation-checks/ch10/setup_env.sh <dir> <pydisort version>` (lock `derivation-checks/ch10/requirements.lock`, cmake 4.4.4 from pip, two NVIDIA Quadro RTX 4000 visible to torch); regenerate the whole chapter with `bash derivation-checks/ch10_run.sh <env 1.7.1> <env 1.8.13> <scratch dir>`; outputs `derivation-checks/ch10/bindings_diff.pydisort-1.7.1.out` and `bindings_diff.pydisort-1.8.13.out`]
 
 ### Limits
 

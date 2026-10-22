@@ -1,0 +1,4 @@
+[F0] pyharp 2.7.8, pydisort 1.7.1, Python 3.11.13
+[F1] tests/spectra/test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache: 0 failed of 25 runs (temporary directory on tmpfs)
+[F0] pyharp 2.7.8, pydisort 1.8.13, Python 3.11.13
+[F1] tests/spectra/test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache: 0 failed of 25 runs (temporary directory on tmpfs)

@@ -1,0 +1,4 @@
+[H0] pydisort 1.7.1
+[H0] pydisort 1.8.13
+[H1] only in the second: torch::Tensor cuda_workspace_;
+[H2] newest pydisort on PyPI: pydisort (1.8.13)

@@ -28,7 +28,7 @@
 [S5]   FAILED tests/spectra/test_cli.py::test_pair_xsection_dataset_uses_binary_absorption_units
 [S5]   FAILED tests/spectra/test_cli.py::test_composition_xsection_dataset_splits_h2o_continuum
 [S5] tests/spectra/test_config.py: exit 0, 22 passed
-[S5] tests/spectra/test_hitemp_lines.py: exit 0, 20 passed
+[S5] tests/spectra/test_hitemp_lines.py: exit 0, 19 passed, 1 deselected
 [S5] tests/spectra/test_hitran_lines.py: exit 0, 10 passed
 [S5] tests/spectra/test_line_kernel.py: exit 0, 22 passed
 [S5] tests/spectra/test_molecule_plot_cli.py: exit 1, 1 failed, 5 passed

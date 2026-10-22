@@ -1,4 +1,4 @@
-"""Sources of evidence in the report (chapter 10, `_verification-index.qmd`).
+"""Where the report's numbers come from (chapter 10, `_verification-index.qmd`).
 
 Cartoon; no data. pyharp's tests (tests/, run by ctest and the CI workflow of the pin of code_pin.yml) and the
 report's own checks (src/pyharp_report/chNN/checks/ and derivation-checks/chNN/) with their committed outputs.
