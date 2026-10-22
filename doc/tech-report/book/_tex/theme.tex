@@ -27,7 +27,7 @@
 \renewcommand*{\chapterformat}{%
   \mbox{\fontsize{30}{30}\selectfont\color{tr-accent}\thechapter\autodot}}
 \renewcommand*{\chapterlinesformat}[3]{%
-  \ifstr{#2}{}{}{#2\par\nobreak\vspace{0.4\baselineskip}}%
+  \Ifstr{#2}{}{}{#2\par\nobreak\vspace{0.4\baselineskip}}%
   #3\par\nobreak\vspace{0.5\baselineskip}%
   {\color{tr-accent}\rule{\linewidth}{0.8pt}}}
 
