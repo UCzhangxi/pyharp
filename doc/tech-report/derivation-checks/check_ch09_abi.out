@@ -1,0 +1,8 @@
+versions: python 3.11.13, torch 2.10.0+cu126, g++ 11.5.0
+environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
+[C1] INFO sizeof(disort_state): pydisort 1.7.1 1336 bytes, pydisort 1.8.13 1344 bytes, difference +8
+[C2] INFO sizeof(DisortImpl): pydisort 1.7.1 488 bytes, pydisort 1.8.13 496 bytes, difference +8
+[C3] INFO sizeof(DisortOptionsImpl): pydisort 1.7.1 1576 bytes, pydisort 1.8.13 1584 bytes, difference +8
+[C4] INFO the two pydisort versions lay out the types pyharp allocates differently: True
+[C5] INFO pyharp libharp_release.so: NEEDED ['libdisort_release.so']; search path entries: RPATH absolute ending in pydisort/lib, RPATH absolute ending in torch/lib
+== check_ch09_abi: 5 labels, 0 FAIL

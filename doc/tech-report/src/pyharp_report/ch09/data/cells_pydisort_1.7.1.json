@@ -1,0 +1,119 @@
+{
+ "pydisort": "1.7.1",
+ "torch": "2.10.0+cu126",
+ "gpu": "NVIDIA GeForce GTX 1080 Ti",
+ "cells": {
+  "Toon SW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "Toon SW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "Toon SW|CUDA f64": [
+   "pass",
+   "4.2e-14"
+  ],
+  "Toon SW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "Toon SW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "Toon SW|CUDA f32": [
+   "pass",
+   "1.4e-05"
+  ],
+  "Toon LW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "Toon LW|batch f64": [
+   "pass",
+   "3.5e-16"
+  ],
+  "Toon LW|CUDA f64": [
+   "pass",
+   "1.7e-14"
+  ],
+  "Toon LW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "Toon LW|batch f32": [
+   "pass",
+   "2.5e-07"
+  ],
+  "Toon LW|CUDA f32": [
+   "pass",
+   "1.2e-05"
+  ],
+  "DISORT SW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "DISORT SW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT SW|CUDA f64": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ],
+  "DISORT SW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "DISORT SW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT SW|CUDA f32": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ],
+  "DISORT LW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "DISORT LW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT LW|CUDA f64": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ],
+  "DISORT LW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "DISORT LW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT LW|CUDA f32": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ],
+  "RadiationBand DISORT|forward f64": [
+   "pass",
+   "shape (4, 3, 4)"
+  ],
+  "RadiationBand DISORT|CUDA f64": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ],
+  "RadiationBand DISORT|forward f32": [
+   "pass",
+   "shape (4, 3, 4)"
+  ],
+  "RadiationBand DISORT|CUDA f32": [
+   "unsupported",
+   "false INTERNAL ASSERT FAILED at \"/pytorch/aten/src/ATen/native/DispatchStub.cpp\":275, please report a bug to PyTorch. DispatchStub: missing kernel for cuda"
+  ]
+ }
+}
