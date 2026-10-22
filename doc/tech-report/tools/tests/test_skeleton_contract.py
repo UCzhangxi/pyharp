@@ -6,6 +6,29 @@ import yaml
 REPORT = Path(__file__).resolve().parents[2]
 
 
+def chapter_contract_holds(text):
+    """A chapter or appendix file opens with its `#` heading and, while it is a stub, says `pending`."""
+    return text.startswith('# ') and '\npending\n' in text
+
+
+STUB = '# Overview {#sec-ch01}\n\npending\n'
+STUB_WITH_INCLUDE = '# Notation {#sec-appa}\n\npending\n\n{{< include appendices/_appa-notation.qmd >}}\n'
+STUB_NOT_PENDING = '# Overview {#sec-ch01}\n\n{{< include 01-overview/_x.qmd >}}\n'
+CONTENT = '# DISORT {#sec-ch03}\n\nA band whose YAML says `solver: disort` is solved by DISORT.\n\n' \
+          '{{< include 03-disort/_band.qmd >}}\n'
+
+
+def test_a_stub_chapter_still_has_to_say_pending():
+    assert chapter_contract_holds(STUB)
+    assert chapter_contract_holds(STUB_WITH_INCLUDE)
+    assert not chapter_contract_holds(STUB_NOT_PENDING)
+    assert not chapter_contract_holds('pending\n')                    # no heading
+
+
+def test_a_chapter_with_content_need_not_say_pending():
+    assert chapter_contract_holds(CONTENT)
+
+
 def test_all_requested_chapters_and_appendices_are_in_the_book():
     cfg = yaml.safe_load((REPORT / 'book/_quarto.yml').read_text())['book']
     chapters = cfg['chapters'][1:]
@@ -13,7 +36,7 @@ def test_all_requested_chapters_and_appendices_are_in_the_book():
     assert len(cfg['appendices']) == 6
     for name in chapters + cfg['appendices']:
         text = (REPORT / 'book' / name).read_text()
-        assert text.startswith('# ') and '\npending\n' in text
+        assert chapter_contract_holds(text), name
     assert '| owner |' not in (REPORT / 'OUTLINE.md').read_text()
 
 

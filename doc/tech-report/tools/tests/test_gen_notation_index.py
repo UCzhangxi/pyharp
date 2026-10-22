@@ -121,3 +121,21 @@ def test_every_render_regenerates_appendix_a():
 
 def test_the_committed_appendix_a_matches_a_fresh_generation():
     assert g.main(["--check"]) == 0, "run python3 tools/gen_notation_index.py and commit the fragment"
+
+
+def _literal_crossrefs(text):
+    """the `@sec-`/`@eq-`/... references written in the markdown itself, outside HTML comments and shortcodes"""
+    import re
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    text = re.sub(r"\{\{<.*?>\}\}", "", text, flags=re.S)
+    return re.findall(r"(?<![\w@])@(?:sec|eq|fig|tbl)-[\w-]+", text)
+
+
+def test_the_fragment_carries_a_literal_crossref_so_quarto_resolves_the_first_uses(tmp_path):
+    """Quarto 1.10 resolves @-references in a file only when the file's source holds one (its `has_cites` filter
+    flag is computed before shortcodes expand). The first-use cells are shortcodes, so the committed fragment must
+    hold a literal reference of its own, even when NOTATION.md's prose has none."""
+    book = make_book(tmp_path)
+    text, values = g.outputs(NOTATION.replace("see chapter 10.7 and Appendix E", "plain prose"), book)
+    assert values[g.first_key(r"\rho")] == "@sec-ch02-gas"           # a first use that is a reference
+    assert _literal_crossrefs(text), "no literal cross-reference: the first-use cells render as citations"
