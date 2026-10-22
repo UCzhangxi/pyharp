@@ -10,6 +10,8 @@
 
 **batching, Toon solver**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
 
+**Beer-Lambert direct beam**: Analytic cases and energy closure, @sec-ch05-analytic.
+
 **bibliography**: [Reading list](#sec-reading).
 
 **binary compatibility, pydisort**: The pydisort dependency and binary compatibility, @sec-ch10-packaging.
@@ -52,9 +54,13 @@
 
 **DISORT solution method**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
 
+**DISORT, stream convergence**: Converged DISORT as the reference, @sec-ch05-reference.
+
 ## E {.unnumbered .unlisted}
 
 **Eddington approximation**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
+
+**energy closure**: Analytic cases and energy closure, @sec-ch05-analytic.
 
 **energy conservation, two-stream**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
 
@@ -68,7 +74,11 @@
 
 *gamma coefficients*, see **two-stream closure**.
 
+**Garcia and Siewert benchmark**: Converged DISORT as the reference, @sec-ch05-reference.
+
 **Gauss quadrature, double-Gauss**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
+**grey isothermal slab (E3)**: Analytic cases and energy closure, @sec-ch05-analytic.
 
 ## H {.unnumbered .unlisted}
 
@@ -108,6 +118,8 @@
 
 ## R {.unnumbered .unlisted}
 
+**reference stream count (nstr)**: Converged DISORT as the reference, @sec-ch05-reference.
+
 **report navigation**: [Report navigation](#sec-navigation).
 
 ## S {.unnumbered .unlisted}
@@ -117,6 +129,10 @@
 **single precision on CUDA**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
 
 *single-scattering albedo of one*, see **conservative scattering**.
+
+**single-scattering albedo of one, Toon**: Toon's error against converged DISORT, @sec-ch05-toon-accuracy.
+
+**solver cost per column**: Cost per column of the two solvers, @sec-ch05-cost.
 
 **source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
@@ -150,9 +166,13 @@
 
 **test suite, pyharp**: Test suite and continuous integration, @sec-ch10-test-suite.
 
+**Toon solver, accuracy against DISORT**: Toon's error against converged DISORT, @sec-ch05-toon-accuracy.
+
 **top boundary thermal emission**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
 **tridiagonal two-stream system**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
+
+**two-stream approximation error**: Toon's error against converged DISORT, @sec-ch05-toon-accuracy.
 
 **two-stream closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
 

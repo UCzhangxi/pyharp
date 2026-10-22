@@ -93,6 +93,20 @@ sections:
   sec-ch10-index:
     - verification index
     - executable checks of the report
+  sec-ch05-reference:
+    - DISORT, stream convergence
+    - reference stream count (nstr)
+    - Garcia and Siewert benchmark
+  sec-ch05-analytic:
+    - Beer-Lambert direct beam
+    - grey isothermal slab (E3)
+    - energy closure
+  sec-ch05-toon-accuracy:
+    - Toon solver, accuracy against DISORT
+    - two-stream approximation error
+    - single-scattering albedo of one, Toon
+  sec-ch05-cost:
+    - solver cost per column
 unlabeled:
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
@@ -109,3 +123,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch10.qmd
     heading: Tests, CI, bindings and verification index (@sec-ch10)
     covered-by: sec-ch10
+  - file: chapters/appendices/_appb-ch05.qmd
+    heading: Solver comparison and accuracy (@sec-ch05)
+    covered-by: sec-ch05
