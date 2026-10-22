@@ -80,6 +80,19 @@ sections:
     - pydisort version, build contract
     - D1, abort after test_rayleigh
     - CUDA architecture list (sm_120)
+  sec-ch10-test-suite:
+    - test suite, pyharp
+    - continuous integration
+    - ctest registration
+  sec-ch10-packaging:
+    - pydisort version requirement
+    - binary compatibility, pydisort
+  sec-ch10-bindings:
+    - Python bindings
+    - type stubs
+  sec-ch10-index:
+    - verification index
+    - executable checks of the report
 unlabeled:
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
@@ -93,3 +106,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch09.qmd
     heading: GPU and batching (@sec-ch09)
     covered-by: sec-ch09
+  - file: chapters/appendices/_appb-ch10.qmd
+    heading: Tests, CI, bindings and verification index (@sec-ch10)
+    covered-by: sec-ch10

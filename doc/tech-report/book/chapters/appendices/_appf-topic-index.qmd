@@ -12,11 +12,17 @@
 
 **bibliography**: [Reading list](#sec-reading).
 
+**binary compatibility, pydisort**: The pydisort dependency and binary compatibility, @sec-ch10-packaging.
+
 **Buras-Emde intensity correction**: Intensity corrections after delta-M, @sec-ch03-intcorr.
 
 ## C {.unnumbered .unlisted}
 
 **conservative scattering**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
+
+**continuous integration**: Test suite and continuous integration, @sec-ch10-test-suite.
+
+**ctest registration**: Test suite and continuous integration, @sec-ch10-test-suite.
 
 **CUDA architecture list (sm_120)**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
 
@@ -51,6 +57,8 @@
 **Eddington approximation**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
 
 **energy conservation, two-stream**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
+
+**executable checks of the report**: Verification index: the executable checks of this report, @sec-ch10-index.
 
 ## F {.unnumbered .unlisted}
 
@@ -89,6 +97,10 @@
 **pydisort, how pyharp calls it**: Handing a band to DISORT, @sec-ch03-band.
 
 **pydisort version, build contract**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
+
+**pydisort version requirement**: The pydisort dependency and binary compatibility, @sec-ch10-packaging.
+
+**Python bindings**: Python bindings and type stubs, @sec-ch10-bindings.
 
 ## Q {.unnumbered .unlisted}
 
@@ -136,11 +148,19 @@
 
 ## T {.unnumbered .unlisted}
 
+**test suite, pyharp**: Test suite and continuous integration, @sec-ch10-test-suite.
+
 **top boundary thermal emission**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
 **tridiagonal two-stream system**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
 
 **two-stream closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
+
+**type stubs**: Python bindings and type stubs, @sec-ch10-bindings.
+
+## V {.unnumbered .unlisted}
+
+**verification index**: Verification index: the executable checks of this report, @sec-ch10-index.
 
 ## Z {.unnumbered .unlisted}
 

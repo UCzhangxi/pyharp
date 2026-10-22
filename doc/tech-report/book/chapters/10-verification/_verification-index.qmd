@@ -1,0 +1,94 @@
+## Verification index: the executable checks of this report (`derivation-checks/`, `src/pyharp_report/`) {#sec-ch10-index}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: doc/tech-report/derivation-checks/, doc/tech-report/src/pyharp_report/ (this report's tree)
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+Every number this report quotes comes from a committed check. This section is the index of those checks: what each
+one checks, how to run it, what it needs, and where its committed output is. It complements Appendix C
+(@sec-appc), which lists pyharp's own `ctest` tests at the pin.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** One table of every executable check in the report, with its command and output file.
+
+**Data.** Check scripts and their committed outputs.
+
+**Placement.** Run by hand, by an author before proposing a chapter; not run by the report's CI.
+
+**Activation.** None.
+
+**Guarantee / limits.** Lists the checks present in the report's tree; rows are added as chapters merge.
+
+**Evidence.** The Tests layer of @sec-ch10-index.
+:::
+
+Local symbols: none.
+
+Checks come in two kinds. Those under `src/pyharp_report/chNN/checks/` verify a chapter's derivations with numpy
+or sympy and do not import pyharp. Those under `derivation-checks/chNN/` run pyharp itself, or read the pyharp
+tree, and record the build they ran against.
+
+### Derivation
+
+None: this section is an index and has no equations.
+
+### Numerical method
+
+@fig-ch10-index-flow shows where each kind of evidence comes from and where the chapters cite it. A check prints
+one line per claim with a stable label (`[C1]`, `[S3]`, ...), and its output is committed next to it, so a
+chapter can quote a label and a reader can rerun the command and compare.
+
+```{python}
+#| label: fig-ch10-index-flow
+#| fig-cap: "Sources of evidence in the report. pyharp's own tests (left) are run by ctest and by the CI job; the report's checks (right) are derivation checks in numpy or sympy and checks that run pyharp; their committed outputs are what the Tests layers of the chapters cite."
+#| fig-alt: "Two columns of boxes. Left: pyharp tests feeding ctest and pytest, then the CI job. Right: numpy/sympy derivation checks and pyharp-running checks, both writing committed .out files, which arrows connect to the chapters' Tests layers."
+#| echo: false
+from pyharp_report.ch10.figures.fig_index_flow import make_fig
+make_fig()
+```
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| test registration (pyharp) | {{< code tests/CMakeLists.txt repo=pyharp >}} | `setup_test(...)` lines | `BUILD_TESTS` |
+| CI job (pyharp) | {{< code .github/workflows/ci.yml repo=pyharp >}} | `build-and-test` | CI |
+
+: Code map of the verification index. {#tbl-ch10-index-code}
+
+The checks themselves are files of this report, not of pyharp, and are listed in the Tests layer below by path.
+
+1. Run a numpy/sympy check with `python3 src/pyharp_report/chNN/checks/<scheme>_check.py` from `doc/tech-report`.
+2. Run a pyharp check as its `derivation-checks/chNN/README.md` or header says, against a build of the pin.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `derivation-checks/ch10/test_inventory.py` | test files, registration, CI list | exact | file listing |
+| `derivation-checks/ch10/run_suite.sh` | every test file, 4 build/run pairs | pass counts | `ctest`, `pytest` |
+| `derivation-checks/ch10/abi_matrix.py` | the pydisort build/run matrix | exact counts | the `[S6]` lines |
+| `derivation-checks/ch10/bindings_diff.py` | options vs bindings vs stubs | 0 missing | outline target |
+
+: Executable checks of the report in this tree. {#tbl-ch10-index-checks}
+
+Each check writes its output next to it (`test_inventory.out`, `run_suite.<pairing>.out`, `abi_matrix.out`,
+`bindings_diff.<pydisort>.out`); `test_inventory.py` and `bindings_diff.py` need a pyharp tree at the pin, and the
+latter and `run_suite.sh` a build of it. All four run and produce the outputs cited in @sec-ch10-test-suite,
+@sec-ch10-packaging and @sec-ch10-bindings[^ch10-index-run].
+
+[^ch10-index-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the four scripts of `derivation-checks/ch10/`; run: `python3 derivation-checks/ch10/test_inventory.py <pyharp tree>`, `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>`, `python3 derivation-checks/ch10/abi_matrix.py`, `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; outputs in `derivation-checks/ch10/`]
+
+### Limits
+
+- **Coverage of the index.** It lists the checks committed in this tree. Each chapter's checks join it when that
+  chapter merges; until then a chapter's own Tests layer is the reference.
+- **Not run by CI.** The report's CI renders the book and runs its tool tests; it does not rerun the checks, so a
+  committed output can go stale against the pin. The pin is moved only with `code_anchors.py bump`, after which
+  the outputs must be regenerated and the claims that cite them re-read.
