@@ -6,9 +6,16 @@ import yaml
 REPORT = Path(__file__).resolve().parents[2]
 
 
+def is_stub(text):
+    """A file with nothing but its heading, `pending` and includes; a chapter with content has a line of its own."""
+    body = text.splitlines()[1:]
+    return all(not l.strip() or l.strip() == 'pending' or re.fullmatch(r'\{\{< include \S+ >\}\}', l.strip())
+               for l in body)
+
+
 def chapter_contract_holds(text):
     """A chapter or appendix file opens with its `#` heading and, while it is a stub, says `pending`."""
-    return text.startswith('# ') and '\npending\n' in text
+    return text.startswith('# ') and ('\npending\n' in text or not is_stub(text))
 
 
 STUB = '# Overview {#sec-ch01}\n\npending\n'
