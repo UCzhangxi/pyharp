@@ -1,0 +1,107 @@
+## Python bindings and type stubs (`pyharp` module, `python/*.pyi`) {#sec-ch10-bindings}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: python/csrc/*.cpp, python/csrc/pyoptions.hpp, python/pyharp.pyi, python/opacity.pyi,
+  src/**/*.hpp (option structs)
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+pyharp's options are C++ structs; pybind11 code in `python/csrc` exposes them to Python, and hand-written stub
+files (`python/*.pyi`) describe them to editors and type checkers. Nothing generates the bindings or the stubs from
+the structs, so the three can drift apart. This section compares them option by option at the pin.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Which C++ options a Python user can set, and which the stubs declare.
+
+**Data.** 9 option structs, 58 options and flag accessors; the installed `pyharp` module; `python/*.pyi`.
+
+**Placement.** Import of `pyharp` (bindings); static analysis (stubs).
+
+**Activation.** Always.
+
+**Guarantee / limits.** 16 options have no binding and 29 no stub (Tests layer); none is checked by CI.
+
+**Evidence.** The Tests layer of @sec-ch10-bindings.
+:::
+
+Local symbols: none.
+
+An option missing from the bindings can be set only through YAML or C++; one missing from the stubs works but is
+invisible to type checkers and editor completion.
+
+### Derivation
+
+None: this section compares interfaces and has no equations.
+
+### Numerical method
+
+Each option of a struct is declared with the macro `ADD_ARG(type, name)`, which generates a getter and a setter of
+that name; some solver structs add boolean accessors that test a comma-separated `flags` string
+(`ToonMcKay89OptionsImpl`, {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}}). The
+bindings expose an option by naming it once more with the macro `ADD_OPTION` of `python/csrc/pyoptions.hpp`, for
+example in `bind_rtsolver` ({{< code python/csrc/pyrtsolver.cpp bind_rtsolver repo=pyharp >}}); the stubs declare
+it again as a `def` in `python/pyharp.pyi` ({{< code python/pyharp.pyi repo=pyharp >}}). The check
+`bindings_diff.py` reads every `ADD_ARG` and flag accessor under `src/`, looks each up as an attribute of the
+installed Python class, and as a `def` under the class of the same name in the stubs.
+
+```{python}
+#| label: fig-ch10-bindings-gaps
+#| fig-cap: "Options per C++ option struct (grey) and how many of them have no Python binding (vermillion, hatched) or no stub declaration (orange). Structs with no Python class at all are marked unbound."
+#| fig-alt: "Horizontal bars for nine structs. ToonMcKay89Options: 9 options, 1 unbound, 9 missing from stubs. RadiationModelOptions: 9 options, all unbound and missing from stubs. IntegratorOptions: 7 options, 1 unbound, 5 missing from stubs. Layer2LevelOptions 4 and BeerLambertOptions 1, unbound. OpacityOptions, RadiationOptions and IntegratorWeight complete. RadiationBandOptions 14 options, 1 missing from stubs."
+#| echo: false
+from pyharp_report.ch10.figures.fig_bindings_gaps import make_fig
+make_fig()
+```
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| Toon options | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}} | `ToonMcKay89OptionsImpl` | always |
+| Toon bindings | {{< code python/csrc/pyrtsolver.cpp bind_rtsolver repo=pyharp >}} | `bind_rtsolver` | always |
+| module entry | {{< code python/csrc/pyharp.cpp PYBIND11_MODULE repo=pyharp >}} | `PYBIND11_MODULE` | always |
+| stubs | {{< code python/pyharp.pyi repo=pyharp >}} | file | always |
+
+: Code map of the bindings. {#tbl-ch10-bindings-code}
+
+1. `PYBIND11_MODULE` ({{< code python/csrc/pyharp.cpp PYBIND11_MODULE repo=pyharp >}}) calls `bind_opacity`,
+   `bind_radiation`, `bind_math`, `bind_constants`, `bind_integrator` and `bind_rtsolver`.
+2. `bind_rtsolver` ({{< code python/csrc/pyrtsolver.cpp bind_rtsolver repo=pyharp >}}) binds
+   `wave_lower`, `wave_upper`, `flags` and `top_emission_flag` of `ToonMcKay89Options`, and the read-only flag
+   accessors; it does not bind `btop_factor`.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `bindings_diff.py` `[B1]`-`[B3]` | each C++ option has a binding and a stub | 0 missing | outline target |
+| `tests/test_opacity_options.py` | `OpacityOptions` round trip from Python | exact | test's choice |
+
+: Checks of the bindings. {#tbl-ch10-bindings-tests}
+
+The comparison finds 16 options with no binding and 29 with no stub declaration[^ch10-bind]:
+
+- `ToonMcKay89Options`: `btop_factor` is not bound (YAML only); none of its 9 options appears in any stub, and the
+  stubs declare neither `ToonMcKay89` nor `ToonMcKay89Options`.
+- `IntegratorOptions`: `verbose` is not bound; 5 of 7 options are missing from the stubs.
+- `RadiationBandOptions`: the `toon` option is missing from the stubs.
+- `RadiationModelOptions` (9 options) has no Python class; `Layer2LevelOptions` (4) and `BeerLambertOptions` (1)
+  have none either. `BeerLambertOptions` belongs to a solver whose source file is not compiled.
+- `OpacityOptions`, `RadiationOptions` and `IntegratorWeight` are complete in both.
+
+The comparison runs against the installed module of each source build and gives the same lines for both pydisort
+versions. The outline's target, zero missing, is not met.
+
+[^ch10-bind]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the option structs under `src/`, the module `pyharp` built from the pin, and `python/*.pyi`; run: `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree> --csv src/pyharp_report/ch10/data/bindings_gaps.csv`, CPU; Python 3.11.13, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, torch 2.10.0+cu128; outputs `derivation-checks/ch10/bindings_diff.pydisort-1.7.1.out` and `bindings_diff.pydisort-1.8.13.out`]
+
+### Limits
+
+- **Binding and stub gaps (CANDIDATE, Python interface).** 16 options are not settable from Python and 29 are not
+  declared in the stubs[^ch10-bind]; no test or CI step compares the three.
+- **Method coverage.** The comparison covers options (`ADD_ARG` and flag accessors) only, not methods, functions or
+  the shapes of `forward`; those are not compared here.

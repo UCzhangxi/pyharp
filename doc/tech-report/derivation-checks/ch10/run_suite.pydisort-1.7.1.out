@@ -1,0 +1,47 @@
+[S0] pyharp 2.7.8, pydisort 1.7.1, torch 2.10.0+cu128, Python 3.11.13
+[S1] ctest, GPUs visible: 79% tests passed, 3 tests failed out of 14
+[S1]   10/14 Test #10: test_water_liquid_mie.release ..........***Failed
+[S1]   11/14 Test #11: test_water_cloud_temperature.release ...***Failed
+[S1]   13/14 Test #13: test_toon.release ......................***Failed
+[S2] ctest, GPUs hidden: 100% tests passed out of 14
+[S3] test_composition: built, exit 0 no gtest summary 
+[S3] test_helios_ck_read: does not compile | test_helios_ck_read.cpp:13:10: fatal error: application/application.hpp: No such file or directory
+[S3] test_radiation: does not compile | test_radiation.cpp:5:10: fatal error: application/application.hpp: No such file or directory
+[S3] test_read_cia_ff: does not compile | test_read_cia_ff.cpp:9:10: fatal error: application/application.hpp: No such file or directory
+[S3] test_read_rayleigh: does not compile | test_read_rayleigh.cpp:9:10: fatal error: application/application.hpp: No such file or directory
+[S3] test_read_stellar_flux: does not compile | test_read_stellar_flux.cpp:9:10: fatal error: application/application.hpp: No such file or directory
+[S3] test_read_yaml: built, exit 1 [  PASSED  ] 0 tests. [  FAILED  ] 3 tests, listed below:  | first failure: <src>/tests/test_read_yaml.cpp:16: Failure
+[S3] test_yaml_input: does not compile | test_yaml_input.cpp:12:37: error: ‘from_yaml’ is not a member of ‘harp::RadiationOptions’ {aka ‘std::shared_ptr<harp::RadiationOptionsImpl>’
+[S4] tests/test_opacity_options.py: exit 0, 2 passed 
+[S4] tests/test_rayleigh.py: exit 0, 2 passed 
+[S4] tests/test_sonora2020.py: exit 1, 1 failed 
+[S4] tests/test_toon.py: exit 0, 6 passed 
+[S4] tests/test_water_cloud_temperature.py: exit 0, 1 passed 
+[S4] tests/test_water_ice_fu96_98.py: exit 0, 1 passed 
+[S4] tests/test_water_liquid_mie.py: exit 0, 1 passed 
+[S5] tests/spectra/test_atm_overview_cli.py: exit 1, 3 failed, 7 passed
+[S5]   FAILED tests/spectra/test_atm_overview_cli.py::test_compute_mixture_overview_reports_broadening_fallback
+[S5]   FAILED tests/spectra/test_atm_overview_cli.py::test_compute_mixture_overview_weights_h2o_continuum_by_h2o_fraction
+[S5]   FAILED tests/spectra/test_atm_overview_cli.py::test_parallel_mixture_overview_products_falls_back_to_subprocess_workers_when_process_pool_locks_are_unavailable
+[S5] tests/spectra/test_cia.py: exit 0, 11 passed
+[S5] tests/spectra/test_cli.py: exit 1, 2 failed, 40 passed
+[S5]   FAILED tests/spectra/test_cli.py::test_pair_xsection_dataset_uses_binary_absorption_units
+[S5]   FAILED tests/spectra/test_cli.py::test_composition_xsection_dataset_splits_h2o_continuum
+[S5] tests/spectra/test_config.py: exit 0, 22 passed
+[S5] tests/spectra/test_hitemp_lines.py: exit 0, 20 passed
+[S5] tests/spectra/test_hitran_lines.py: exit 0, 10 passed
+[S5] tests/spectra/test_line_kernel.py: exit 0, 22 passed
+[S5] tests/spectra/test_molecule_plot_cli.py: exit 1, 1 failed, 5 passed
+[S5]   FAILED tests/spectra/test_molecule_plot_cli.py::test_overview_products_reuses_downloaded_line_database
+[S5] tests/spectra/test_mt_ckd_h2o.py: exit 0, 4 passed
+[S5] tests/spectra/test_orton_xiz_cia.py: exit 0, 4 passed
+[S5] tests/spectra/test_output_names.py: exit 1, 2 failed
+[S5]   FAILED tests/spectra/test_output_names.py::test_default_output_path_uses_requested_pattern
+[S5]   FAILED tests/spectra/test_output_names.py::test_default_output_path_sanitizes_cia_and_composition_names
+[S5] tests/spectra/test_plot_cli.py: exit 0, 22 passed
+[S5] tests/spectra/test_shared_cli.py: exit 0, 2 passed
+[S5] tests/spectra/test_spectrum.py: exit 0, 3 passed
+[S5] tests/spectra/test_transmittance.py: exit 0, 3 passed
+[S6] tests/test_rayleigh.py run 1: exit 0, 2 passed 
+[S6] tests/test_rayleigh.py run 2: exit 0, 2 passed 
+[S6] tests/test_rayleigh.py run 3: exit 0, 2 passed 

@@ -1,0 +1,146 @@
+## Test suite and continuous integration (`ctest`, `pytest`, the `build-and-test` CI job) {#sec-ch10-test-suite}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: tests/CMakeLists.txt, cmake/macros/macro_setup_test.cmake, tests/device_testing.hpp, tests/*.cpp,
+  tests/*.py, tests/spectra/*.py, .github/workflows/ci.yml
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+pyharp's tests are of two kinds: C++ programs built with GoogleTest and run by `ctest`, and Python files run by
+`pytest`. A reader who wants to know what is verified needs three lists: the tests that exist in the tree, the tests
+the build registers, and the tests the continuous-integration job runs. This section gives the three lists at the
+pin, the result of running every test that exists, and what that shows about coverage.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** What pyharp's test files check, and which of them CI runs (Tests layer).
+
+**Data.** 22 C++ test files, 7 Python files in `tests/`, 15 in `tests/spectra/`.
+
+**Placement.** `ctest` after a CMake build with `BUILD_TESTS=ON`; `pytest` from the source root.
+
+**Activation.** CMake option `BUILD_TESTS` (default on); CI on every push to `main` and every change proposed against it.
+
+**Guarantee / limits.** CI runs 14 C++ test programs and 3 Python files; the other 27 files are not run.
+
+**Evidence.** The Tests layer of @sec-ch10-test-suite.
+:::
+
+Local symbols: none.
+
+The C++ tests are registered one by one with the CMake macro `setup_test`; a file that is not named there is
+neither built nor run. The Python test files are copied into the build tree but never registered with `ctest`.
+The CI job builds the tests, runs `ctest`, and runs three files of `tests/spectra/` with `pytest`.
+
+### Derivation
+
+None: this section states facts about the test harness and has no equations.
+
+### Numerical method
+
+The method here is the harness itself. `setup_test` builds `tests/<name>.cpp` into an executable
+`<name>.<build type>` linked against the pyharp library and `gtest_main`, and registers it with `add_test`
+(`setup_test`, {{< code cmake/macros/macro_setup_test.cmake repo=pyharp >}}). `tests/CMakeLists.txt`
+({{< code tests/CMakeLists.txt repo=pyharp >}}) calls it for 14 files; it copies every `tests/*.py` into the build
+tree with `configure_file`, but its `add_test(... pytest ...)` line is commented out. The workflow
+({{< code .github/workflows/ci.yml repo=pyharp >}}) has one test job, `build-and-test`, on `ubuntu-latest` and
+`macOS-latest` with Python 3.11, torch 2.10.0 (the CPU wheel on Linux) and `pydisort==1.7.1` installed with
+`--no-deps`; it configures with `-DNETCDF=ON -DBUILD_TESTS=ON`, runs `ctest --output-on-failure`, and runs
+`pytest` on `tests/spectra/test_hitemp_lines.py`, `test_line_kernel.py` and `test_hitran_lines.py`. No job builds
+with CUDA.
+
+```{python}
+#| label: fig-ch10-test-suite-coverage
+#| fig-cap: "Test files at the pin by category: how many exist (light bars), how many ctest registers (hatched), and how many the CI job runs (dark bars). C++ files that ctest registers are run by CI through ctest; Python files are run only if the workflow names them."
+#| fig-alt: "Grouped bar chart. C++: 22 files exist, 14 registered, 14 run by CI. Python tests directory: 7 exist, 0 registered, 0 run. Python tests/spectra: 15 exist, 0 registered, 3 run by CI."
+#| echo: false
+from pyharp_report.ch10.figures.fig_test_suite_coverage import make_fig
+make_fig()
+```
+
+Many of the C++ tests are parametrised over device and precision by the fixture `DeviceTest`
+({{< code tests/device_testing.hpp DeviceTest repo=pyharp >}}): CPU float32, CPU float64, CUDA float32 and CUDA
+float64. `DeviceTest::SetUp` ({{< code tests/device_testing.hpp DeviceTest::SetUp repo=pyharp >}}) skips the CUDA
+cases when `torch::cuda::is_available()` is false. The skip tests the torch installation, not whether pyharp was
+built with CUDA, so a CPU-only pyharp linked against a CUDA-enabled torch on a machine with a GPU runs the CUDA
+cases and fails them (Tests layer below).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| test registration | {{< code tests/CMakeLists.txt repo=pyharp >}} | `setup_test(...)` lines | `BUILD_TESTS` |
+| build and register one test | {{< code cmake/macros/macro_setup_test.cmake repo=pyharp >}} | `setup_test` | always |
+| device/precision fixture | {{< code tests/device_testing.hpp DeviceTest repo=pyharp >}} | `DeviceTest` | always |
+| CUDA skip rule | {{< code tests/device_testing.hpp DeviceTest::SetUp repo=pyharp >}} | `DeviceTest::SetUp` | torch CUDA |
+| CI job | {{< code .github/workflows/ci.yml repo=pyharp >}} | `build-and-test` | changes to `main` |
+
+: Code map of the test harness. {#tbl-ch10-test-suite-code}
+
+1. CMake configures with `BUILD_TESTS=ON` (the default) and adds `tests/` ({{< code tests/CMakeLists.txt repo=pyharp >}}).
+2. Each `setup_test(<name>)` builds and registers `<name>.release` in a Release build
+   ({{< code cmake/macros/macro_setup_test.cmake repo=pyharp >}}); `setup_test(test_yaml_input)` is
+   commented out.
+3. The workflow ({{< code .github/workflows/ci.yml repo=pyharp >}}) installs the package and runs `ctest` and the
+   three `pytest` files; a failure in any step fails the job.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_inventory.py` `[I1]`-`[I3]` | which files exist, are registered, are run by CI | exact | file listing |
+| `run_suite.sh` `[S1]`, `[S2]` | `ctest` with GPUs visible and hidden | pass count | `ctest` |
+| `run_suite.sh` `[S3]` | the 8 unregistered C++ files, built out of tree | builds, exit | compiler, gtest |
+| `run_suite.sh` `[S4]`, `[S5]` | every Python test file | pass count | `pytest` |
+
+: Checks of the test suite. {#tbl-ch10-test-suite-tests}
+
+The inventory: 22 C++ test files, of which `ctest` registers 14; 3 of the 22 contain no assertion macro
+(`test_composition.cpp`, `test_hypsometric.cpp`, `test_yaml_input.cpp`), and `test_bbflux.cpp` asserts only
+output shapes. None of the 7 files in `tests/` and 3 of the 15 in `tests/spectra/` are run by CI[^ch10-inv].
+
+Running everything on two source builds of the pin (one against pydisort 1.7.1, one against 1.8.13), on CPU:
+
+- `ctest` passes 14 of 14 with `CUDA_VISIBLE_DEVICES=` set, as on CI's CPU-only runners; with the GPUs visible it
+  passes 11 of 14, because the CUDA cases of `test_toon.release`, `test_water_liquid_mie.release` and
+  `test_water_cloud_temperature.release` raise "missing kernel for cuda" on a pyharp built without CUDA[^ch10-run].
+- Of the 8 unregistered C++ files, 5 do not compile (`application/application.hpp` is not in the tree), 1 does not
+  compile against the current API (`test_yaml_input.cpp`), 1 builds and fails all 3 of its tests (its input
+  `example_infrared.yaml` is not in the tree), and 1 builds and exits 0 with no assertion
+  (`test_composition.cpp`)[^ch10-run].
+- The 7 top-level Python files: 13 tests pass and 1 fails, `test_sonora2020.py`, whose data file must be fetched
+  first[^ch10-run].
+- The 15 spectra files from the source root: 11 files pass; 8 tests fail in 4 files that CI does not run
+  (`test_atm_overview_cli.py` 3, `test_cli.py` 2, `test_output_names.py` 2, `test_molecule_plot_cli.py` 1). Of CI's
+  three files, `test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache` failed 2 times in 50 runs
+  (once in the committed outputs, in the pairing built against 1.8.13 and run with 1.7.1), asserting that a
+  rewritten file has a new modification time[^ch10-run].
+
+Apart from that intermittent failure and the abort of @sec-ch10-packaging, the results are the same for both builds
+and for the two mixed pairings.
+
+[^ch10-inv]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the pyharp source tree at the pin; run: `python3 derivation-checks/ch10/test_inventory.py <pyharp tree> --csv src/pyharp_report/ch10/data/test_inventory.csv`, CPU; Python 3.11.13, standard library only; output `derivation-checks/ch10/test_inventory.out`]
+[^ch10-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: every test file of the pyharp tree at the pin; run: `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>`, CPU (6 cores), double, pyharp 2.7.8 built from source with the CI CMake options against pydisort 1.7.1 and, separately, 1.8.13; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pytest 9.1.1; outputs `derivation-checks/ch10/run_suite.pydisort-1.7.1.out` and `run_suite.pydisort-1.8.13.out`; also `run_suite.built-1.7.1.run-1.8.13.out` and `run_suite.built-1.8.13.run-1.7.1.out`; the flaky-test count adds six earlier full runs of earlier versions of the same script (one failure) and 40 targeted reruns of that test, 20 per build, all passing]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+A green CI run covers the 14 registered C++ programs and 3 spectra files only; the Python tests of the solvers,
+including `tests/test_toon.py`, are not run.
+:::
+
+- **CI coverage (CANDIDATE, test registration).** 27 of the 44 test files are not run by CI: 8 C++ files are not
+  registered and 19 Python files are not named in the workflow[^ch10-inv]. 7 of the 8 unregistered C++ files do
+  not build or do not pass, and 8 tests in 4 unrun spectra files fail[^ch10-run].
+- **Device gate (CANDIDATE, test fixture).** The CUDA cases run whenever torch reports a GPU, whether or not pyharp
+  has CUDA kernels; 3 of 14 `ctest` programs then fail on a CPU-only build[^ch10-run].
+- **Assertion-free tests.** `test_hypsometric.release` is registered and asserts nothing; `test_bbflux.release`
+  asserts shapes only; the gtest `DeviceTest.simple_toon_mckay89` of `tests/test_toon.cpp` has no assertion.
+- **Flaky test.** `test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache` depends on the file
+  system giving two writes different modification times; it failed 2 times in 50 runs on a `tmpfs` temporary
+  directory. That the cause is timestamp resolution is a hypothesis; it was not isolated.
+- **Untested combinations.** No CUDA build was available; GPU coverage: answered at @sec-ch09.

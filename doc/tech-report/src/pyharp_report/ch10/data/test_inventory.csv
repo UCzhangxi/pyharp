@@ -1,0 +1,4 @@
+category,files,in_ctest,in_ci
+C++,22,14,14
+Python tests/,7,0,0
+Python tests/spectra/,15,0,3

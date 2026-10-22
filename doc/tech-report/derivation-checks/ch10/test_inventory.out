@@ -1,0 +1,51 @@
+[I1] C++ test files (file | registered by setup_test | assertion macros)
+[I1] test_attenuator.cpp | yes | 50
+[I1] test_bbflux.cpp | yes | 2
+[I1] test_cia_autograd.cpp | yes | 30
+[I1] test_composition.cpp | NO | 0
+[I1] test_flux_utils.cpp | yes | 9
+[I1] test_helios_ck_read.cpp | NO | 1
+[I1] test_hypsometric.cpp | yes | 0
+[I1] test_interpn.cpp | yes | 17
+[I1] test_radiation.cpp | NO | 6
+[I1] test_rayleigh.cpp | yes | 10
+[I1] test_read_cia_ff.cpp | NO | 10
+[I1] test_read_rayleigh.cpp | NO | 2
+[I1] test_read_stellar_flux.cpp | NO | 3
+[I1] test_read_yaml.cpp | NO | 17
+[I1] test_scattering_functions.cpp | yes | 71
+[I1] test_toon.cpp | yes | 32
+[I1] test_trapez.cpp | yes | 1
+[I1] test_tridiag.cpp | yes | 1
+[I1] test_water_cloud_temperature.cpp | yes | 15
+[I1] test_water_ice_fu96_98.cpp | yes | 36
+[I1] test_water_liquid_mie.cpp | yes | 32
+[I1] test_yaml_input.cpp | NO | 0
+[I2] Python test files (file | run by ctest | run by CI)
+[I2] tests/test_opacity_options.py | no | no
+[I2] tests/test_rayleigh.py | no | no
+[I2] tests/test_sonora2020.py | no | no
+[I2] tests/test_toon.py | no | no
+[I2] tests/test_water_cloud_temperature.py | no | no
+[I2] tests/test_water_ice_fu96_98.py | no | no
+[I2] tests/test_water_liquid_mie.py | no | no
+[I2] tests/spectra/test_atm_overview_cli.py | no | no
+[I2] tests/spectra/test_cia.py | no | no
+[I2] tests/spectra/test_cli.py | no | no
+[I2] tests/spectra/test_config.py | no | no
+[I2] tests/spectra/test_hitemp_lines.py | no | yes
+[I2] tests/spectra/test_hitran_lines.py | no | yes
+[I2] tests/spectra/test_line_kernel.py | no | yes
+[I2] tests/spectra/test_molecule_plot_cli.py | no | no
+[I2] tests/spectra/test_mt_ckd_h2o.py | no | no
+[I2] tests/spectra/test_orton_xiz_cia.py | no | no
+[I2] tests/spectra/test_output_names.py | no | no
+[I2] tests/spectra/test_plot_cli.py | no | no
+[I2] tests/spectra/test_shared_cli.py | no | no
+[I2] tests/spectra/test_spectrum.py | no | no
+[I2] tests/spectra/test_transmittance.py | no | no
+[I3] counts (category | files | registered in ctest | run by CI | files with zero assertion macros)
+[I3] C++ | 22 | 14 | 14 | 3
+[I3] Python tests/ | 7 | 0 | 0 | -
+[I3] Python tests/spectra/ | 15 | 0 | 3 | -
+[I4] CI build-and-test: os [ubuntu-latest, macOS-latest], Python 3.11, pydisort==1.7.1 (--no-deps), torch 2.10.0, CUDA build: False

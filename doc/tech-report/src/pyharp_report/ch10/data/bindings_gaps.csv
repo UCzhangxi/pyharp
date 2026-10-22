@@ -1,0 +1,10 @@
+struct,options,missing_bindings,missing_stubs,bound
+BeerLambertOptions,1,1,1,0
+IntegratorOptions,7,1,5,1
+IntegratorWeight,3,0,0,1
+Layer2LevelOptions,4,4,4,0
+OpacityOptions,9,0,0,1
+RadiationBandOptions,14,0,1,1
+RadiationModelOptions,9,9,9,0
+RadiationOptions,2,0,0,1
+ToonMcKay89Options,9,1,9,1

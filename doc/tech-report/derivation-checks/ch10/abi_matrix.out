@@ -1,0 +1,5 @@
+[A1] built against pydisort 1.7.1, run with 1.7.1: 3 runs, 3 clean, 0 aborted
+[A1] built against pydisort 1.8.13, run with 1.8.13: 3 runs, 3 clean, 0 aborted
+[A1] built against pydisort 1.7.1, run with 1.8.13: 3 runs, 0 clean, 3 aborted
+[A1] built against pydisort 1.8.13, run with 1.7.1: 3 runs, 3 clean, 0 aborted
+[A2] combinations with an abort: 1.7.1->1.8.13

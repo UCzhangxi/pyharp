@@ -1,0 +1,119 @@
+## The pydisort dependency and binary compatibility (`pydisort>=1.7.1`) {#sec-ch10-packaging}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: pyproject.toml, setup.py, cmake/modules/FindDisort.cmake, .github/workflows/ci.yml;
+  pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67 src/disort.hpp
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+pyharp compiles against the C++ headers and shared library of an installed pydisort, and at run time loads
+whichever pydisort is installed. This section states which versions the package accepts, which one CI tests, and
+what happens when the version pyharp was built against differs from the one it runs with.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** The pydisort versions pyharp builds and runs against, and the result of mixing them.
+
+**Data.** `pydisort>=1.7.1` (build and run requirement); CI installs 1.7.1.
+
+**Placement.** Build time (CMake finds pydisort) and import time (the extension loads its library).
+
+**Activation.** Always; no option.
+
+**Guarantee / limits.** Matched builds pass; built against 1.7.1 and run with 1.8.13 aborts (Limits layer).
+
+**Evidence.** The Tests layer of @sec-ch10-packaging.
+:::
+
+Local symbols: none.
+
+The requirement has a lower bound and no upper bound, so `pip install pyharp` today installs pydisort 1.8.13, the
+newest release, while CI builds and tests against 1.7.1 only.
+
+### Derivation
+
+None: this section states facts about packaging and has no equations.
+
+### Numerical method
+
+At build time `FindDisort.cmake` asks the Python interpreter for the installed `pydisort` package and uses its
+headers and `libdisort_release.so` (`__disort_determine_version`,
+{{< code cmake/modules/FindDisort.cmake repo=pyharp >}}). The extension built by
+`setup.py` (`ext_module`, {{< code setup.py ext_module repo=pyharp >}}) records the run-time search path
+`$ORIGIN/../pydisort/lib`, so at import it loads the library of whatever pydisort is installed then. Both
+`pyproject.toml` lists, `[build-system] requires` and `[project] dependencies`, say `pydisort>=1.7.1`
+({{< code pyproject.toml repo=pyharp >}}); the CI job installs `pydisort==1.7.1` with `--no-deps`
+({{< code .github/workflows/ci.yml repo=pyharp >}}).
+
+pyharp's DISORT band solver holds a `DisortImpl` object, a C++ class that pydisort declares in its header
+(`DisortImpl`, {{< code src/disort.hpp DisortImpl repo=pydisort >}}). pyharp's compiled code fixes the size and
+member layout of that class from the header it was built with, and pydisort's library code uses the layout of its
+own header. The two agree only when the versions agree. In the 1.8.13 wheel the header declares one more data
+member in `DisortImpl` than at the pin, a `torch::Tensor cuda_workspace_` described as reused CUDA scratch
+storage[^ch10-pkg-header].
+
+```{python}
+#| label: fig-ch10-packaging-matrix
+#| fig-cap: "Runs of tests/test_rayleigh.py for each pair of the pydisort a pyharp build was compiled against (rows) and the pydisort installed when it runs (columns). Each cell gives the number of clean runs and of runs that ended in a heap-corruption abort; red hatched cells contain aborts."
+#| fig-alt: "A two by two grid. Built 1.7.1 and run 1.7.1: 3 clean. Built 1.8.13 and run 1.8.13: 3 clean. Built 1.8.13 and run 1.7.1: 3 clean. Built 1.7.1 and run 1.8.13: 3 aborted, hatched red."
+#| echo: false
+from pyharp_report.ch10.figures.fig_packaging_matrix import make_fig
+make_fig()
+```
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| version requirement | {{< code pyproject.toml repo=pyharp >}} | `pydisort>=1.7.1` | always |
+| find pydisort at build time | {{< code cmake/modules/FindDisort.cmake repo=pyharp >}} | `__disort_determine_version` | always |
+| extension and run-time path | {{< code setup.py ext_module repo=pyharp >}} | `ext_module` | always |
+| version CI tests | {{< code .github/workflows/ci.yml repo=pyharp >}} | `pydisort==1.7.1` | CI |
+| the shared class | {{< code src/disort.hpp DisortImpl repo=pydisort >}} | `DisortImpl` | DISORT bands |
+
+: Code map of the pydisort dependency. {#tbl-ch10-packaging-code}
+
+1. `pip install pyharp` resolves `pydisort>=1.7.1` to the newest release ({{< code pyproject.toml repo=pyharp >}}).
+2. Building from source, CMake reads the version and paths of the installed pydisort
+   ({{< code cmake/modules/FindDisort.cmake repo=pyharp >}}) and links its library.
+3. Nothing records the pydisort version a build used, and nothing checks it at import.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `run_suite.sh` `[S6]` | `tests/test_rayleigh.py` three times per build/run pair | exit 0, no abort | process exit |
+| `abi_matrix.py` `[A1]`, `[A2]` | the matrix of @fig-ch10-packaging-matrix | exact counts | `[S6]` lines |
+
+: Checks of the pydisort dependency. {#tbl-ch10-packaging-tests}
+
+No pyharp test runs against more than one pydisort version. The test `tests/test_rayleigh.py` builds a
+`RadiationBand` with the DISORT solver, so it constructs and destroys a `DisortImpl`. Each of the four pairings
+was run three times: built against 1.7.1 and run with 1.7.1, 3 clean; built against 1.8.13 and run with 1.8.13,
+3 clean; built against 1.8.13 and run with 1.7.1, 3 clean; built against 1.7.1 and run with 1.8.13, both tests
+pass and then the process aborts with `double free or corruption (!prev)` (exit 134) in 3 of 3
+runs[^ch10-pkg-runs]. Apart from the intermittent spectra failure described in @sec-ch10-test-suite, the rest of
+the suite gives the same results in all four pairings.
+
+[^ch10-pkg-header]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the `disort/disort.hpp` headers of the PyPI wheels pydisort 1.7.1 and 1.8.13 (cp311, manylinux_2_27_x86_64); run: `diff <1.7.1 site-packages>/pydisort/disort/disort.hpp <1.8.13 site-packages>/pydisort/disort/disort.hpp`, CPU; Python 3.11.13. The 1.8.13 release is not the pydisort pin of `code_pin.yml`; it is quoted here only as the version `pydisort>=1.7.1` resolves to]
+[^ch10-pkg-runs]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_rayleigh.py` of the pin, inside `derivation-checks/ch10/run_suite.sh` [S6]; run: `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>` then `python3 derivation-checks/ch10/abi_matrix.py --csv src/pyharp_report/ch10/data/abi_matrix.csv`, CPU, double; pyharp 2.7.8 built from source at the pin against each pydisort wheel, the other wheel installed afterwards with `pip install --no-deps` for the mixed pairs; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; outputs `derivation-checks/ch10/run_suite.*.out`, `derivation-checks/ch10/abi_matrix.out`]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+Build pyharp against the pydisort it will run with; a pyharp built against 1.7.1 aborts at exit with 1.8.13.
+:::
+
+- **Open bound (CANDIDATE, pydisort compatibility).** `pydisort>=1.7.1` admits 1.8.13, and a pyharp compiled
+  against 1.7.1 then corrupts the heap after DISORT runs (3 of 3 runs abort); the matched pairs and the
+  1.8.13-built, 1.7.1-run pair do not[^ch10-pkg-runs]. That the cause is the larger `DisortImpl` of 1.8.13
+  (the extra member) is a hypothesis consistent with which pair fails; it was not confirmed with a memory checker.
+- **The published wheel.** The same abort was seen earlier with the PyPI wheel pyharp 2.7.6 and pydisort 1.8.13;
+  2.7.6 is not the pin, so that run is not evidence for this section, and re-running it at the pin would need a
+  wheel built from the pin.
+- **Untested combinations.** pydisort releases between 1.7.1 and 1.8.13, and macOS: not provided: no run here
+  covered them.

@@ -1,0 +1,12 @@
+[B0] C++ struct                   file                                   n py class               miss_bind miss_stub  missing
+[B1] BeerLambertOptions           src/rtsolver/rtsolver.hpp              1 BeerLambertOptions (unbound)         1         1  bind:alpha stub:alpha
+[B1] IntegratorOptionsImpl        src/integrator/integrator.hpp          7 IntegratorOptions              1         5  bind:verbose stub:tlim,nlim,ncycle_out,max_redo,verbose
+[B1] IntegratorWeight             src/integrator/integrator.hpp          3 IntegratorWeight               0         0  bind:- stub:-
+[B1] Layer2LevelOptions           src/utils/layer2level.hpp              4 Layer2LevelOptions (unbound)         4         4  bind:order,lower,upper,check_positivity stub:order,lower,upper,check_positivity
+[B1] OpacityOptionsImpl           src/opacity/opacity_options.hpp        9 OpacityOptions                 0         0  bind:- stub:-
+[B1] RadiationBandOptionsImpl     src/radiation/radiation_band.hpp      14 RadiationBandOptions           0         1  bind:- stub:toon
+[B1] RadiationModelOptionsImpl    src/integrator/radiation_model.hpp     9 RadiationModelOptions (unbound)         9         9  bind:ncol,nlyr,grav,mean_mol_weight,cp,aero_scale,kappa,rad,intg stub:ncol,nlyr,grav,mean_mol_weight,cp,aero_scale,kappa,rad,intg
+[B1] RadiationOptionsImpl         src/radiation/radiation.hpp            2 RadiationOptions               0         0  bind:- stub:-
+[B1] ToonMcKay89OptionsImpl       src/rtsolver/toon_mckay89.hpp          9 ToonMcKay89Options             1         9  bind:btop_factor stub:planck,zenith_correction,hard_surface,delta_eddington_lw,wave_lower,wave_upper,flags,top_emission_flag,btop_factor
+[B2] missing from bindings: 16; missing from stubs: 29
+[B3] bound classes absent from any .pyi: ['ToonMcKay89Options']
