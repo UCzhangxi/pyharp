@@ -1,0 +1,134 @@
+## Cost per column of the two solvers (`solver`, `nstr`) {#sec-ch05-cost}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml); pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+sources: src/rtsolver/rtsolver_dispatch.cpp, src/rtsolver/toon_mckay89_shortwave_impl.h; pydisort
+  src/disort_dispatch.cpp, cdisort213/cdisort.c
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+The accuracy of @sec-ch05-toon-accuracy has a price, and this section measures it: the CPU time to compute the
+fluxes of one atmospheric column with Toon and with DISORT at several stream counts. Toon solves one tridiagonal
+system per column; DISORT solves an eigenproblem in every layer and a banded linear system whose size grows with
+the stream count. On one host and one thread, DISORT at the 64 streams of the reference costs about 3700 times Toon.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** CPU time per column of Toon and of DISORT against the stream count $2N$; scaling @eq-ch05-cost-scaling.
+
+**Data.** 256 columns of 50 layers per call, random optical properties; time per column [$\mu$s].
+
+**Placement.** A measurement; nothing in pyharp runs it.
+
+**Activation.** `solver` and `nstr` in the band YAML; thread count from torch.
+
+**Guarantee / limits.** One host; times include building the inputs and the solver object of each call.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $c$ the wall-clock cost per column [s]; $L$ the number of layers (count); $p$ the fitted exponent of $c$
+against the stream count [-].
+
+### Derivation
+
+**Toon.** For $L$ layers Toon's shortwave kernel evaluates closed-form coefficients in every layer and solves one
+tridiagonal system of order $2L$ by elimination (`toon_mckay89_shortwave`,
+{{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}). Each step is a fixed number of
+operations per layer, so the cost is proportional to $L$ and independent of any stream count.
+
+**DISORT.** With $2N$ streams cdisort solves, in every layer, an eigenproblem of order $N$ for the homogeneous
+solution (`c_solve_eigen`, {{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}}), and then one banded
+system for the constants of integration of all layers (`c_solve0`,
+{{< code cdisort213/cdisort.c c_solve0 repo=pydisort >}}). The eigenproblem costs of order $N^3$ per layer. The
+banded system has order $2NL$ and a bandwidth of order $2N$; elimination costs the order times the square of the
+bandwidth. Together,
+
+$$
+c_{\mathrm{DISORT}} \propto L\,N^{3} ,
+$$ {#eq-ch05-cost-scaling}
+<!-- equation-check: eq-ch05-cost-scaling check_ch05_cost.py [C11] -->
+
+for large $N$; for small $N$ the operations that grow as $N$ and $N^2$ (setting up the source terms and the
+quadrature) still weigh, so the measured exponent $p$ approaches 3 from below.
+
+**Batching.** Both solvers run all columns and wavelengths of one call through one tensor iterator; on the CPU the
+columns are distributed over torch's threads (`call_toon89_sw_cpu`,
+{{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}}). The time per column is the call time divided by
+the number of columns.
+
+What is exact and what is approximate: @eq-ch05-cost-scaling is an operation count, not a measured law; the
+exponent is fitted below from at least three stream counts. The check is `check_ch05_cost.py` (Tests layer).
+
+### Numerical method
+
+Each measurement runs 256 columns of 50 layers with optical depths log-uniform between $10^{-3}$ and 1 per layer,
+$\omega$ between 0 and 0.99, $g$ between 0 and 0.85, $\mu_0$ between 0.1 and 1 and $A_s$ between 0 and 0.5 (seed 0),
+and takes the best of three calls. It is repeated with one thread and with torch's default thread count. Every
+call builds its input tensors and a new solver object, as a caller with a new set of columns would.
+
+```{python}
+#| label: fig-ch05-cost-time
+#| fig-cap: "CPU time per column of shortwave DISORT against the stream count, with one thread (blue circles, solid) and with the default 16 threads (orange squares, dashed); the dotted horizontal lines in the same colours are Toon's shortwave time. 50 layers, 256 columns per call, best of three, one host. DISORT's time grows by about 2.4 powers of the stream count between 16 and 64 streams; at 64 streams it costs about 3700 times Toon on one thread."
+#| fig-alt: "Log-log plot of microseconds per column against streams 4 to 64. Two rising lines for DISORT, from about 40 and 5 microseconds at 4 streams to about 15000 and 1400 at 64 streams. Two flat dotted lines for Toon near 4 and 1 microsecond."
+#| echo: false
+from pyharp_report.ch05.figures.fig_cost import make_fig
+make_fig()
+```
+
+@fig-ch05-cost-time shows the measured times.
+
+### Code
+
+@tbl-ch05-cost-code lists the code whose time is measured.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| Toon CPU driver | {{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}} | `call_toon89_sw_cpu` | CPU inputs |
+| Toon shortwave kernel | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `toon_mckay89_shortwave` | `solver: toon` |
+| DISORT eigenproblem | {{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}} | `c_solve_eigen` | `solver: disort` |
+| DISORT banded system | {{< code cdisort213/cdisort.c c_solve0 repo=pydisort >}} | `c_solve0` | `solver: disort` |
+
+: Code map of the cost measurement. {#tbl-ch05-cost-code}
+
+### Tests
+
+@tbl-ch05-cost-tests lists the check; it is a measurement, and fails only on a non-finite flux.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch05_cost.py` [C1]-[C24] | every solver returns finite fluxes; times printed | finite | a timing is not a pass/fail quantity |
+
+: Tests of the cost measurement. {#tbl-ch05-cost-tests}
+
+With one thread, Toon takes $4.0\,\mu$s per column for the shortwave and $21\,\mu$s for thermal emission. DISORT
+takes $43\,\mu$s at 4 streams, $144\,\mu$s at 8, $525\,\mu$s at 16, $2.50$ ms at 32 and $14.8$ ms at 64, that is 11,
+36, 130, 620 and 3684 times Toon's shortwave time. The fitted exponent $p$ of @eq-ch05-cost-scaling is 1.81 over 4,
+8 and 16 streams and 2.41 over 16, 32 and 64. With the default 16 threads Toon takes $1.2\,\mu$s and DISORT $5.2\,\mu$s
+at 4 streams and $1.47$ ms at 64.[^ch05-cost-run] The thermal DISORT times are within 10 % of the shortwave ones at
+every stream count.
+
+The times are of one host and one run; a different processor, thread count or column size changes them. What they
+show that does not depend on the host is the ratio: a converged DISORT reference is three to four orders of
+magnitude more expensive than Toon.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **One host, CPU only.** Times on CUDA, and the CUDA support of each solver, are the subject of the GPU chapter.
+- **Included overheads.** Each timing includes building the solver object and the input tensors; a caller that
+  reuses one solver object for many calls pays less per call. That split is not measured.
+- **Not measured.** Column counts other than 256, layer counts other than 50, and repeated timings with their
+  spread.
+:::
+
+[^ch05-cost-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the random columns of `derivation-checks/check_ch05_cost.py`, seed 0; run:
+`python3 derivation-checks/check_ch05_cost.py`, CPU, double, x86_64 with 32 logical CPUs and torch's default of
+16 threads; best of 3 calls, one run; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6; pyharp built by `derivation-checks/ch05_setup.sh` (gcc 11.5.0,
+nvcc 12.6 with its CUDA-architecture patch; AMD Ryzen 9 7950X, GTX 1080 Ti); all ch05 outputs regenerate with
+`derivation-checks/ch05_run.sh <venv>`; output `derivation-checks/check_ch05_cost.out`, lines [C1]-[C24]; the exponents fitted by least squares on
+the logarithms of those lines.]
