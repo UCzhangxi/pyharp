@@ -1,0 +1,119 @@
+{
+ "pydisort": "1.8.13",
+ "torch": "2.10.0+cu126",
+ "gpu": "NVIDIA GeForce GTX 1080 Ti",
+ "cells": {
+  "Toon SW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "Toon SW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "Toon SW|CUDA f64": [
+   "pass",
+   "4.2e-14"
+  ],
+  "Toon SW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "Toon SW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "Toon SW|CUDA f32": [
+   "pass",
+   "1.4e-05"
+  ],
+  "Toon LW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "Toon LW|batch f64": [
+   "pass",
+   "3.5e-16"
+  ],
+  "Toon LW|CUDA f64": [
+   "pass",
+   "1.7e-14"
+  ],
+  "Toon LW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "Toon LW|batch f32": [
+   "pass",
+   "2.5e-07"
+  ],
+  "Toon LW|CUDA f32": [
+   "pass",
+   "1.2e-05"
+  ],
+  "DISORT SW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "DISORT SW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT SW|CUDA f64": [
+   "fail",
+   "omega<1/omega=1 by nstr 4: 5.5e-15/1.6e-10; 8: 8.3e-05/3.3e-10; 16: 8.7e-15/3.6e-10; 32: 2.1e-14/4.5e-10; fails at [8]"
+  ],
+  "DISORT SW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "DISORT SW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT SW|CUDA f32": [
+   "fail",
+   "omega<1/omega=1 by nstr 4: 0.0e+00/1.8e-08; 8: 2.8e-04/6.2e+04; 16: 0.0e+00/3.6e-08; 32: 0.0e+00/1.8e-08; fails at [8]"
+  ],
+  "DISORT LW|forward f64": [
+   "pass",
+   "finite"
+  ],
+  "DISORT LW|batch f64": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT LW|CUDA f64": [
+   "fail",
+   "omega<1/omega=1 by nstr 4: 1.6e-13/1.1e-07; 8: 2.9e-06/1.0e-07; 16: 1.2e-13/9.0e-08; 32: 1.3e-13/7.0e-08; fails at [4, 8, 16, 32]"
+  ],
+  "DISORT LW|forward f32": [
+   "pass",
+   "finite"
+  ],
+  "DISORT LW|batch f32": [
+   "pass",
+   "0.0e+00"
+  ],
+  "DISORT LW|CUDA f32": [
+   "fail",
+   "omega<1/omega=1 by nstr 4: 2.6e-15/7.0e-08; 8: 1.5e-05/5.8e+08; 16: 3.0e-15/8.7e-08; 32: 7.0e-15/1.2e-07; fails at [8]"
+  ],
+  "RadiationBand DISORT|forward f64": [
+   "pass",
+   "shape (4, 3, 4)"
+  ],
+  "RadiationBand DISORT|CUDA f64": [
+   "pass",
+   "4.0e-11"
+  ],
+  "RadiationBand DISORT|forward f32": [
+   "pass",
+   "shape (4, 3, 4)"
+  ],
+  "RadiationBand DISORT|CUDA f32": [
+   "pass",
+   "7.5e-08"
+  ]
+ }
+}

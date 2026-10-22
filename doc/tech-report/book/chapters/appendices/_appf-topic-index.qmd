@@ -8,6 +8,8 @@
 
 **band-integrated Planck function, DISORT**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
 
+**batching, Toon solver**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
+
 **bibliography**: [Reading list](#sec-reading).
 
 **Buras-Emde intensity correction**: Intensity corrections after delta-M, @sec-ch03-intcorr.
@@ -16,7 +18,15 @@
 
 **conservative scattering**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
 
+**CUDA architecture list (sm_120)**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
+
+**CUDA, DISORT by pydisort version**: DISORT on CUDA by pydisort version, @sec-ch09-disort.
+
+**CUDA, Toon solver**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
+
 ## D {.unnumbered .unlisted}
+
+**D1, abort after test_rayleigh**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
 
 *delta-Eddington*, see **delta scaling**.
 
@@ -78,6 +88,8 @@
 
 **pydisort, how pyharp calls it**: Handing a band to DISORT, @sec-ch03-band.
 
+**pydisort version, build contract**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
+
 ## Q {.unnumbered .unlisted}
 
 **quadrature closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures; Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
@@ -90,9 +102,13 @@
 
 **shortwave two-stream solver**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
 
+**single precision on CUDA**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
+
 *single-scattering albedo of one*, see **conservative scattering**.
 
 **source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
+**support matrix, solver by operation**: DISORT on CUDA by pydisort version, @sec-ch09-disort.
 
 **symbols, coordinates and grids**: [1. Coordinates and grids](#sec-appa-1).
 
