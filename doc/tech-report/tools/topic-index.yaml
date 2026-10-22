@@ -69,6 +69,17 @@ sections:
     - Planck function, band-integrated
   sec-ch04-zenith:
     - zenith correction, no effect
+  sec-ch09-toon:
+    - batching, Toon solver
+    - CUDA, Toon solver
+    - single precision on CUDA
+  sec-ch09-disort:
+    - CUDA, DISORT by pydisort version
+    - support matrix, solver by operation
+  sec-ch09-build:
+    - pydisort version, build contract
+    - D1, abort after test_rayleigh
+    - CUDA architecture list (sm_120)
 unlabeled:
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
@@ -79,3 +90,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch04.qmd
     heading: Toon et al. 1989 two-stream, as implemented (@sec-ch04)
     covered-by: sec-ch04
+  - file: chapters/appendices/_appb-ch09.qmd
+    heading: GPU and batching (@sec-ch09)
+    covered-by: sec-ch09

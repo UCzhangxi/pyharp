@@ -29,3 +29,12 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch04-planck-series` | `04-toon/_planck.qmd` | `pyharp_report/ch04/figures/fig_planck_series.py` | - |
 | `fig-ch04-shortwave-system` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_system.py` | - |
 | `fig-ch04-shortwave-thick-layer` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_thick_layer.py` | `src/pyharp_report/ch04/data/shortwave_thick_layer.csv` |
+
+## ch09
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch09-build-chain` | `09-gpu/_build.qmd` | `pyharp_report/ch09/figures/fig_abi_chain.py` | - |
+| `fig-ch09-disort-matrix` | `09-gpu/_disort-device.qmd` | `pyharp_report/ch09/figures/_data.py`<br>`pyharp_report/ch09/figures/fig_support_matrix.py` | `src/pyharp_report/ch09/data/cells_pydisort_1.7.1.json`<br>`src/pyharp_report/ch09/data/cells_pydisort_1.8.13.json` |
+| `fig-ch09-map` | `09-gpu.qmd` | `pyharp_report/ch09/figures/fig_chapter_map.py` | - |
+| `fig-ch09-toon-device` | `09-gpu/_toon-device.qmd` | `pyharp_report/ch09/figures/_data.py`<br>`pyharp_report/ch09/figures/fig_toon_device.py` | `src/pyharp_report/ch09/data/cells_pydisort_1.7.1.json`<br>`src/pyharp_report/ch09/data/cells_pydisort_1.8.13.json` |
