@@ -1,0 +1,214 @@
+## Analytic cases and energy closure (`solver`) {#sec-ch05-analytic}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml); pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+sources: src/rtsolver/toon_mckay89_shortwave_impl.h, src/rtsolver/toon_mckay89_longwave_impl.h,
+  src/rtsolver/toon_mckay89.hpp, src/radiation/bbflux.cpp; pydisort src/disort.cpp, cdisort213/cdisort.c
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+A few radiative-transfer problems have an exact answer that needs no solver: a beam crossing an absorbing slab, a
+slab that only emits, and the bookkeeping of energy between the top, the column and the surface. This section runs
+both solvers (`solver: toon` and `solver: disort`) on those problems. They check the parts of each solver that do
+not depend on the scattering approximation, and they confirm that the DISORT reference of @sec-ch05-reference is
+right where an exact answer exists.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Closed forms @eq-ch05-analytic-beam, @eq-ch05-analytic-e3; closure @eq-ch05-analytic-closure.
+
+**Data.** Fluxes at every level of single- and multi-layer slabs, normalised by $F_{\mathrm{inc}}$.
+
+**Placement.** A measurement on the solvers; nothing in pyharp runs it.
+
+**Activation.** `solver` in the band YAML (`toon` or `disort`); required, no default.
+
+**Guarantee / limits.** Beam to $2\times10^{-16}$; Toon emission to $3.2\times10^{-4}$.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $A_{\mathrm{col}}$ the flux absorbed in the column [$\mathrm{W\,m^{-2}}$]; $I_s$ the radiance
+leaving a Lambertian surface [$\mathrm{W\,m^{-2}\,sr^{-1}}$]; $E_3$ the third
+exponential integral, $E_3(x) = \int_0^1 \mu\, e^{-x/\mu}\,\mathrm{d}\mu$ [-]; $F_{\mathrm{net}}$, $J$, $A_s$ as
+in the ch2 notation; $F_{\mathrm{inc}}$ as in @eq-ch05-reference-finc.
+
+### Derivation
+
+**A beam in an absorbing slab.** With no scattering ($\omega = 0$) the beam loses energy along its path only. A
+beam of flux $F_0$ normal to its direction, entering at $\tau = 0$ with cosine $\mu_0$, keeps the fraction
+$e^{-\tau/\mu_0}$ after the slant path $\tau/\mu_0$, so the downward flux on a horizontal surface is
+
+$$
+F_{\mathrm{dir}}(\tau) = \mu_0 F_0\, e^{-\tau/\mu_0} ,
+$$ {#eq-ch05-analytic-beam}
+<!-- equation-check: eq-ch05-analytic-beam check_ch05_analytic.py [C1] -->
+
+with $\tau$ [-] the optical depth measured down from the top, and no diffuse flux arises. Toon's shortwave kernel
+computes @eq-ch05-analytic-beam directly when every layer has $\omega \le 10^{-12}$ and the surface is black (the
+branch on `all_zero_w` in `toon_mckay89_shortwave`,
+{{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+
+**The beam reflected by a Lambertian surface.** A surface of albedo $A_s$ [-] at $\tau_0$ reflects the flux
+$A_s F_{\mathrm{dir}}(\tau_0)$ isotropically, with radiance $I_s = A_s F_{\mathrm{dir}}(\tau_0)/\pi$. Through an
+absorbing path of vertical optical depth $\tau_0 - \tau$ the radiance in direction $\mu$ keeps
+$e^{-(\tau_0-\tau)/\mu}$, so the
+upward flux at $\tau$ is
+
+$$
+\begin{aligned}
+F^{+}(\tau) &= 2\pi \int_0^1 I_s\, e^{-(\tau_0-\tau)/\mu}\, \mu\,\mathrm{d}\mu \\
+            &= 2\pi I_s\, E_3(\tau_0 - \tau) \\
+            &= 2 A_s F_{\mathrm{dir}}(\tau_0)\, E_3(\tau_0 - \tau) .
+\end{aligned}
+$$ {#eq-ch05-analytic-reflect}
+<!-- equation-check: eq-ch05-analytic-reflect check_ch05_analytic.py [C14] -->
+
+**A slab that only emits.** An isothermal slab of optical depth $\tau_0$, Planck radiance $B$ and no scattering,
+with no radiation entering at the top, sends down along $\mu$ the radiance
+$I^{-}(\tau_0,\mu) = B\,(1 - e^{-\tau_0/\mu})$. The downward flux at its bottom is
+
+$$
+\begin{aligned}
+F^{-}(\tau_0) &= 2\pi \int_0^1 B\,(1 - e^{-\tau_0/\mu})\, \mu\,\mathrm{d}\mu \\
+              &= \pi B - 2\pi B\, E_3(\tau_0) \\
+              &= \pi B\,\bigl(1 - 2E_3(\tau_0)\bigr) .
+\end{aligned}
+$$ {#eq-ch05-analytic-e3}
+<!-- equation-check: eq-ch05-analytic-e3 check_ch05_analytic.py [C21] -->
+
+Over a black surface at the same temperature the column is in equilibrium and the upward flux is $\pi B$ at every
+level. Toon's thermal kernel integrates over $\mu$ with five Gauss points (`uarr`, `wuarr` in
+`toon_mckay89_longwave`, {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}), so
+@eq-ch05-analytic-e3 measures that quadrature.
+
+**Energy closure.** Write the net flux upward-positive, $F_{\mathrm{net}} = F^{+} - F^{-} - F_{\mathrm{dir}}$
+[$\mathrm{W\,m^{-2}}$], and $J$ [$\mathrm{W\,m^{-2}\,sr^{-1}}$] for the mean radiance including the beam. Integrating
+the radiative-transfer equation over all directions gives the divergence of the net flux, and integrating that over
+the column gives the absorbed flux:
+
+$$
+\begin{aligned}
+\frac{\mathrm{d}F_{\mathrm{net}}}{\mathrm{d}\tau} &= (1-\omega)\, 4\pi J \\
+A_{\mathrm{col}} &= F_{\mathrm{net}}(\tau_0) - F_{\mathrm{net}}(0) = \int_0^{\tau_0} (1-\omega)\, 4\pi J\,\mathrm{d}\tau .
+\end{aligned}
+$$ {#eq-ch05-analytic-closure}
+<!-- equation-check: eq-ch05-analytic-closure check_ch05_analytic.py [C25] -->
+
+Two consequences are checked. With $\omega = 1$ the right side vanishes, so $F_{\mathrm{net}}$ is the same at every
+level. With $\omega < 1$, the flux drop $F_{\mathrm{net}}(\tau_0) - F_{\mathrm{net}}(0)$ and the integral of the
+mean radiance are two independent routes to $A_{\mathrm{col}}$. A third line, reflected plus column-absorbed plus
+surface-absorbed equal to incident, is an identity of these definitions once the top boundary has
+$F^{-}(0) = 0$ and $F_{\mathrm{dir}}(0) = \mu_0 F_0$; it therefore checks that boundary condition. The surface itself
+must satisfy $F^{+}(\tau_0) = A_s\,\bigl(F^{-}(\tau_0) + F_{\mathrm{dir}}(\tau_0)\bigr)$.
+
+Every expression above is exact; nothing in this section is truncated except the solvers' own discretisations,
+which are what the comparison measures. The check is `check_ch05_analytic.py` (Tests layer).
+
+### Numerical method
+
+The beam cases use five layers of thickness fractions 0.1, 0.3, 0.05, 0.25 and 0.3 of
+$\tau_0 \in \{0.01, 0.1, 1, 3, 10, 30\}$, at $\mu_0 \in \{0.1, 0.2, 0.5, 1\}$, with $A_s = 0$ and $0.4$. The
+emitting slab has five equal layers, $\tau_0 \in \{0.01, 0.1, 0.3, 1, 3, 10\}$, $T = 250$ K, the band 500 to
+1000 $\mathrm{cm^{-1}}$; Toon runs with `hard_surface`, so its surface emits $(1 - A_s)\,\pi B$ at the bottom-level
+temperature, as DISORT's does. The closure cases are 72 slabs of 400 equal layers for DISORT (32 streams) and of 10
+layers for Toon, $\tau_0 \in \{0.1, 1, 10\}$, $\omega \in \{0.3, 0.9, 1\}$, $g \in \{0, 0.85\}$,
+$\mu_0 \in \{0.2, 1\}$, $A_s \in \{0, 0.4\}$. DISORT's mean radiance comes from `gather_flx`
+({{< code src/disort.cpp DisortImpl::gather_flx repo=pydisort >}}), channel 4, and the integral of
+@eq-ch05-analytic-closure is taken by Simpson's rule over the 401 levels.
+
+```{python}
+#| label: fig-ch05-analytic-e3
+#| fig-cap: "Error of the downward flux at the bottom of a grey isothermal slab against the closed form, divided by pi B, against the slab optical depth: Toon (green squares, solid) and DISORT with 4 (vermillion down-triangles, dashed), 16 (orange up-triangles, dash-dot) and 64 streams (blue circles, dotted). Toon's five-point quadrature stays within 3.2e-4; DISORT needs 16 streams to match it and reaches a floor of 7.4e-7, the difference between its band Planck integral and pyharp's."
+#| fig-alt: "Log-log plot of error against optical depth from 0.01 to 10. Toon's error is about 1e-4 for thin slabs and falls to 1e-9 for thick ones. DISORT with 4 streams has errors up to 1e-2, with 16 streams up to 6e-5, and with 64 streams about 1e-7 rising to a flat 7e-7."
+#| echo: false
+from pyharp_report.ch05.figures.fig_analytic_e3 import make_fig
+make_fig()
+```
+
+@fig-ch05-analytic-e3 shows the error of @eq-ch05-analytic-e3 for both solvers.
+
+### Code
+
+@tbl-ch05-analytic-code lists the code each analytic case exercises.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| shortwave kernel, pure-absorption branch | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `toon_mckay89_shortwave` | `solver: toon` |
+| thermal kernel, five-point quadrature | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `toon_mckay89_longwave` | `flags: planck` |
+| surface emission $(1 - A_s)\pi B$ | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::hard_surface repo=pyharp >}} | `hard_surface` | `hard_surface` flag |
+| band Planck radiance | {{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}} | `bbflux_wavenumber` | always |
+| DISORT fluxes and mean radiance | {{< code src/disort.cpp DisortImpl::gather_flx repo=pydisort >}} | `gather_flx` | `solver: disort` |
+| layer cut-off | {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}} | `c_disort_set` | multi-layer beam runs |
+
+: Code map of the analytic cases. {#tbl-ch05-analytic-code}
+
+1. Toon's shortwave kernel tests every layer's $\omega$ against $10^{-12}$ and the surface albedo against
+   $10^{-12}$; when all pass it sets the downward flux to @eq-ch05-analytic-beam and the upward flux to zero
+   (`all_zero_w` in {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}). Otherwise the
+   general two-stream solve of @sec-ch05-toon-accuracy runs, also for $\omega = 0$ over a reflecting surface.
+2. Toon's thermal kernel takes the band Planck radiance $B$ from `bbflux_wavenumber`
+   ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}}). That function returns a radiance
+   [$\mathrm{W\,m^{-2}\,sr^{-1}}$], not a flux; the flux of a black surface is $\pi$ times it.
+3. Without `hard_surface` the thermal kernel's surface source is $B + B_1/2$, with $B_1$ the Planck gradient of the
+   bottom layer, not $(1 - A_s)B$ (`bsurf_flux` in
+   {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}); the comparisons here set
+   `hard_surface` so both solvers have the same boundary.
+
+### Tests
+
+@tbl-ch05-analytic-tests lists the checks of this section.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch05_analytic.py` [C1], [C4], [C6], [C11] | @eq-ch05-analytic-beam, both solvers, $A_s = 0$ and $0.4$ | $10^{-12}$ relative | a few hundred roundings of one exponential in double |
+| `check_ch05_analytic.py` [C3], [C10], [C13] | DISORT below absorption depth 10 | $e^{-10}$, $A_s e^{-10}$ | the largest beam `lyrcut` can drop |
+| `check_ch05_analytic.py` [C14] | @eq-ch05-analytic-reflect, DISORT 64 streams | $10^{-4}$ | the quadrature error of @fig-ch05-analytic-e3 at 16 streams |
+| `check_ch05_analytic.py` [C21] | @eq-ch05-analytic-e3, DISORT 64 streams | $10^{-4}$ | same |
+| `check_ch05_analytic.py` [C23], [C25] | @eq-ch05-analytic-closure, DISORT | $10^{-6}$, $10^{-4}$ | Simpson's rule on 400 layers, error of order $h^4$ |
+| `tests/test_toon.py` (pytest) | `test_toon_sw_pure_absorption`: Toon against @eq-ch05-analytic-beam | $10^{-8}$ absolute | not stated in the test |
+
+: Tests of the analytic cases. {#tbl-ch05-analytic-tests}
+
+Both solvers reproduce @eq-ch05-analytic-beam to $1.93\times10^{-16}$ relative, return an upward flux of exactly
+zero over a black surface, and keep the surface balance to $6.9\times10^{-18}$ (Toon) and $1.7\times10^{-14}$
+(DISORT) of the incident flux. DISORT reproduces @eq-ch05-analytic-reflect to $4.8\times10^{-8}$; Toon misses it by
+$6.25\times10^{-3}$, because it carries the reflected field with two streams.[^ch05-ana-run]
+
+For the emitting slab, Toon's error against @eq-ch05-analytic-e3 is $-3.2\times10^{-4}$ of $\pi B$ at
+$\tau_0 = 0.01$ and falls below $10^{-8}$ for $\tau_0 \ge 3$. DISORT's largest error is $9.8\times10^{-3}$ at
+4 streams, $6.1\times10^{-5}$ at 16 and $7.4\times10^{-7}$ at 64. Both give the equilibrium flux over a black
+surface, Toon to round-off and DISORT to $7.4\times10^{-7}$.[^ch05-ana-run]
+
+Closure, DISORT: the net flux of the $\omega = 1$ slabs is constant to $1.5\times10^{-7}$ of the incident flux;
+the two routes to $A_{\mathrm{col}}$ agree to $4.9\times10^{-5}$; the top boundary condition holds to
+$7.2\times10^{-10}$ and the surface balance to $6.8\times10^{-10}$. Toon: the surface balance holds to
+$5.4\times10^{-11}$ and $A_{\mathrm{col}} \ge 0$ in every slab with $\omega < 1$.[^ch05-ana-run]
+
+All of these run on the CPU in double precision.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **Toon with $\omega = 1$ exactly.** The net flux is constant, as closure requires, but because the solution is
+  wrong everywhere: the upward and downward fluxes are equal at every level. The reflectance differs from the
+  $\omega = 1 - 10^{-12}$ run by up to 0.997 of the incident flux. This is the defect of
+  @sec-ch05-toon-accuracy, Limits.[^ch05-ana-run]
+- **DISORT below absorption depth 10.** In a multi-layer beam run the fluxes below the level where the absorption
+  optical depth reaches 10 are zero (`c_disort_set`, {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}});
+  measured, the lost beam is at most $1.4\times10^{-6}$ and the lost reflection $1.8\times10^{-5}$ of the incident
+  flux.
+- **Not covered.** Scattering slabs with a closed form (the conservative semi-infinite slab, for example) are not
+  among these cases; they are covered only through the benchmark of @sec-ch05-reference.
+:::
+
+[^ch05-ana-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the cases of `derivation-checks/check_ch05_analytic.py`; run:
+`python3 derivation-checks/check_ch05_analytic.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6,
+scipy 1.17.1; pyharp built by `derivation-checks/ch05_setup.sh` (gcc 11.5.0,
+nvcc 12.6 with its CUDA-architecture patch; AMD Ryzen 9 7950X, GTX 1080 Ti); all ch05 outputs regenerate with
+`derivation-checks/ch05_run.sh <venv>`; output `derivation-checks/check_ch05_analytic.out`,
+lines [C1]-[C32].]
