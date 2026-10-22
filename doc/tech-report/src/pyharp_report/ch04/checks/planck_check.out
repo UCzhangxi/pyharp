@@ -3,4 +3,5 @@
 [C3] PASS equal-edges branch / B_nu(667 cm-1, 300 K) = 1.0000e-10; 2hc^2 x 1e8 = 1.19104e-08 W m-2 sr-1 cm4 vs code 1.1911e-18
 [C4] PASS point overload / B_nu(667 cm-1, 300 K) - 1 = 2.8e-04
 [C5] PASS exact c2 and sigma, port / int B_nu - 1: +1.0e-05, -6.7e-08, -3.3e-11, -3.3e-11
-RESULT: 5/5 pass
+[C6] PASS at v = 1.5: next power-series term 4.8e-08, m = 7 exponential term 2.8e-06 (fractions of sigma T^4/pi); hc/k = 1.4387769 cm K
+RESULT: 6/6 pass

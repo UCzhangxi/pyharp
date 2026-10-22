@@ -15,16 +15,25 @@ Source pins:
   source pin of `code_pin.yml` is zoeyzyhu/pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67, and that the wheel was
   built from it was not verified here) and one against the pydisort 1.8.13 wheel. The Toon solver does not call
   pydisort; the two outputs are identical after their version lines.
-- Python 3.11.13, torch 2.10.0+cu128 (run on CPU), numpy 2.4.6, mpmath 1.3.0.
+- Python 3.11.13, torch 2.10.0+cu128 (run on CPU), numpy 2.4.6, mpmath 1.3.0; the full package set is
+  `requirements.lock`, and `setup_env.sh` checks the sha256 of the torch and pydisort wheels.
 
-Commands (from `doc/tech-report`):
+Reproduce everything (from `doc/tech-report`, on a Linux x86_64 host with python3.11, git, gcc and the NetCDF C
+library; about 15 minutes per environment, most of it the pyharp build):
 
 ```sh
-python3 derivation-checks/ch04/toon_pyharp_check.py > derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out
-python3 derivation-checks/ch04/toon_pyharp_check.py --data src/pyharp_report/ch04/data/shortwave_thick_layer.csv
+bash derivation-checks/ch04/setup_env.sh /tmp/env171 1.7.1    # venv from requirements.lock + checksummed wheels,
+bash derivation-checks/ch04/setup_env.sh /tmp/env1813 1.8.13  # pyharp built from chengcli/pyharp at the pin
+bash derivation-checks/ch04_run.sh /tmp/env171 /tmp/env1813
+git status --short    # the committed outputs are regenerated in place; no change means a byte-identical rerun
 ```
 
-The second command also writes the data file read by the figure `fig-ch04-shortwave-thick-layer`. Exit status is the
-number of failed core checks `[C1]`-`[C6]`; candidate checks `[K1]`-`[K6]` print `XFAIL` when the candidate defect is
-reproduced and never change the exit status. All candidates are CANDIDATE until a second independent run agrees;
-they are named by content, not by register number.
+`ch04_run.sh` writes `toon_pyharp_check.pydisort-<version>.out` for each environment, the data file
+`src/pyharp_report/ch04/data/shortwave_thick_layer.csv` (read by the figure `fig-ch04-shortwave-thick-layer`), the
+outputs of the three numpy/sympy checks under `src/pyharp_report/ch04/checks/`, and draws the chapter's figures with
+`tools/render_figures.py --chapters ch04`. Inputs: none beyond the pinned sources and the PyPI wheels named in
+`setup_env.sh`; every check builds its cases in code.
+
+The exit status of `toon_pyharp_check.py` is the number of failed core checks `[C1]`-`[C6]`; candidate checks
+`[K1]`-`[K6]` print `XFAIL` when the candidate defect is reproduced and never change the exit status. All candidates
+are CANDIDATE until a second independent run agrees; they are named by content, not by register number.

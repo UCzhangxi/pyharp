@@ -46,26 +46,28 @@ code calls the solver `toon_mckay89`; YAML selects it with `solver: toon`.
 
 ### Derivation
 
-The radiative transfer problem, its notation and the two-stream closure family are those of @sec-ch02. Optical
+The radiative transfer problem and its notation are those of @sec-ch02, and the two-stream closure family is that
+of @sec-ch02-closures. Optical
 depth $\tau$ is measured downward from the top of the atmosphere; layers are numbered $n = 1,\dots,L$ from the top;
 inside layer $n$ a local depth $\xi \in [0, \Delta\tau_n]$ is measured from the layer top.
 
-**Scaling.** The code first replaces $\omega$, $g$ and $\Delta\tau_n$ by their delta-Eddington values
+**Scaling.** The code first replaces $\omega$, $g$ and $\Delta\tau_n$ by their delta-Eddington values (the
+transform of @eq-ch02-delta-scaling-transform, in the notation of @sec-ch02-delta-scaling)
 [@reading06] with truncation fraction $f = g^2$:
 
 $$
 \begin{aligned}
-\omega' &= \frac{(1 - f)\,\omega}{1 - \omega f}, \\
-\Delta\tau_n' &= (1 - \omega f)\,\Delta\tau_n, \\
-g' &= \frac{g - f}{1 - f} = \frac{g}{1 + g}.
+\omega^{\mathrm{s}} &= \frac{(1 - f)\,\omega}{1 - \omega f}, \\
+\Delta\tau^{\mathrm{s}}_n &= (1 - \omega f)\,\Delta\tau_n, \\
+g^{\mathrm{s}} &= \frac{g - f}{1 - f} = \frac{g}{1 + g}.
 \end{aligned}
 $$ {#eq-ch04-shortwave-delta}
 
 @eq-ch04-shortwave-delta is computed in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
 The last equality follows from $f = g^2$: $(g - g^2)/(1 - g^2) = g(1 - g)/((1 - g)(1 + g))$. The scaling keeps the
-absorption optical depth, $(1 - \omega')\Delta\tau_n' = (1 - \omega)\Delta\tau_n$, and removes the forward peak
-$f\omega\Delta\tau_n$ from the scattering optical depth. From here on every quantity is the scaled one and the primes
-are dropped.
+absorption optical depth, $(1 - \omega^{\mathrm{s}})\Delta\tau^{\mathrm{s}}_n = (1 - \omega)\Delta\tau_n$, and removes the forward peak
+$f\omega\Delta\tau_n$ from the scattering optical depth. From here on every quantity is the scaled one and the
+superscript $\mathrm{s}$ is dropped.
 
 **Equations.** With the direct beam $F_{\mathrm{dir}}(\tau) = \mu_0 F_0 e^{-\tau/\mu_0}$ as the source, the diffuse
 fluxes in layer $n$ obey [@reading02, eqs. 11-14]
@@ -222,7 +224,7 @@ make_fig()
 **Where quantities live.** $\Delta\tau_n$, $\omega$, $g$ are layer values; fluxes are level values. pyharp stores
 layers and levels bottom to top (array index 0 at the surface), and the kernel reverses the order on read
 (`DTAU_IN`, `FLX_UP` in `toon_mckay89_shortwave`, {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
-The direct beam uses the scaled optical depth, $F_{\mathrm{dir}}(\tau) = \mu_0 F_0 e^{-\tau'/\mu_0}$, and is added
+The direct beam uses the scaled optical depth, $F_{\mathrm{dir}}(\tau) = \mu_0 F_0 e^{-\tau^{\mathrm{s}}/\mu_0}$, and is added
 to the downward channel, which therefore holds $F^- + F_{\mathrm{dir}}$.
 
 **Resonance.** The denominator of @eq-ch04-shortwave-particular vanishes at $\lambda_n\mu_0 = 1$. The fluxes are
@@ -308,8 +310,8 @@ pass[^ch04-sw-sym].
 The pyharp suite has no test of the shortwave solver against an independent solution: `tests/test_toon.py`
 compares with four-stream DISORT at 20 % and is not run by ctest (@sec-ch10).
 
-[^ch04-sw-grid]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, checks [C1]-[C4] and [C6]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
-[^ch04-sw-sym]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/shortwave_check.py`; run: `python3 src/pyharp_report/ch04/checks/shortwave_check.py`, CPU, double; Python 3.11.13, sympy 1.14.0, numpy 2.4.6; output `src/pyharp_report/ch04/checks/shortwave_check.out`]
+[^ch04-sw-grid]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, checks [C1]-[C4] and [C6]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>` (lock `derivation-checks/ch04/requirements.lock`); regenerate the whole chapter with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
+[^ch04-sw-sym]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/shortwave_check.py`; run: `python3 src/pyharp_report/ch04/checks/shortwave_check.py`, CPU, double; Python 3.11.13, numpy 2.4.6, sympy 1.14.0, mpmath 1.3.0, the environment of `derivation-checks/ch04/setup_env.sh`; regenerated by `bash derivation-checks/ch04_run.sh`; output `src/pyharp_report/ch04/checks/shortwave_check.out`]
 
 ### Limits
 
@@ -327,7 +329,7 @@ $\omega = 1$ passed directly to `ToonMcKay89` gives wrong fluxes.
   (per unit $F_0$) instead of values below $10^{-19}$ with the bottom layer split into 400 sublayers; the top
   fluxes agree to $10^{-16}$, and a thick layer with thinner layers below it shows no error[^ch04-sw-thick].
   Splitting thick bottom layers avoids it.
-- **$\omega = 1$ (CANDIDATE, conservative scattering).** At $\omega' = 1$, $\gamma_1 = \gamma_2$, so $\lambda = 0$,
+- **$\omega = 1$ (CANDIDATE, conservative scattering).** At $\omega^{\mathrm{s}} = 1$, $\gamma_1 = \gamma_2$, so $\lambda = 0$,
   $\Gamma = 1$ and the interface coefficient $1 - \Gamma^2$ vanishes (check `[C4]` of `shortwave_check.py`); the
   system is singular and `dtridgl` replaces the zero pivot by $10^{-12}$. With $\omega = 1$ exactly,
   Toon Table 4 case 1 returns $F^+(0) = \pi$ (all incident light reflected) instead of $0.174$, and
@@ -338,4 +340,4 @@ $\omega = 1$ passed directly to `ToonMcKay89` gives wrong fluxes.
   only by the tests of @tbl-ch04-shortwave-tests at their single-precision tolerances; the checks of this section
   are double only. GPU results: answered at @sec-ch09.
 
-[^ch04-sw-thick]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K5] and [K6], and the sweep of `--data`; run: `python3 derivation-checks/ch04/toon_pyharp_check.py --data src/pyharp_report/ch04/data/shortwave_thick_layer.csv`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1; outputs `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out` and `src/pyharp_report/ch04/data/shortwave_thick_layer.csv`]
+[^ch04-sw-thick]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K5] and [K6], and the sweep of `--data`; run: `python3 derivation-checks/ch04/toon_pyharp_check.py --data src/pyharp_report/ch04/data/shortwave_thick_layer.csv`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1, environment built by `derivation-checks/ch04/setup_env.sh <dir> 1.7.1`; regenerate with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; outputs `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out` and `src/pyharp_report/ch04/data/shortwave_thick_layer.csv`]

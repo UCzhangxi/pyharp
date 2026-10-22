@@ -15,6 +15,9 @@ an mpmath quadrature of the Planck function B_nu.
   [C5] Error budget of [C1]: with the exact c2 = hc/k = 1.4387769 cm K and sigma, the same series is within 1.1e-5
        of the quadrature (the power series at v < 1.5) and within 1e-7 for bands with v > 1.5 (six-term tail); the code's c2 = 1.438786
        and sigma = 5.67032e-8 account for the rest.
+  [C6] Truncation at the switch v = 1.5: the first neglected term of the power series,
+       (15/pi^4)(5/66) v^13/(13 * 10!), and the m = 7 term of the exponential series, as fractions of sigma T^4/pi;
+       and hc/k in cm K.
   [C4] The point overload `bbflux_wavenumber(wave, temp, ncol)` uses c1 = 1.19144e-8, c2 = 1.4388: within 3e-4 of
        B_nu at 667 cm-1, 300 K.
 
@@ -126,8 +129,20 @@ def check_C5_constants():
     return report("C5", ok, "exact c2 and sigma, port / int B_nu - 1: " + ", ".join(f"{e:+.1e}" for e in errs))
 
 
+def check_C6_truncation():
+    v = 1.5
+    power = 15 / math.pi ** 4 * (5 / 66) * v ** 13 / (13 * math.factorial(10))
+    m = 7
+    mv = m * v
+    expo = 15 / math.pi ** 4 * math.exp(-mv) * (mv ** 3 + 3 * mv ** 2 + 6 * mv + 6) / m ** 4
+    c2x = H * C / KB * 100
+    ok = 4e-8 < power < 6e-8 and 2e-6 < expo < 4e-6 and abs(c2x - 1.4387769) < 1e-7
+    return report("C6", ok, f"at v = 1.5: next power-series term {power:.1e}, m = 7 exponential term {expo:.1e} "
+                  f"(fractions of sigma T^4/pi); hc/k = {c2x:.7f} cm K")
+
+
 def main():
-    oks = [check_C1_radiance(), check_C2_sigma(), check_C3_equal_edges(), check_C4_point(), check_C5_constants()]
+    oks = [check_C1_radiance(), check_C2_sigma(), check_C3_equal_edges(), check_C4_point(), check_C5_constants(), check_C6_truncation()]
     print(f"RESULT: {sum(oks)}/{len(oks)} pass")
     return len(oks) - sum(oks)
 
