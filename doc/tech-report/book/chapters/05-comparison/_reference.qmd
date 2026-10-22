@@ -1,0 +1,239 @@
+## Converged DISORT as the reference (`nstr`) {#sec-ch05-reference}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml); pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+sources: python/disort.py, src/radiation/radiation_band.cpp, src/radiation/disort_config.cpp; pydisort
+  src/disort_impl.h, src/scattering_moments.cpp, cdisort213/cdisort.c
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+A two-stream solver can only be judged against something more accurate. In pyharp that is DISORT, which
+represents the angular field with $2N$ discrete directions (`nstr` $= 2N$ in the band's YAML) and converges to the
+exact plane-parallel solution as $2N$ grows. This section finds the stream count at which DISORT's fluxes stop
+changing on the grid of test problems used throughout the chapter, and checks the converged result against the
+benchmark fluxes of Garcia and Siewert [@reading25]. That converged run is the reference of
+@sec-ch05-toon-accuracy.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** A converged DISORT stream count $2N_{\mathrm{ref}}$; criterion @eq-ch05-reference-change.
+
+**Data.** $F^{+}$ and $F^{-}+F_{\mathrm{dir}}$ at every level, divided by $F_{\mathrm{inc}}$.
+
+**Placement.** A measurement on the solver; nothing in pyharp runs it.
+
+**Activation.** `nstr` in the band YAML, default 4; $2N_{\mathrm{ref}}$ is 64 (beam), 32 (thermal).
+
+**Guarantee / limits.** $d(2N_{\mathrm{ref}}) \le 10^{-5}$; benchmark within $3.8\times10^{-6}$.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $F_{\mathrm{inc}}$ the incident flux that normalises every error [$\mathrm{W\,m^{-2}}$];
+$d(2N)$ the largest change of the normalised fluxes when the stream count is doubled from $2N$ [-]; $\rho$ the ratio
+of two successive changes [-].
+
+The default of 4 streams is not converged: doubling it to 8 moves fluxes on the grid by up to $3\times10^{-2}$ of
+the incident flux. A reader who uses DISORT as a reference should set `nstr` to the values found here.
+
+### Derivation
+
+**The quantity that is converged.** For each column of the test grid, DISORT returns at every level $z$ the upward
+diffuse flux $F^{+}(z)$ and the total downward flux $F^{-}(z)+F_{\mathrm{dir}}(z)$ [$\mathrm{W\,m^{-2}}$]: pydisort
+writes `flup` into channel 0 and `rfldir + rfldn` into channel 1 in `disort_impl`
+({{< code src/disort_impl.h disort_impl repo=pydisort >}}). Both are divided by the incident flux
+
+$$
+\begin{aligned}
+F_{\mathrm{inc}} &= \mu_0 F_0 \\
+F_{\mathrm{inc}} &= \pi B(T_{\mathrm{s}})
+\end{aligned}
+$$ {#eq-ch05-reference-finc}
+<!-- equation-check: eq-ch05-reference-finc check_ch05_convergence.py -->
+
+for a beam and for thermal emission. Here $\mu_0$ [-] is the cosine of the solar zenith angle, $F_0$
+[$\mathrm{W\,m^{-2}}$] the beam flux normal to the beam (`fbeam`), $B$ [$\mathrm{W\,m^{-2}\,sr^{-1}}$] the Planck
+radiance integrated over the band, and $T_{\mathrm{s}}$ [K] the surface temperature. Write $\hat F_{2N}$ for the
+vector of all normalised fluxes of the grid at stream count $2N$: every column, every level, both channels.
+
+**The change on doubling.** The convergence measure is
+
+$$
+d(2N) = \max \bigl|\hat F_{2N} - \hat F_{4N}\bigr| ,
+$$ {#eq-ch05-reference-change}
+<!-- equation-check: eq-ch05-reference-change check_ch05_convergence.py [C6] -->
+
+and $2N_{\mathrm{ref}}$ is the smallest stream count with $d(2N_{\mathrm{ref}}) \le 10^{-5}$.
+
+**Why a small change bounds the error.** Let $\hat F_{\infty}$ be the converged answer. Assume that each further
+doubling shrinks the change by at least a factor $\rho < 1$, so that for every $k = 0, 1, 2, \ldots$
+
+$$
+\max\bigl|\hat F_{2^{k+1}N} - \hat F_{2^{k+2}N}\bigr| \le \rho^{k}\, d(2N) .
+$$
+
+Then the error of the run at $2N$ telescopes into a geometric series,
+
+$$
+\begin{aligned}
+\max\bigl|\hat F_{2N} - \hat F_{\infty}\bigr|
+  &\le \sum_{k=0}^{\infty} \max\bigl|\hat F_{2^{k+1}N} - \hat F_{2^{k+2}N}\bigr| \\
+  &\le d(2N) \sum_{k=0}^{\infty} \rho^{k} \\
+  &= \frac{d(2N)}{1-\rho} .
+\end{aligned}
+$$ {#eq-ch05-reference-bound}
+<!-- equation-check: eq-ch05-reference-bound check_ch05_convergence.py [C7] -->
+
+The assumption is not proven for DISORT; it is measured. On the grid the last measured ratio is
+$\rho = d(64)/d(32) = 0.040$ for the beam and $0.049$ for thermal emission (check lines [C4]-[C5] and
+[C11]-[C12]). Taking that ratio for the doublings beyond 128 streams, which were not run for the beam,
+@eq-ch05-reference-bound puts the error of the reference within $1.05\,d(2N_{\mathrm{ref}})$.
+
+**The phase function the reference uses.** Every column has a Henyey-Greenstein phase function, whose Legendre
+moments are $\chi_l = g^{l}$, with $g$ [-] the asymmetry parameter. `disort_config`
+({{< code python/disort.py disort_config repo=pyharp >}}) sets the number of moments equal to `nstr`, and the checks supply
+$\chi_1 \ldots \chi_{2N}$. cdisort then applies the $\delta$-M scaling of [@reading05] with truncation fraction
+$f = \chi_{2N} = g^{2N}$. It switches the scaling off when $\chi_{2N}$ is zero in every layer (`c_disort`,
+{{< code cdisort213/cdisort.c c_disort repo=pydisort >}}), so a caller that supplies fewer than `nstr` moments
+runs without it.
+
+**The benchmark comparison.** Garcia and Siewert [@reading25, Table 22, p. 480] tabulate the downward flux $q^{+}$,
+upward flux $q^{-}$ and net flux $q$ at seven depths for five problems (their Table 21): the Haze L phase function at
+$\tau_0 = 1$ and the Cloud C1 phase function at $\tau_0 = 64$, with $\omega = 1$ or $0.9$ and $\mu_0 = 1$ or $0.5$,
+beam $\pi F_0 = \pi$, no surface. The measure is the largest relative difference over the non-zero entries,
+
+$$
+r_{\mathrm{GS}} = \max \frac{|q_{\mathrm{DISORT}} - q_{\mathrm{GS}}|}{|q_{\mathrm{GS}}|} .
+$$ {#eq-ch05-reference-gs}
+<!-- equation-check: eq-ch05-reference-gs check_ch05_gs85.py [C7] -->
+<!-- equation-source: eq-ch05-reference-gs benchmark values of Garcia and Siewert 1985, Table 22 -->
+
+The table is printed to six significant figures, so $r_{\mathrm{GS}}$ cannot be shown smaller than about
+$5\times10^{-6}$ for an entry near 1.
+
+What is exact and what is truncated: the angular discretisation error of DISORT is truncated at $2N$ streams and is
+what @eq-ch05-reference-change measures; the vertical integration of a homogeneous layer is exact in DISORT and in
+the test problems, which split each slab into equal homogeneous layers. The checks are
+`check_ch05_convergence.py` and `check_ch05_gs85.py` (Tests layer).
+
+### Numerical method
+
+The test grid is a set of homogeneous slabs. For the beam: total optical depth
+$\tau_0 \in \{0.01, 0.1, 0.3, 1, 3, 10\}$, single-scattering albedo $\omega \in \{0.3, 0.6, 0.9, 0.99, 0.999, 1\}$,
+$g \in \{0, 0.5, 0.75, 0.85\}$, $\mu_0 \in \{0.2, 0.5, 1\}$ and Lambertian surface albedo $A_s \in \{0, 0.4\}$:
+864 columns of two equal layers, with fluxes at the top, the middle and the surface. For thermal emission: the same
+$\tau_0$ and $g$, $\omega \in \{0, 0.3, 0.6, 0.9, 0.99\}$, $A_s \in \{0, 0.4\}$, the band 500 to
+1000 $\mathrm{cm^{-1}}$, temperature linear in optical depth from 200 K at the top to 300 K at the bottom, a surface
+of emissivity $1 - A_s$ at 300 K, and no radiation entering at the top: 240 columns of eight layers. All columns of
+one stream count run in one batched call.
+
+```{python}
+#| label: fig-ch05-reference-convergence
+#| fig-cap: "(a) Largest change of any normalised flux on the test grid when the DISORT stream count is doubled from 2N, for the beam (orange triangles, solid) and thermal emission (sky-blue circles, dashed); the dotted line is the tolerance that fixes the reference. (b) Largest relative difference of DISORT from Garcia and Siewert's Table 22 for their five problems, against the stream count; the dotted line is the tolerance of the benchmark check. Both fall to the tolerance by 64 streams; the rise at 256 streams in (b) is discussed in the Limits layer."
+#| fig-alt: "Panel a: two lines falling steadily on log axes from about 3e-2 and 8e-3 at 4 streams to below 1e-6 at 64 streams, crossing the 1e-5 tolerance between 32 and 64 streams. Panel b: five lines that fall from about 1e-4 at 16 streams to about 3e-6 at 128 streams, then rise at 256 streams, case 2 to 4e-3."
+#| echo: false
+from pyharp_report.ch05.figures.fig_reference_convergence import make_fig
+make_fig()
+```
+
+@fig-ch05-reference-convergence shows both measurements. The steps of one evaluation:
+
+1. Build the property tensor of each column, bottom layer first, with optical depth, $\omega$ and the moments
+   $\chi_1 \ldots \chi_{2N}$; pyharp's arrays run from the surface up, unlike cdisort's, and `disort_impl` reverses
+   them ({{< code src/disort_impl.h disort_impl repo=pydisort >}}).
+2. Configure DISORT through `disort_config` ({{< code python/disort.py disort_config repo=pyharp >}}) with flags
+   `lamber,quiet,onlyfl` (and `planck` for thermal emission) and `upward(True)`.
+3. Solve. cdisort replaces $\omega = 1$ by $1 - 100\,\epsilon_{\mathrm{mach}}$, with $\epsilon_{\mathrm{mach}}$ the
+   double-precision machine epsilon, to avoid the degenerate eigenproblem (`c_disort`,
+   {{< code cdisort213/cdisort.c c_disort repo=pydisort >}}).
+4. Repeat for $2N = 4, 8, \ldots, 128$ and evaluate @eq-ch05-reference-change between neighbours.
+
+There is no iteration and no stopping criterion: each run is a direct solve.
+
+### Code
+
+@tbl-ch05-reference-code lists the code the reference runs through.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| DISORT options for a band | {{< code python/disort.py disort_config repo=pyharp >}} | `disort_config` | `nstr` |
+| band options from YAML | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `from_yaml` | `nstr`, `solver` |
+| property mapping, flux output | {{< code src/disort_impl.h disort_impl repo=pydisort >}} | `disort_impl` | always |
+| $\delta$-M switch, $\omega = 1$ dither | {{< code cdisort213/cdisort.c c_disort repo=pydisort >}} | `c_disort` | always |
+| layer cut-off | {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}} | `c_disort_set` | multi-layer beam runs |
+| benchmark phase moments | {{< code src/scattering_moments.cpp scattering_moments repo=pydisort >}} | `scattering_moments` | check only |
+
+: Code map of the DISORT reference. {#tbl-ch05-reference-code}
+
+1. `RadiationBandOptionsImpl::from_yaml` reads `nstr` with default 4 and requires `solver`
+   ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
+2. `disort_config` sets the band's wave and column counts, the layer count, `nstr`, and the moment and phase counts
+   equal to `nstr` ({{< code python/disort.py disort_config repo=pyharp >}}).
+3. `disort_impl` copies optical depth, $\omega$ and the moments into cdisort's arrays top-down, calls `c_disort`,
+   and writes the fluxes back bottom-up ({{< code src/disort_impl.h disort_impl repo=pydisort >}}).
+
+### Tests
+
+@tbl-ch05-reference-tests lists the checks and the pyharp test that rely on the reference.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch05_convergence.py` [C6], [C13] | $d(2N_{\mathrm{ref}})$ for beam and thermal | $10^{-5}$ | at least 65 times below the median Toon error on the grid (@sec-ch05-toon-accuracy) |
+| `check_ch05_convergence.py` [C7], [C14] | reference against 128 streams | $10^{-5}$ | same |
+| `check_ch05_gs85.py` [C7] | @eq-ch05-reference-gs at 128 streams | $2\times10^{-5}$ | four times the half-unit of the sixth figure |
+| `check_ch05_gs85.py` [C1] | transcription: $q^{+} - q^{-} = q$ in Table 22 | $1.5\times10^{-5}$ | three half-units of the sixth figure |
+| `tests/test_toon.py` (pytest) | Toon against 4-stream DISORT | 20 % | not stated in the test |
+
+: Tests of the DISORT reference. {#tbl-ch05-reference-tests}
+
+The change on doubling falls from $2.97\times10^{-2}$ at 4 streams to $4.21\times10^{-7}$ at 64 for the beam, and
+from $8.35\times10^{-3}$ to $1.67\times10^{-7}$ for thermal emission. The first stream count within $10^{-5}$ is
+64 for the beam, where $d(64) = 4.21\times10^{-7}$ (32 misses at $1.04\times10^{-5}$), and 32 for thermal emission,
+where $d(32) = 3.38\times10^{-6}$. The worst points are thin slabs with $g = 0.85$ at $\mu_0 = 0.2$.[^ch05-ref-conv]
+
+Against Garcia and Siewert, the largest relative difference over all non-zero entries of the five problems is
+$3.11\times10^{-4}$ at 16 streams, $6.14\times10^{-5}$ at 32, $1.19\times10^{-5}$ at 64 and $3.82\times10^{-6}$ at
+128, which is the rounding of the table itself. The three Haze L problems are within $2\times10^{-5}$ from
+32 streams.[^ch05-ref-gs]
+
+Every check here runs on the CPU in double precision. The same fluxes on CUDA are the subject of the GPU chapter.
+All of them run under pydisort 1.7.1, the version pyharp's CI installs; under pydisort 1.8.13 every output line
+is identical.[^ch05-ref-1813]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **The default `nstr` of 4 is not a reference.** It changes by up to $3\times10^{-2}$ of the incident flux on
+  doubling; tests that compare against it inherit that error (@sec-ch05-toon-accuracy, Tests).
+- **More streams is not always better.** At 256 streams the benchmark difference rises again, to
+  $3.90\times10^{-3}$ for problem 2, with the same moment table.[^ch05-ref-gs] The cause is not measured here;
+  128 streams is the largest count this section relies on.
+- **Layers below absorption depth 10 are cut.** For a beam with more than one layer, cdisort stops the solution
+  where the absorption optical depth reaches 10 (`c_disort_set`,
+  {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}) and sets the fluxes below to zero. The loss is at
+  most $e^{-10} = 4.54\times10^{-5}$ of the incident flux (@sec-ch05-analytic).
+- **Untested combinations.** Only Henyey-Greenstein moments, one band, homogeneous slabs, Lambertian surfaces and
+  azimuth-integrated fluxes are covered; intensities and the intensity corrections that `create_disort_config_sw`
+  ({{< code src/radiation/disort_config.cpp create_disort_config_sw repo=pyharp >}}) switches on are not.
+:::
+
+[^ch05-ref-conv]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the grid of `derivation-checks/ch05_common.py`; run:
+`python3 derivation-checks/check_ch05_convergence.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126,
+numpy 2.4.6, scipy 1.17.1; pyharp built by `derivation-checks/ch05_setup.sh` (gcc 11.5.0,
+nvcc 12.6 with its CUDA-architecture patch; AMD Ryzen 9 7950X, GTX 1080 Ti); all ch05 outputs regenerate with
+`derivation-checks/ch05_run.sh <venv>`; output
+`derivation-checks/check_ch05_convergence.out`, lines [C1]-[C14].]
+
+[^ch05-ref-gs]: [sha and run record as in the footnote above; deck: Garcia and Siewert 1985, Tables 21 and 22, in
+`derivation-checks/check_ch05_gs85.py`; run: `python3 derivation-checks/check_ch05_gs85.py`, CPU, double; output
+`derivation-checks/check_ch05_gs85.out`, lines [C1]-[C8].]
+
+[^ch05-ref-1813]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, rebuilt against the pydisort 1.8.13
+wheel (tag `v1.8.13` of zoeyzyhu/pydisort, the version `pydisort>=1.7.1` resolves to; it is not a pin of this
+report); run: `python3 derivation-checks/check_ch05_convergence.py`, and the same for `check_ch05_gs85.py`,
+`check_ch05_analytic.py` and `check_ch05_toon_vs_disort.py`, CPU, double, other versions as above; every line
+after the version line equals the committed `.out` files.]
