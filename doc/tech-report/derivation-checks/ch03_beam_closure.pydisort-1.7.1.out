@@ -1,0 +1,7 @@
+python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1
+pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
+[C1] PASS Beer-Lambert via pyharp: max rel dev F_dn 0.0e+00, max F_up/(mu0 F0) 0.0e+00 (tol 1e-12; 24 cases)
+[C2] PASS Beer-Lambert via pydisort: max rel dev F_dn 0.0e+00, max F_up/(mu0 F0) 0.0e+00 (tol 1e-12; 24 cases)
+[C3] PASS energy closure via pyharp: max |dF_net|/(mu0 F0) 5.1e-10 (tol 1e-6; 432 cases)
+[C4] PASS energy closure via pydisort: max |dF_net|/(mu0 F0) 1.4e-09 (tol 1e-6; 432 cases)
+[C5] PASS A = 0: max |R + T - 1| pyharp 4.9e-10, pydisort 1.5e-09 (tol 1e-6)

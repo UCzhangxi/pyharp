@@ -1,0 +1,11 @@
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, sympy 1.14.0, pydisort 1.8.13
+pydisort source 74f8d7e995545a686b04d503b6f81135af48d87c
+nstr aureole off       on outside off       on  top off       on I(beam dir) off      on     ref  phi180 off/on
+   8     8.5e-01  5.7e-02     3.7e-01  1.0e-01  5.7e-01  5.0e-02           2.614  16.685  17.624 1.3e-02/1.2e-01
+  16     6.1e-01  5.8e-03     1.6e-01  3.3e-02  4.2e-01  3.0e-02           6.886  17.523  17.624 7.7e-01/6.7e-01
+  32     2.5e-01  6.9e-04     3.9e-02  2.5e-03  4.8e-02  4.2e-03          13.248  17.625  17.624 8.1e-02/8.9e-02
+[C1] PASS fluxes bitwise unchanged by the correction (torch.equal, all 8 columns, 8/16/32 streams)
+[C2] PASS the correction lowers the largest radiance error inside the aureole, outside it and at the top, at 8/16/32 streams
+[C3] PASS sympy: one-layer single-scattering integral = closed form of c_single_scat (mu written as |mu|, so 1 + mu/mu0 appears as 1 - |mu|/mu0)
+[C4] PASS sympy: IMS factor h = closed form of c_xi_func, and its x = 0 limit
+[C5] PASS sympy: moments of Phat are 1 (l < 2N) and chi_l/f (l >= 2N)

@@ -1,0 +1,10 @@
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.8.13
+pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 74f8d7e995545a686b04d503b6f81135af48d87c
+[P1] CANDIDATE reproduced: pydisort upward=0, 8 moments for nmom 4: max |dF| 0.000, top F_up 0.4724 -> 0.4724; abnormal exit in 10 of 10 runs, return codes [-6]
+[P1] CANDIDATE reproduced: pydisort upward=1, 8 moments for nmom 4: max |dF| 0.133, top F_up 0.5606 -> 0.6416; abnormal exit in 10 of 10 runs, return codes [-6]
+[P2] CANDIDATE reproduced: pyharp Rayleigh nmom 8 on a 4-stream DISORT band: abnormal exit in 10 of 10 runs, return codes [-11, -6]; max |dF| against nmom 4 when the fluxes came back: 2.2e-09 of 0.500
+[P3] CANDIDATE reproduced: DISORT band without tempf/temp: rc 0; RuntimeError: Expected argument #3 to be of type std::optional<at::Tensor>, but received value of type std::nullopt_t
+[P4] CANDIDATE reproduced: DISORT band with no 'flags:' key: flags '' ; rc 1; returned to Python: False; ['bidir_reflectivity--surface BDRF model 0 not known', '******* ERROR >>>>>>  Exiting...']
+[P5] CANDIDATE reproduced: Buras path, nphase 0: rc 1; no result; ['**error:dbl_vector, variable phas2, range (0,-1)']
+[P5] CANDIDATE reproduced: Buras path, nphase 16: rc 0; finite radiances 0 of 6
+[P6] CANDIDATE reproduced: user_mu not increasing: cdisort message ['****  Input variable ds.umu in error  ****']; Python exception raised: False; rc 0

@@ -1,0 +1,210 @@
+## Intensity corrections after delta-M (`intensity_correction`; no effect on pyharp output) {#sec-ch03-intcorr}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13 (its
+commit is printed in the check outputs): the correction routines differ only in register/inline/pfree sources:
+Nakajima and Tanaka 1988 (J. Quant. Spectrosc. Radiat. Transfer 40, 51-69); Buras, Dowling and Emde 2011 (J. Quant.
+Spectrosc. Radiat. Transfer 112, 2028-2034); pydisort cdisort213/cdisort.c, python/csrc/bind_cdisort.cpp checks:
+derivation-checks/ch03_intensity_correction.py, ch03_candidates.py [P5] status: draft author: Jiheng Hu reviewer:
+-->
+
+### Summary
+
+Delta-M (@sec-ch03-deltam) gives accurate fluxes, but the intensity it returns near the direction of the beam is
+poor, because the scaled phase function has lost its forward peak. Nakajima and Tanaka [@reading04] correct the
+intensity afterwards: they replace the singly scattered part by the one computed with the exact phase function,
+and add an approximate secondary-scattering term inside the aureole, the cone around the beam. cdisort carries
+this correction and a later variant of its secondary-scattering term [@reading03]. For pyharp the section is a
+signpost: the correction changes intensities only, never fluxes, and a pyharp band returns fluxes only. The
+default is off, and with `onlyfl`, set in every shipped YAML, cdisort switches it off even when requested.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Correct delta-M intensities in single and secondary scattering, @eq-ch03-intcorr-tms.
+
+**Data.** Intensities `uu` at user angles and depths; fluxes are not changed.
+
+**Placement.** End of `c_disort`, after the intensities of each azimuthal mode are summed.
+
+**Activation.** `intensity_correction` (with `old_intensity_correction` for this method); default off.
+
+**Guarantee / limits.** Needs a beam, scattering, delta-M on and no `onlyfl`; never seen by pyharp.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $I^{*}$ is the intensity of the delta-M-scaled problem; $I_1$ a singly scattered intensity;
+$P^{*}$ the truncated phase function of @sec-ch03-deltam and $\hat P$ the forward peak, with
+$P = f\hat P + (1-f)P^{*}$; $\cos\Theta$ the cosine of the scattering angle between the beam and the viewing
+direction; $\bar f$, $\bar\omega$ the column averages of $f$ and $\omega$ down to the output depth; $h$ the
+secondary-scattering geometry factor; $s$ an optical depth along the path, the integration variable;
+$\mu_0^{*} = \mu_0/(1-\bar f\bar\omega)$. Symbols of
+@sec-ch03-ordinates and @sec-ch03-deltam keep their meaning.
+<!-- local symbols for the editor's notation table: I*, I_1, P*, Phat, Theta, fbar, omegabar, h, mu0*, s (integration variable; NOTATION reserves t for time) -->
+
+The flag string `intensity_correction,old_intensity_correction` selects this correction. The flag
+`intensity_correction` alone selects the Buras-Emde variant instead, which cannot be used from pydisort
+(the Limits layer below).
+
+### Derivation
+
+**Single scattering in one layer.** For the beam source alone the transfer equation in a direction
+$\mu = -|\mu|$ (downward) is $-|\mu|\,\mathrm{d}I_1/\mathrm{d}\tau = I_1 - \tfrac{\omega F_0}{4\pi}P(\cos\Theta)
+e^{-\tau/\mu_0}$, with $I_1 = 0$ at the top. Integrating from 0 to $\tau$ [@reading04, p. 55, eqs. 11-12]:
+
+$$
+I_1(\tau,\mu) = \frac{\omega F_0 P}{4\pi|\mu|}\int_0^{\tau} e^{-s/\mu_0}\,e^{-(\tau-s)/|\mu|}\,\mathrm{d}s
+= \frac{\omega F_0 P}{4\pi\,(1+\mu/\mu_0)}\left(e^{-\tau/\mu_0} - e^{-\tau/|\mu|}\right).
+$$ {#eq-ch03-intcorr-single}
+
+Here $s$ is the optical depth at which the beam is scattered. In a stack of layers the same integral runs layer
+by layer and the terms add. @eq-ch03-intcorr-single is
+computed in `c_single_scat` ({{< code cdisort213/cdisort.c c_single_scat repo=pydisort >}}).
+
+**TMS: exact single scattering.** The scaled problem of delta-M has the singly scattered part
+$I^{*}_1$, computed with $\omega' P^{*}$ on the scaled depth $\tau'$. Nakajima and Tanaka subtract it and add the
+single scattering of the full phase function on the same scaled depth, with the albedo $\omega/(1-f\omega)$
+[@reading04, p. 56, eq. 15]:
+
+$$
+I' = I^{*} - I^{*}_1\!\left[\omega' P^{*},\,\tau'\right] + I_1\!\left[\frac{\omega P}{1-f\omega},\,\tau'\right],
+$$ {#eq-ch03-intcorr-tms}
+
+where the brackets name the albedo-times-phase-function and the depth that @eq-ch03-intcorr-single is
+evaluated with. @eq-ch03-intcorr-tms is computed in `c_intensity_correction`
+({{< code cdisort213/cdisort.c c_intensity_correction repo=pydisort >}}): `PHAST` is
+$P/(1-f\omega)$ from all supplied moments, `PHASM` is $P^{*}$ from the scaled moments, and the two calls of
+`c_single_scat` give the last two terms.
+
+**IMS: secondary scattering in the aureole.** The deviation $I - I'$ obeys a transfer equation with three extra
+sources [@reading04, p. 56, eqs. 16-19]. Nakajima and Tanaka make four approximations, stated on [@reading04, p.
+56-57]: the atmosphere is replaced by a homogeneous one with the column averages $\bar f$ and $\bar\omega$; the
+source built from the multiply scattered field is dropped, because that field is nearly constant across the narrow
+peak; the scattering integral of the deviation itself is dropped; and the difference
+$e^{-\tau'/\mu_0} - e^{-\tau/\mu_0}$ is expanded to second order in $\bar f\bar\omega$ [@reading04, p. 57, eqs.
+21-22]. The forward peak $\hat P$ is defined by $P = f\hat P + (1-f)P^{*}$; with @eq-ch03-deltam-moments its moments
+are 1 for $l < 2N$ and $\chi_l/f$ for $l \ge 2N$. After the function $g$ is moved outside the angular integrals and
+the delta-M identity $\int P^{*}\hat P\,\mathrm{d}\Omega' = P^{*}$ is used [@reading04, p. 57, eq. 25], the
+remaining source is proportional to $2\hat P - \hat P^2$, where $\hat P^2$ is the phase function of two successive
+scatterings by the peak, with moments $\hat\chi_l^{\,2}$ [@reading04, p. 55, eq. 13]. Integrating it along the line
+of sight gives [@reading04, p. 57, eqs. 23-24]
+
+$$
+\hat I(\tau,\mu) = -\frac{F_0}{4\pi}\,\frac{(\bar f\bar\omega)^2}{1-\bar f\bar\omega}
+\sum_{l}(2l+1)\left(2\hat\chi_l - \hat\chi_l^{\,2}\right)P_l(\cos\Theta)\; h(\tau,|\mu|,\mu_0^{*}),
+$$ {#eq-ch03-intcorr-ims}
+
+with $\hat\chi_l$ the moments of $\hat P$. The prefactor is Nakajima and Tanaka's $(1-\bar f\bar\omega)\hat\omega^2$
+with $\hat\omega = \bar f\bar\omega/(1-\bar f\bar\omega)$ [@reading04, p. 56, eq. 19]. The geometry factor is the
+single-scattering factor of the beam $g(s) = s\,e^{-s/\mu_0^{*}}/\mu_0^{*}$, with $s$ the optical depth along the
+beam,, carried down the line of sight:
+
+$$
+h = \frac{1}{|\mu|\mu_0^{*}}\int_0^{\tau} s\,e^{-(\tau-s)/|\mu|}\,e^{-s/\mu_0^{*}}\,\mathrm{d}s
+= \frac{(\tau x - 1)\,e^{-\tau/\mu_0^{*}} + e^{-\tau/|\mu|}}{x^2\,|\mu|\,\mu_0^{*}},
+\quad x = \frac{\mu_0^{*} - |\mu|}{|\mu|\,\mu_0^{*}},
+$$ {#eq-ch03-intcorr-h}
+
+which tends to $\tau^2e^{-\tau/|\mu|}/(2|\mu|\mu_0^{*})$ as $x \to 0$. @eq-ch03-intcorr-ims is computed in
+`c_secondary_scat` ({{< code cdisort213/cdisort.c c_secondary_scat repo=pydisort >}}) and
+@eq-ch03-intcorr-h in `c_xi_func` ({{< code cdisort213/cdisort.c c_xi_func repo=pydisort >}}).
+`c_intensity_correction` adds $\hat I$ only for downward directions within $10^{\circ}$ of the beam, below the
+top level.
+
+**The Buras-Emde variant.** Buras, Dowling and Emde [@reading03, p. 2030, eq. 11] replace the moment sum of
+@eq-ch03-intcorr-ims by the same expression evaluated from a tabulated phase function: they integrate the square
+of the phase-function residual by sampling points of equal cumulative weight [@reading03, p. 2030, eqs. 8-12],
+with 100 points. This is `c_new_intensity_correction`
+({{< code cdisort213/cdisort.c c_new_intensity_correction repo=pydisort >}}), with `prep_double_scat_integr`
+and `calc_phase_squared`; it reads the table from `phase` and `mu_phase` in the cdisort state.
+
+What is exact and what is approximate: @eq-ch03-intcorr-tms makes single scattering exact for the layered
+medium; @eq-ch03-intcorr-ims is a second-order approximation in $\bar f\bar\omega$ for a homogeneous medium, and
+only in the aureole. Neither changes a flux: the correction is added to `uu` after the fluxes are formed. Checks:
+`ch03_intensity_correction.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch03-intcorr-single ch03_intensity_correction.py [C3] -->
+<!-- equation-check: eq-ch03-intcorr-tms ch03_intensity_correction.py [C2] -->
+<!-- equation-check: eq-ch03-intcorr-ims ch03_intensity_correction.py [C5] -->
+<!-- equation-check: eq-ch03-intcorr-h ch03_intensity_correction.py [C4] -->
+
+### Numerical method
+
+The correction is a closed-form post-processing step, done once per user angle, depth and azimuth after the
+discrete-ordinate solution; there is no system to solve and no iteration. @fig-ch03-intcorr-error shows what it
+does to the intensities of one strongly forward-scattering layer.
+
+```{python}
+#| label: fig-ch03-intcorr-error
+#| fig-cap: "Largest relative radiance error of one layer (Henyey-Greenstein $g = 0.9$, $\\tau = 1$, $\\omega = 0.99$, $\\mu_0 = 0.5$) against a 128-stream corrected reference, with the Nakajima-Tanaka correction on (solid, filled markers) and off (dashed, open markers), at 8, 16 and 32 streams. Orange circles: the aureole at the bottom; sky-blue squares: the other downward directions at the bottom; black triangles: upward directions at the top."
+#| fig-alt: "Log plot against the number of streams. Every solid curve lies below its dashed counterpart. In the aureole the error falls from 0.85, 0.61 and 0.25 without the correction to 0.057, 0.0058 and 0.0007 with it."
+#| echo: false
+from pyharp_report.ch03.figures.fig_intcorr_error import make_fig
+make_fig()
+```
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| on/off and choice | {{< code cdisort213/cdisort.c c_disort repo=pydisort >}} | `c_disort` | flags, `onlyfl` |
+| TMS and IMS | {{< code cdisort213/cdisort.c c_intensity_correction repo=pydisort >}} | `c_intensity_correction` | `old_intensity_correction` |
+| single scattering | {{< code cdisort213/cdisort.c c_single_scat repo=pydisort >}} | `c_single_scat` | same |
+| secondary scattering | {{< code cdisort213/cdisort.c c_secondary_scat repo=pydisort >}} | `c_secondary_scat` | same |
+| Buras-Emde variant | {{< code cdisort213/cdisort.c c_new_intensity_correction repo=pydisort >}} | `c_new_intensity_correction` | `intensity_correction` alone |
+| state binding | {{< code python/csrc/bind_cdisort.cpp repo=pydisort >}} | (file) | `nphase` |
+
+: Code map of the intensity corrections. {#tbl-ch03-intcorr-code}
+
+1. `set_flags` ({{< code src/disort.cpp DisortOptionsImpl::set_flags repo=pydisort >}}) sets the two flags;
+   both default to off.
+2. `c_disort` turns the correction off when `onlyfl` is set, when the beam is zero, when nothing scatters, or
+   when delta-M is off. It prints a warning about it unless `quiet` is set.
+3. `c_disort` then chooses: the moment method of this section if `old_intensity_correction` is set, the
+   Buras-Emde variant otherwise. pydisort's copy fixes the self-test switch that decides this at 1 ("cli: disable
+   self-test by default"), so `intensity_correction` alone always selects the variant.
+4. `c_intensity_correction` applies @eq-ch03-intcorr-tms to every direction, and @eq-ch03-intcorr-ims to the
+   aureole.
+
+### Tests
+
+No ctest exercises the correction, and no pyharp output depends on it. The derivation check runs it through
+pydisort:
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch03_intensity_correction.py` [C1] | fluxes bitwise unchanged | 0 | the correction adds to `uu` only |
+| `ch03_intensity_correction.py` [C2] | radiance errors fall | on $<$ off | qualitative |
+| `ch03_intensity_correction.py` [C3]-[C5] | @eq-ch03-intcorr-single, @eq-ch03-intcorr-h, $\hat P$ moments | exact | sympy identities |
+
+: Tests of the intensity correction (derivation check; no ctest exists). {#tbl-ch03-intcorr-tests}
+
+With the correction on, all eight flux outputs are bitwise equal to those without it at 8, 16 and 32 streams.
+Against a 128-stream corrected reference, the largest relative radiance error in the aureole falls from 0.85 to
+0.057 at 8 streams, from 0.61 to 0.0058 at 16 and from 0.25 to 0.00069 at 32; outside the aureole from 0.16 to
+0.033 at 16 streams; upward at the top from 0.42 to 0.030 at 16 streams.[^ch03-ic-run] One direction is left out
+of these maxima: azimuth $180^{\circ}$ at the beam's zenith angle ($|\mu| = \mu_0$), where the error is erratic
+with and without the correction (0.77 and 0.67 at 16 streams). Its cause is not established; the hypothesis is
+the coincidence $|\mu| = \mu_0$ in the user-angle beam solution. pydisort 1.8.13 gives the same lines. All runs
+were on CPU.
+
+[^ch03-ic-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_intensity_correction.py` [C1]-[C5]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Outputs `derivation-checks/ch03_intensity_correction.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (tag `v1.8.13`, torch 2.10.0+cu126). Flags `usrtau,usrang,lamber,quiet` with and without `intensity_correction,old_intensity_correction`; 512 moments; `accur` 0.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- In pyharp the correction has no effect: pyharp reads fluxes only, which it does not change, and every shipped
+  YAML sets `onlyfl`, which turns it off. The unused helpers `create_disort_config_sw` and
+  `create_disort_config_lw` request it together with `onlyfl` (@sec-ch03-band).
+- **CANDIDATE: the Buras-Emde variant cannot be used from pydisort.** pydisort binds the count `nphase` but not the
+  arrays `phase` and `mu_phase` ({{< code python/csrc/bind_cdisort.cpp repo=pydisort >}}). With `nphase` 0, the
+  default, cdisort fails to allocate and the process exits with code 1; with `nphase` equal to `nstr`, the
+  setting of `pyharp.disort_config`, the radiances are not finite (0 of 6 finite) ([P5] of
+  `ch03_candidates.py`).[^ch03-ic-cand] A user who sets `intensity_correction` alone lands in this path.
+:::
+
+The aureole half-width of $10^{\circ}$ is hard-coded. The secondary-scattering term is computed for an
+averaged homogeneous column. Not tested: thermal emission with the correction, and the Buras-Emde variant with a
+phase table, which cannot be passed (not provided: no binding for the table at the pin).
+
+[^ch03-ic-cand]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_candidates.py` [P5]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1]. One layer, Henyey-Greenstein $g = 0.9$, 16 streams, 64 moments, flags `usrtau,usrang,lamber,quiet,intensity_correction`. The same results with pydisort 1.8.13.

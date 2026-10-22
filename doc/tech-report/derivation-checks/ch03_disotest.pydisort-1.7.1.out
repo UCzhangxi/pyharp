@@ -1,0 +1,52 @@
+python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1
+pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
+case  C fails  C maxrel py fails py maxrel  py vs C
+1a          0   2.9e-06        0   2.9e-06  0.0e+00
+1b          0   2.2e-06        0   2.2e-06  0.0e+00
+1c          0   2.7e-06        0   2.7e-06  0.0e+00
+1d          0   1.8e-06        0   1.8e-06  0.0e+00
+1e          0   2.1e-06        0   2.1e-06  0.0e+00
+1f          0   4.2e-06        0   4.2e-06  0.0e+00
+2a          0   2.1e-06        0   2.1e-06  0.0e+00
+2b          0   4.2e-06        0   4.2e-06  0.0e+00
+2c          0   3.3e-06        0   3.3e-06  0.0e+00
+2d          0   3.2e-06        0   3.2e-06  0.0e+00
+3a          0   3.7e-06        0   3.7e-06  0.0e+00
+3b          0   3.0e-06        0   3.0e-06  0.0e+00
+4a          0   3.5e-06        0   3.5e-06  0.0e+00
+4b          0   4.0e-06        0   4.0e-06  0.0e+00
+4c          0   3.8e-06        0   3.8e-06  0.0e+00
+5a          0   2.2e-06        0   2.2e-06  0.0e+00
+5b          0   4.0e-06        0   4.0e-06  0.0e+00
+6a          0   0.0e+00        0   0.0e+00  0.0e+00
+6b          0   2.1e-06        0   1.2e-06  0.0e+00
+6c          0   3.3e-06        0   3.3e-06  0.0e+00
+6d          0   2.2e-06  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+6e          0   2.7e-06  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+6f          0   1.4e-05  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+6g          0   3.6e-06  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+6h          0   3.6e-06  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+7a          0   4.0e-06        0   4.0e-06  0.0e+00
+7b          0   2.7e-06        0   2.7e-06  0.0e+00
+7c          0   4.6e-06        0   4.6e-06  0.0e+00
+7d          0   2.9e-06        0   2.9e-06  0.0e+00
+7e          0   3.9e-06  not run  BRDF surface (brdf_type=4): no Python option sets brdf_type
+8a          0   2.5e-06        0   2.5e-06  0.0e+00
+8b          0   2.6e-06        0   2.6e-06  0.0e+00
+8c          0   2.4e-06        0   2.4e-06  0.0e+00
+9a          0   2.9e-06        0   2.9e-06  0.0e+00
+9b          0   3.3e-06        0   2.6e-06  0.0e+00
+9c          0   3.5e-06        0   3.5e-06  0.0e+00
+10b         0   1.5e-09        0   1.5e-09  0.0e+00  (utau/umu passed explicitly)
+11b         0   4.4e-16        0   4.4e-16  0.0e+00  (utau/umu passed explicitly)
+12b        14   1.0e+00       14   1.0e+00  0.0e+00  (utau/umu passed explicitly)
+14b        11   1.4e+00  not run  calc is twostr(): pydisort binds no twostr
+[C1] PASS published-reference cases 1-9: 30 of 30 runnable cases pass the ratio rule; largest maxrel 4.6e-06 (references carry 5-6 digits)
+[C2] PASS self-consistency 10b, 11b: maxrel 10b 1.5e-09, 11b 4.4e-16
+[C3] PASS case 12b fails by design, identically: C 14 ratios outside the rule, pydisort 14, at utau [0, 19.9, 20.1]
+[C4] PASS pydisort vs C on every runnable case: max rel diff 0.0e+00 (tol 0)
+[C5] PASS c_planck_func2: vs CODATA 2018 [500,700] cm-1 300 K -4.52e-06, [500,700] cm-1 250 K -5.55e-06, [100,3000] cm-1 300 K -9.66e-06, [2000,2500] cm-1 300 K -5.00e-05; vs its own constants max 1.2e-06 (tol 5e-6)
+[C6] PASS case 13 brute force vs printed shortcut albedo/transmissivity: max rel dev 3.0e-06 (tol 1e-5)
+[P1] CANDIDATE reproduced: gather_rad() shape with usrtau/usrang off: 10b gather_rad shape (2, 3, 1) != (nphi, ntau=3, numu=4); 11b gather_rad shape (2, 1, 4) != (nphi, ntau=4, numu=4); 12b gather_rad shape (1, 1, 4) != (nphi, ntau=4, numu=4)
+[P2] CANDIDATE reproduced: c_albtrans() albmed[0]/trnmed[0] after the call vs the printed beam albedo: 13a printed 0.54526, returned albmed[0] 0.158858, trnmed[0] 0.821453; 13c printed 0.27620, returned albmed[0] 0.048454, trnmed[0] 0.569408
+summary: 33 cases run, 7 not runnable

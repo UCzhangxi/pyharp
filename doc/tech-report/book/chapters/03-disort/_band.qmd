@@ -1,0 +1,232 @@
+## Handing a band to DISORT (`solver: disort`) {#sec-ch03-band}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13 (its
+commit is printed in the check outputs) sources: src/radiation/radiation_band.cpp, src/radiation/disort_config.cpp,
+python/disort.py; pydisort src/disort.cpp, src/disort.hpp, src/disort_impl.h, cdisort213/cdisort.c checks:
+derivation-checks/ch03_e3_slab.py, ch03_beam_closure.py, ch03_candidates.py, ch03_delta_m.py status: draft author:
+Jiheng Hu reviewer: -->
+
+### Summary
+
+A DISORT band turns the optical properties pyharp has assembled for one band into fluxes. pyharp owns the
+assembly and the bookkeeping; the solving is done by pydisort, which runs cdisort once for every spectral point
+and column of the band. This section describes that hand-over: what pyharp puts into the solver, in which order
+and units, which DISORT options it sets and which it leaves at their defaults, and how the two flux columns it
+gets back become the band's output. It is there so that a reader can predict, from a band's YAML, exactly which
+DISORT problem is solved.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Pass one band's optical properties to pydisort and return its level fluxes, @eq-ch03-band-flux.
+
+**Data.** In: `prop` (nwave, ncol, nlyr, nprop), bottom layer first. Out: (ncol, nlev, 4) fluxes.
+
+**Placement.** The last step of `RadiationBand.forward`, after the opacities are summed.
+
+**Activation.** `solver: disort` in a band; `nstr` (default 4) and `flags` (default empty) set the solver.
+
+**Guarantee / limits.** Plane-parallel, Lambertian surface, fluxes only; see the Limits layer below.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $F^{\uparrow}$ and $F^{\downarrow}$ are the upward and total (diffuse plus direct) downward
+fluxes at a level; $F_0$ is the beam intensity `fbeam`; $\mu_0$ the cosine of the beam zenith angle;
+$A_{\mathrm{s}}$ the Lambertian surface albedo; $\omega$ the single-scattering albedo; $\chi_l$ the Legendre
+moment of order $l$ of the phase function ($\chi_0 = 1$); $2N$ the number of streams `nstr`; $L$ the number of
+layers; $\delta\omega$ the margin by which pyharp keeps $\omega$ below 1. Layer and level indices follow the
+array they belong to; @fig-ch03-band-dataflow shows both orders.
+<!-- local symbols for the editor's notation table: F^up, F^dn, F_0, mu_0, A_s, omega, chi_l, N, L, delta-omega -->
+
+The band runs DISORT with the options the YAML gives and four that pyharp fixes: layers bottom to top
+(`upward`), $2N$ streams with as many phase moments (`nmom = nstr`), and the band's wavenumber range as the
+Planck-integration limits. The default flag string is empty, which leaves DISORT without a Lambertian surface
+and ends the process (the Limits layer below); every YAML shipped at the pin sets `lamber,quiet,onlyfl`, plus
+`planck` for a thermal band. With `onlyfl` DISORT computes fluxes only, which is all pyharp reads.
+
+### Derivation
+
+The hand-over computes nothing new; its equations are the definitions of what goes in and what comes out. pyharp
+sums the opacity sources of the band into extinction $k$ [$\mathrm{m^{-1}}$], single-scattering albedo and moments,
+scattering-weighted, as the chapter on optical-property assembly derives. It then multiplies the extinction by the
+layer thickness $\Delta z$ [$\mathrm{m}$] and limits the albedo:
+
+$$
+\begin{aligned}
+\Delta\tau &= k\,\Delta z, \\
+\omega &\leftarrow \min(\omega,\ 1 - \delta\omega).
+\end{aligned}
+$$ {#eq-ch03-band-prop}
+
+@eq-ch03-band-prop is computed in `RadiationBandImpl::forward`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), with
+$\delta\omega = 10^{-12}$ for double and $10^{-6}$ for single precision. cdisort itself moves $\omega = 1$ down by
+100 times the double-precision machine epsilon (`dither` in
+{{< code cdisort213/cdisort.c c_disort repo=pydisort >}}), so for DISORT the pyharp margin is an extra precaution,
+not a need (the Tests layer below, [C4] of the beam check).
+
+pydisort then copies, for each spectral point and column, the layer optical depths, albedos and moments into
+cdisort's arrays. With `upward` set it reverses the layer order, because cdisort numbers layers from the top
+(@fig-ch03-band-dataflow). It sets $\chi_0 = 1$, copies the $n_{\mathrm{prop}} - 2$ moments the band supplies and
+sets the rest, up to `nmom`, to zero; this is done in `disort_impl`
+({{< code src/disort_impl.h disort_impl repo=pydisort >}}). After cdisort returns, the same routine writes two
+numbers per level, in the reversed (bottom-first) order:
+
+$$
+\begin{aligned}
+F^{\uparrow} &= F_{\mathrm{up}}, \\
+F^{\downarrow} &= F_{\mathrm{dir}} + F_{\mathrm{dn}},
+\end{aligned}
+$$ {#eq-ch03-band-flux}
+
+where $F_{\mathrm{up}}$, $F_{\mathrm{dn}}$ are cdisort's diffuse fluxes `flup`, `rfldn` and $F_{\mathrm{dir}}$ is
+its direct-beam flux `rfldir`. @eq-ch03-band-flux is computed in `disort_impl`
+({{< code src/disort_impl.h disort_impl repo=pydisort >}}). The direct flux is the unscaled beam,
+$F_{\mathrm{dir}} = \mu_0 F_0 \exp(-\tau/\mu_0)$, even when delta-M is on (@sec-ch03-deltam). The fluxes are in
+$\mathrm{W\,m^{-2}}$ in a thermal band, where the band Planck intensity carries $\mathrm{W\,m^{-2}\,sr^{-1}}$, and
+in the units of `fbeam` for a beam. Finally `RadiationBandImpl::forward` sums the spectral points with the band
+weights (or by the trapezoid rule in wavenumber, when no weights are set; see the chapter on spectral integration)
+and copies the two level channels into the two midpoint channels that the Toon solver fills, so that every band
+returns four channels. Nothing in this hand-over is truncated: the only approximations are those of the
+solver, @sec-ch03-ordinates. The checks are `ch03_e3_slab.py` and `ch03_beam_closure.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch03-band-flux ch03_beam_closure.py [C1] -->
+<!-- equation-check: eq-ch03-band-prop ch03_beam_closure.py [C3] -->
+
+### Numerical method
+
+There is no numerical method of its own here; the section is a data path, drawn in @fig-ch03-band-dataflow.
+Each band call runs these steps:
+
+1. `RadiationBandOptionsImpl::from_yaml`
+   ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}) reads `nstr`
+   (default 4) and `flags`, and calls `create_disort_config`
+   ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}), which sets `nwave`, `ncol`,
+   `upward`, `nlyr`, `nstr` and `nmom = nstr`. It sets the Planck limits to the band range for every spectral point.
+2. `RadiationBandImpl::reset` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}})
+   sizes the `prop` buffer to $2 + \max(\mathrm{nmom})$ over the band's opacities and builds the solver module,
+   `Disort` ({{< code src/disort.cpp DisortImpl::reset repo=pydisort >}}), which checks
+   $\mathrm{nmom} \ge \mathrm{nstr}$ and allocates one cdisort state per spectral point and column.
+3. `RadiationBandImpl::forward` assembles `prop`, applies @eq-ch03-band-prop and calls the solver with the
+   level temperatures `tempf`, or with layer temperatures `temp` interpolated to levels, or with none.
+4. `DisortImpl::forward` ({{< code src/disort.cpp DisortImpl::forward repo=pydisort >}}) reads the boundary
+   conditions and runs `disort_impl` for every (spectral point, column) pair.
+5. `RadiationBandImpl::forward` sums the spectrum and returns four channels per level.
+
+```{python}
+#| label: fig-ch03-band-dataflow
+#| fig-cap: "Layer and level order on the way through one DISORT band, for four layers. pyharp stores layer 0 at the bottom; pydisort's `disort_impl` reverses the layers for cdisort, which numbers them from 1 at the top; the fluxes come back reversed again, so pyharp's level 0 is the surface. Cells are layers, orange triangles levels."
+#| fig-alt: "Three columns. Left: pyharp prop, layer indices 0 at the bottom to 3 at the top. Middle: cdisort arrays, layer number 1 at the top to 4 at the bottom. Right: five flux levels, index 0 at the surface to 4 at the top. Arrows: disort_impl reverses; fluxes reversed back."
+#| echo: false
+from pyharp_report.ch03.figures.fig_band_dataflow import make_fig
+make_fig()
+```
+
+Inputs live per layer (optical depth, albedo, moments) and per level (temperatures, fluxes), with $L + 1$
+levels for $L$ layers. The boundary conditions are read from the `bc` dictionary under the band's name: a
+missing key takes pydisort's default, $\mu_0 = 1$ and zero for `phi0`, `fbeam`, `albedo`, `fluor`, `fisot`,
+`temis`; `btemp` and `ttemp` are read without the band prefix and default to 0 K. The call is explicit and
+direct: there is no iteration.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| read band options | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `from_yaml` | `solver`, `nstr`, `flags` |
+| solver defaults | {{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}} | `create_disort_config` | always |
+| Python helper | {{< code python/disort.py disort_config repo=pyharp >}} | `disort_config` | user call |
+| buffer and solver | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `reset` | always |
+| assembly and call | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `forward` | `tempf`, `temp` |
+| flag parser | {{< code src/disort.cpp DisortOptionsImpl::set_flags repo=pydisort >}} | `set_flags` | `flags` |
+| setup checks | {{< code src/disort.cpp DisortImpl::reset repo=pydisort >}} | `reset` | always |
+| boundary conditions | {{< code src/disort.cpp DisortImpl::forward repo=pydisort >}} | `forward` | `bc` keys |
+| reversal, moments | {{< code src/disort_impl.h disort_impl repo=pydisort >}} | `disort_impl` | `upward` |
+
+: Code map of the DISORT band. {#tbl-ch03-band-code}
+
+The walk-through, in call order:
+
+1. The YAML `flags` string is copied verbatim into the solver options. `set_flags` accepts `ibcnd`, `usrtau`,
+   `usrang`, `lamber`, `planck`, `spher`, `onlyfl`, `quiet`, `intensity_correction`,
+   `old_intensity_correction`, `general_source`, `output_uum` and five `print-` flags, and raises
+   `DisortOptionsImpl::set_flags` on any other word. Of these, a pyharp band can use `lamber`, `planck`,
+   `onlyfl`, `quiet` and the print flags; `ibcnd` is refused by `DisortImpl::forward`; `spher` and
+   `general_source` have no input arrays; `usrtau` and `usrang` change the depths and angles but pyharp reads
+   only the level fluxes. No flag selects a BRDF surface.
+2. The Python helper `disort_config` ({{< code python/disort.py disort_config repo=pyharp >}}) sets `nwave`, `ncol`,
+   `nlyr`, `nstr`, and `nmom = nphase = nstr`, for a band whose spectral points are set from Python.
+3. `RadiationBandImpl::reset` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}})
+   refuses a band with neither `wavenumber` nor `weight`.
+4. `RadiationBandImpl::forward` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}})
+   refuses a `tempf` that is not $L + 1$ long or has a negative value.
+5. `DisortImpl::forward` ({{< code src/disort.cpp DisortImpl::forward repo=pydisort >}}) refuses `planck` with
+   no temperatures and boundary arrays of the wrong shape.
+6. `disort_impl` ({{< code src/disort_impl.h disort_impl repo=pydisort >}}) ignores the return code of
+   `c_disort` ({{< code cdisort213/cdisort.c c_disort repo=pydisort >}}): an input error that cdisort detects is
+   printed and the call returns normally ([P6] of the candidates check).
+
+The unused C++ helpers `create_disort_config_sw` and `create_disort_config_lw`
+({{< code src/radiation/disort_config.cpp create_disort_config_sw repo=pyharp >}},
+{{< code src/radiation/disort_config.cpp create_disort_config_lw repo=pyharp >}}) request the intensity correction
+together with `onlyfl`; cdisort turns the correction off in that case (@sec-ch03-intcorr), and nothing in pyharp
+calls either helper.
+
+### Tests
+
+No ctest at the pin runs a DISORT band. The Python test `tests/test_rayleigh.py`
+(`test_radiation_band_regularizes_conservative_ssa_for_disort`) runs one and asserts the albedo margin of
+@eq-ch03-band-prop, but ctest does not register the Python tests, so CI does not run it. The evidence is the
+derivation checks, run through `RadiationBand` and through pydisort directly:
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch03_beam_closure.py` [C1], [C2] | direct beam is $\mu_0 F_0 e^{-\tau/\mu_0}$, no upward flux | $10^{-12}$ rel. | round-off of one exp |
+| `ch03_beam_closure.py` [C3], [C4] | net flux constant in a conservative slab | $10^{-6}$ of $\mu_0F_0$ | see the footnote |
+| `ch03_e3_slab.py` [C1] | grey slab within $2\times10^{-4}$ at 32 streams | $2\times10^{-4}$ rel. | outline acceptance |
+| `ch03_candidates.py` [P1]-[P6] | the CANDIDATE behaviours of the Limits layer below | none | probes |
+
+: Tests of the DISORT band (no ctest exists; all rows are derivation checks). {#tbl-ch03-band-tests}
+
+Beer-Lambert holds exactly: the largest relative deviation of $F^{\downarrow}$ over $\tau$ from 0.01 to 10,
+$\mu_0$ of 1, 0.5 and 0.1 and 4 or 16 streams is 0.0, through `RadiationBand` and through pydisort alike, and no
+upward flux appears.[^ch03-band-run] In a conservative slab ($\omega = 1$, Henyey-Greenstein $g$ up to 0.85,
+$\tau$ up to 100, surface albedo 0, 0.3 or 1, 4 to 32 streams; 432 cases) the net flux is constant over levels
+to $5.1\times10^{-10}\,\mu_0F_0$ through `RadiationBand` and $1.4\times10^{-9}\,\mu_0F_0$ through pydisort with
+$\omega$ exactly 1.[^ch03-band-closure] The same numbers came out with pydisort 1.8.13. All checks ran on CPU;
+none ran on CUDA.
+
+[^ch03-band-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_beam_closure.py` [C1], [C2]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch03_beam_closure.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch03_beam_closure.pydisort-1.8.13.out` holds the same lines.
+
+[^ch03-band-closure]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_beam_closure.py` [C3], [C4], [C5]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1]. The tolerance $10^{-6}\,\mu_0F_0$: the energy the albedo margin can absorb is at most $\delta\omega\,\tau/\mu_0 \le 10^{-9}$ on this grid, and the rest is round-off of the band solve; $10^{-6}$ leaves three orders of magnitude above the largest value measured. For surface albedo 0 the same run gives $|R + T - 1| \le 4.9\times10^{-10}$ through `RadiationBand` and $1.5\times10^{-9}$ through pydisort ([C5]).
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+Every item below was reproduced at the pins with both pydisort 1.7.1 and 1.8.13 by `ch03_candidates.py`, on CPU,
+unless it says otherwise.[^ch03-band-cand] Each is a CANDIDATE defect; none is in the defect register.
+
+- **CANDIDATE: no `flags:` key ends the process.** The flag string stays empty, so `lamber` is off and the BRDF
+  type is 0; cdisort prints "surface BDRF model 0 not known" and calls `exit(1)` ([P4]).
+- **CANDIDATE: a band called without temperatures raises.** With neither `tempf` nor `temp`,
+  `RadiationBandImpl::forward` calls the solver with three arguments, and pydisort's stored default for the
+  fourth has the wrong type ([P3]). A shortwave band must therefore pass `tempf`; it is not used without `planck`.
+  The default is declared in `DisortImpl` ({{< code src/disort.hpp DisortImpl repo=pydisort >}}).
+- **CANDIDATE: more moments than `nstr` corrupt memory.** `nmom = nstr` is fixed, but `prop` is as wide as the
+  widest opacity. When an opacity supplies more than `nstr` moments, `disort_impl` writes past each layer's slot.
+  With `upward` set the spill overwrites the moments of the layer copied before it: the top upward flux of a
+  three-layer test moved from 0.5606 to 0.6416, and the process then ended abnormally ([P1]). Through pyharp, a
+  Rayleigh opacity with `nmom: 8` on a 4-stream band ends the process abnormally ([P2]). Heap corruption is not
+  deterministic: the probe repeats each case ten times, and every run ended abnormally, by an abort or a
+  segmentation fault, with a message that varies between runs.
+- **CANDIDATE: fewer moments than `nstr` switch delta-M off.** The missing moments are zero-filled, so
+  $\chi_{2N} = 0$ and cdisort runs without delta-M (@sec-ch03-deltam).
+- **CANDIDATE: cdisort input errors are not raised.** `c_disort`'s return code is ignored ([P6]).
+:::
+
+Not tested: CUDA (pydisort 1.7.1 has no CUDA DISORT path; 1.8.13 has one, see the chapter on GPU and batching),
+single precision, more than one column, and wavenumber-grid mode, whose thermal fluxes the chapter on spectral
+integration treats. The BRDF surface, pseudo-spherical geometry and `general_source` are not reachable from a pyharp
+band (Code walk-through, step 1); not provided: a BRDF input in pydisort.
+
+[^ch03-band-cand]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_candidates.py` [P1]-[P6]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1]. Outputs `derivation-checks/ch03_candidates.pydisort-1.7.1.out` and `.pydisort-1.8.13.out`. Each probe runs in its own interpreter because several end the process.

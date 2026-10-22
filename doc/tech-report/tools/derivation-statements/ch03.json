@@ -1,0 +1,18 @@
+{
+ "eq-ch03-band-prop": "Layer optical depth from extinction and thickness; single-scattering albedo kept below 1 by a margin.",
+ "eq-ch03-band-flux": "pyharp's two flux channels from cdisort's upward diffuse, downward diffuse and direct fluxes.",
+ "eq-ch03-ordinates-kernel": "Azimuth-averaged scattering kernel from the first 2N Legendre moments (Stamnes et al. 1988, eq. 6b, m = 0).",
+ "eq-ch03-ordinates-do": "Discrete-ordinate equations: the scattering integral replaced by the double-Gauss sum (eq. 7a).",
+ "eq-ch03-ordinates-eigen": "Order reduction of the 2N x 2N eigenproblem to an N x N one for the squared eigenvalues (eqs. 8c-8e).",
+ "eq-ch03-ordinates-beam": "Linear system for the beam particular solution Z0 exp(-tau/mu0) (eq. 9a).",
+ "eq-ch03-ordinates-thermal": "Linear systems for the particular solution Y0 + Y1 tau of a Planck source linear in tau (eq. 9c).",
+ "eq-ch03-ordinates-surface": "Lambertian bottom boundary condition with emissivity 1 - albedo, azimuthal mode 0 (eqs. 12, 17d).",
+ "eq-ch03-ordinates-scaled": "Homogeneous solution with scaled constants, so that every exponential is at most 1 (eqs. 22-23).",
+ "eq-ch03-ordinates-fluxes": "Diffuse fluxes as quadrature sums of the intensities; direct flux in closed form.",
+ "eq-ch03-deltam-moments": "Delta-M moments chi*_l = (chi_l - f)/(1 - f) with f = chi_2N (Wiscombe 1977, eqs. 14-15).",
+ "eq-ch03-deltam-scale": "Delta-M scaled optical depth and single-scattering albedo (Wiscombe 1977, eqs. 20a-20b).",
+ "eq-ch03-intcorr-single": "Singly scattered intensity of one layer for a downward direction (Nakajima and Tanaka 1988, eq. 12).",
+ "eq-ch03-intcorr-tms": "TMS correction: delta-M single scattering replaced by the exact one (Nakajima and Tanaka 1988, eq. 15).",
+ "eq-ch03-intcorr-ims": "IMS secondary-scattering correction in the aureole (Nakajima and Tanaka 1988, eq. 23).",
+ "eq-ch03-intcorr-h": "Closed form of the IMS geometry factor h (Nakajima and Tanaka 1988, eq. 24)."
+}

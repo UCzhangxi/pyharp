@@ -1,0 +1,8 @@
+python 3.11.13, numpy 2.4.6, sympy 1.14.0
+[C1] PASS sympy: (8c), (8d), (8e) follow from the two block rows identically
+[C2] PASS eigenvalues of the 2N system = +-sqrt of the reduced N x N problem, N = 2, 4, 8: max rel dev 2.7e-15 (tol 1e-10)
+[C3] PASS sum_j w_j D(mu_i, mu_j) = omega, N = 1..16: max |dev| 2.7e-15 (tol 1e-14)
+[C4] PASS beam particular solution residual 5.6e-16 of max X0 (tol 1e-13)
+[C5] PASS thermal particular solution residual 2.8e-15 of the source (tol 1e-13)
+[C6] PASS homogeneous solutions residual 2.4e-15 (tol 1e-13)
+[C7] PASS 2 pi sum_i w_i mu_i = pi, N = 1..32: max |dev| 8.9e-16 (tol 3e-14)

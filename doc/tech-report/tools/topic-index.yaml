@@ -27,4 +27,23 @@ sections:
     - symbols, diagnostics and errors
   sec-appa-10:
     - symbols, reserved letters (do not reuse)
+  sec-ch03-band:
+    - DISORT band, inputs and outputs
+    - pydisort, how pyharp calls it
+    - DISORT flags
+    - layer order, pyharp and DISORT
+  sec-ch03-ordinates:
+    - discrete-ordinate method
+    - DISORT solution method
+    - Gauss quadrature, double-Gauss
+    - band-integrated Planck function, DISORT
+  sec-ch03-deltam:
+    - delta-M scaling
+    - forward-peak truncation
+  sec-ch03-intcorr:
+    - intensity correction, Nakajima-Tanaka
+    - Buras-Emde intensity correction
 unlabeled:
+  - file: chapters/appendices/_appb-ch03.qmd
+    heading: DISORT (pydisort) (@sec-ch03)
+    covered-by: sec-ch03

@@ -2,7 +2,43 @@
 
 ## B {.unnumbered .unlisted}
 
+**band-integrated Planck function, DISORT**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
 **bibliography**: [Reading list](#sec-reading).
+
+**Buras-Emde intensity correction**: Intensity corrections after delta-M, @sec-ch03-intcorr.
+
+## D {.unnumbered .unlisted}
+
+**delta-M scaling**: Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$), @sec-ch03-deltam.
+
+**discrete-ordinate method**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
+**DISORT band, inputs and outputs**: Handing a band to DISORT, @sec-ch03-band.
+
+**DISORT flags**: Handing a band to DISORT, @sec-ch03-band.
+
+**DISORT solution method**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
+## F {.unnumbered .unlisted}
+
+**forward-peak truncation**: Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$), @sec-ch03-deltam.
+
+## G {.unnumbered .unlisted}
+
+**Gauss quadrature, double-Gauss**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
+## I {.unnumbered .unlisted}
+
+**intensity correction, Nakajima-Tanaka**: Intensity corrections after delta-M, @sec-ch03-intcorr.
+
+## L {.unnumbered .unlisted}
+
+**layer order, pyharp and DISORT**: Handing a band to DISORT, @sec-ch03-band.
+
+## P {.unnumbered .unlisted}
+
+**pydisort, how pyharp calls it**: Handing a band to DISORT, @sec-ch03-band.
 
 ## R {.unnumbered .unlisted}
 
