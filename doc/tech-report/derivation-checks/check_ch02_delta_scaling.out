@@ -1,0 +1,9 @@
+[C1] PASS M = 1 truncation fraction and moments: f = g**2, chi*_0 = 1, chi*_1 = g/(g + 1)
+[C2] PASS moments of P* vs HG (eq. 17): P*: [1, g, g**2, g**2, g**2, g**2]; equal to g^n for n = 0, 1, 2, different from n = 3 = 2M + 1
+[C3] PASS eqs. 18-19 at M = 1 = Joseph's phase function (MW eq. 59): smooth parts differ by 0; delta weight 2f = 2*g**2
+[C4] PASS the transfer equation keeps its form under eq. 20: residual 0
+[C5] PASS invariants at f = g^2: (1-w')tau' - (1-w)tau = 0; w'tau'(1-g') - w tau(1-g) = 0; w'(w = 1) = 1
+[C6] PASS delta-Eddington = Eddington row at (w', g') per unit tau': g1, g2 and w beta0 exact
+[C7] PASS Rayleigh: delta-M f = chi_2 differs from g^2: chi_0..2 = [1, 0, 1/10]: f = 1/10 for delta-M (M = 1), f = g^2 = 0 for delta-Eddington
+[C8] PASS HG moments chi_n = g^n by 35-digit quadrature: g = 0.3, 0.75, 0.85; n = 1, 2, 3; max deviation below 1e-28
+check_ch02_delta_scaling: 8 of 8 claims pass

@@ -1,0 +1,20 @@
+[C1] PASS dFnet/dtau = (g1-g2)(F+ + F-) + (1 - w(g3+g4)) F0 e^{-tau/mu0}: identity for arbitrary gammas (Toon eq. 28)
+[C2] PASS conservative layer: with g1 = g2, g3 + g4 = 1, w = 1: dFnet/dtau = 0
+[C3] PASS beam: dFnet/dtau = (1-w) 4 pi J: J = diffuse + direct mean intensity, g1 - g2 = (1-w)/mu1 (Toon eqs. 17, 18)
+[C4] PASS thermal: dFnet/dtau = (1-w) 4 pi (J - B): S+- = 2 pi (1-w) B (Toon eq. 15)
+[C5] PASS Toon eq. 27 C+- solves the thermal ODE: residuals [0, 0]
+[C6] PASS Toon eqs. 23-24 C+- solve the beam ODE: residuals [0, 0]
+[C7] PASS lambda = 0 and Gamma = 1 at w = 1: quadrature: lambda(1 - eps) ~ sqrt(3)*sqrt(epsilon)*sqrt(1 - g); hemispheric mean: lambda(1 - eps) ~ 2*sqrt(epsilon)*sqrt(1 - g)
+[C8] PASS Toon basis collapses at Gamma = 1: det = 1 - Gamma**2; the missing solution F+ - F- = c, F+ + F- = 2 gamma c tau + d solves the ODE
+[C9] PASS 2-layer shortwave tridiagonal is singular at Gamma = 1, e^{lambda dtau} = 1: det = 0 there; -2835/128 at Gamma = 1/2, e = 2
+[C10] PASS float64 at W = 1: scaled w is exactly 1 and lambda is round-off: NaN (disc < 0) 0.136, zero 0.727, positive 0.137 of 100001 g in [0, 0.99]; max lambda below 1e-7
+[C11] PASS w = 1, tau = 1.0, g = 0.75, mu0 = 0.5, A_s = 0.0: Fnet constant over 21 levels: max - min below 1e-30 (40 digits)
+[C12] PASS R(w = 1) = MW eq. 24 and R + T = 1: R = 0.210084549474905; both residuals below 1e-30
+[C13] PASS closed form: R(1 - 10^-k) -> R(1); singular at w = 1: k=4: 5.2e-5, k=8: 5.2e-9, k=12: 5.2e-13, k=16: 5.2e-17, k=24: 5.2e-25; |det| at w = 1 below 1e-15
+[C14] PASS 53-bit closed form: error vs 1 - w = 10^-k is smallest at k = 12: k=8: 5.2e-9, k=10: 5.2e-11, k=12: 1.9e-12, k=14: 6.1e-11, k=16: 7.3e-10
+[C15] PASS w = 1, tau = 5.0, g = 0.5, mu0 = 0.866, A_s = 0.3: Fnet constant over 21 levels: max - min below 1e-30 (40 digits)
+[C16] PASS w = 0.9, tau = 0.3, g = 0.85, mu0 = 0.2, A_s = 0.0: Fnet jump = integrated absorption: 0.0248696028528244; diff below 1e-30
+[C17] PASS closed form = ODE, F+(0), w = 0.9: diff below 1e-30
+[C18] PASS w = 0.5, tau = 2.0, g = 0.3, mu0 = 1.0, A_s = 0.3: Fnet jump = integrated absorption: 0.741042801321921; diff below 1e-30
+[C19] PASS closed form = ODE, F+(0), w = 0.5: diff below 1e-30
+check_ch02_conservation: 19 of 19 claims pass
