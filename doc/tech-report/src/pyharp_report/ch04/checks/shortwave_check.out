@@ -1,0 +1,7 @@
+[C1] PASS eigenvalues +-lambda with lambda^2 = gamma1^2 - gamma2^2; decaying mode has F+/F- = Gamma = (gamma1 - lambda)/gamma2
+[C2] PASS C+ = Ap e^{-tau/mu0}, C- = Am e^{-tau/mu0} satisfy dF+/dtau = g1 F+ - g2 F- - g3 w F0 e^{-tau/mu0} and dF-/dtau = g2 F+ - g1 F- + g4 w F0 e^{-tau/mu0} exactly
+[C3] PASS f = g^2: g' = (g-f)/(1-f) = g/(1+g); (1-w')tau' = (1-w)tau; w' tau' = (1-f) w tau
+[C4] PASS w' = 1: gamma1 = gamma2, lambda = 0, Gamma = 1, interface coefficient 1 - Gamma^2 = 0
+[C5] PASS eps = 2.220e-16: e^x eps = 1 at x = 36.04, = 1e-9 at x = 15.32; e^-35 = 6.31e-16
+[C6] PASS guard shift |dmu0|/mu0 = 1.490e-08 = sqrt(eps) = 1.490e-08
+RESULT: 6/6 pass

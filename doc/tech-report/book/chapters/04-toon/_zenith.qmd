@@ -1,0 +1,35 @@
+## Zenith-angle correction (`zenith_correction`): accepted by the parser, has no effect {#sec-ch04-zenith}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89.hpp, src/rtsolver/toon_mckay89.cpp, src/rtsolver/rtsolver_dispatch.cpp,
+  src/rtsolver/toon_mckay89_shortwave_impl.h, src/radiation/radiation_band.cpp
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+A reader who sets `zenith_correction` expects the shortwave solver to account for a beam cosine that changes with
+height, as in a spherical atmosphere. pyharp accepts the option and reports it, but no code reads it, and the
+shortwave kernel never receives a cosine that varies with height.
+
+The option is parsed: `ToonMcKay89OptionsImpl::zenith_correction` ({{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::zenith_correction repo=pyharp >}})
+returns true when `zenith_correction` is among the `flags`, and `RadiationBandOptionsImpl::from_yaml`
+({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}) appends it to the flags when a
+band's `toon:` block sets `zenith_correction: true`. `ToonMcKay89Impl::forward`
+({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) passes the value to the dispatch, where
+`call_toon89_sw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}}) takes the parameter and
+does not use it; `call_toon89_lw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_lw_cpu repo=pyharp >}}) leaves it
+unnamed.
+
+The kernel `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}})
+does contain a branch for a cosine that differs between levels: it accumulates the slant optical depth layer by
+layer and uses the mean of the two level cosines in the particular solution. That branch is unreachable, because
+`ToonMcKay89Impl::forward` accepts `umu0` only with one value per column and expands that value to every level
+before the kernel runs. With the flag on and off, the shortwave fluxes of a 30-layer test column are bitwise
+equal (CANDIDATE, zenith correction; check `[K1]`)[^ch04-zenith-k1].
+
+The behaviour lives nowhere in the solver at the pin. A caller that needs height-dependent geometry must scale the
+fluxes outside the solver; the Radiation API's spherical treatment is described in @sec-ch08.
+
+[^ch04-zenith-k1]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidate [K1] (30 layers of dtau 0.1, w 0.9, g 0.5, mu0 0.6, A_s 0.2); run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]

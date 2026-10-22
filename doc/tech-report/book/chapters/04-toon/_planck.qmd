@@ -1,0 +1,160 @@
+## Band-integrated Planck function for the thermal source (`bbflux_wavenumber`) {#sec-ch04-planck}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/radiation/bbflux.cpp, src/radiation/bbflux.hpp, src/rtsolver/toon_mckay89.cpp; series as in DISORT's
+  PLKAVG (Stamnes et al. 1988, doi:10.1364/ao.27.002502)
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+The longwave solver needs the Planck function of every level integrated over a band of wavenumbers. pyharp
+computes that integral from two short series in the dimensionless variable $v = c_2\nu/T$, instead of by
+quadrature. This section derives both series, states what the routine returns (a radiance, per steradian), and
+measures its accuracy.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** $\bar B = \int_{\nu_1}^{\nu_2} B_\nu\,\mathrm{d}\nu$ from @eq-ch04-planck-band.
+
+**Data.** Band edges $\nu_1 \le \nu_2$ [$\mathrm{cm^{-1}}$]; $T > 0$ [K]; out $\bar B$
+[$\mathrm{W\,m^{-2}\,sr^{-1}}$].
+
+**Placement.** Once per call of the longwave solver, for every level and wavenumber.
+
+**Activation.** Always with the `planck` flag; the band edges are the band's `range`.
+
+**Guarantee / limits.** Within $6\times10^{-5}$ relative of the integral for four bands at 300 K; equal edges are
+wrong by $10^{10}$ (Limits layer of @sec-ch04-planck).
+
+**Evidence.** The Tests layer of @sec-ch04-planck.
+:::
+
+Local symbols (not in the notation of @sec-ch02): $v = c_2\nu/T$; $c_1$, $c_2$ the radiation constants as the
+code writes them; $\Phi(v)$ the fraction of $\sigma T^4/\pi$ emitted below $v$; $\Phi_c(v) = 1 - \Phi(v)$.
+
+The routine has no options. Its header documents the result as a flux [$\mathrm{W\,m^{-2}}$]; it is the radiance,
+$1/\pi$ of the hemispheric flux, and the longwave solver uses it as a radiance, so the solver's fluxes are right
+(Limits layer of @sec-ch04-planck). The series are those of DISORT's `PLKAVG` [@reading01].
+
+### Derivation
+
+The Planck radiance per wavenumber $\nu$ [$\mathrm{cm^{-1}}$] is $B_\nu = 2hc^2\nu^3/(e^{c_2\nu/T} - 1)$ with
+$c_2 = hc/k$. Substituting $x = c_2\nu/T$ and using $\int_0^\infty x^3/(e^x - 1)\,\mathrm{d}x = \pi^4/15$:
+
+$$
+\bar B = \int_{\nu_1}^{\nu_2} B_\nu\,\mathrm{d}\nu = \frac{\sigma T^4}{\pi}\,\bigl(\Phi(v_2) - \Phi(v_1)\bigr),\qquad
+\Phi(v) = \frac{15}{\pi^4}\int_0^{v}\frac{x^3}{e^x - 1}\,\mathrm{d}x.
+$$ {#eq-ch04-planck-band}
+
+@eq-ch04-planck-band is computed in `bbflux_wavenumber` ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}}).
+
+**Small $v$.** With the Bernoulli expansion $x/(e^x - 1) = 1 - x/2 + x^2/12 - x^4/720 + x^6/30240 - x^8/1209600
++ \dots$, multiplying by $x^2$ and integrating term by term:
+
+$$
+\Phi(v) = \frac{15}{\pi^4}\,v^3\Bigl(\frac13 - \frac{v}{8} + \frac{v^2}{60} - \frac{v^4}{5040} + \frac{v^6}{272160}
+- \frac{v^8}{13305600}\Bigr) + O(v^{13}).
+$$ {#eq-ch04-planck-small}
+
+**Large $v$.** With $1/(e^x - 1) = \sum_{m\ge1} e^{-mx}$ and
+$\int_v^\infty x^3 e^{-mx}\,\mathrm{d}x = e^{-mv}\bigl(v^3/m + 3v^2/m^2 + 6v/m^3 + 6/m^4\bigr)$:
+
+$$
+\Phi_c(v) = 1 - \Phi(v) = \frac{15}{\pi^4}\sum_{m=1}^{6} \frac{e^{-mv}}{m^4}\bigl((mv)^3 + 3(mv)^2 + 6mv + 6\bigr)
++ O\bigl(e^{-7v}\bigr).
+$$ {#eq-ch04-planck-large}
+
+@eq-ch04-planck-small and @eq-ch04-planck-large are the coefficients `A1`-`A6` and the loop over `m` in
+`bbflux_wavenumber` ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}}). The code uses the first
+for $v < 1.5$ and the second for $v > 1.5$, and forms $\bar B$ from $\Phi(v_2) - \Phi(v_1)$ when both are small,
+$1 - \Phi(v_1) - \Phi_c(v_2)$ when they straddle 1.5, and $\Phi_c(v_1) - \Phi_c(v_2)$ when both are large (@fig-ch04-planck-series).
+
+**What is exact and what is truncated.** Both series are truncated. At $v = 1.5$ the first neglected term of
+@eq-ch04-planck-small, $(15/\pi^4)(5/66)\,v^{13}/(13\cdot 10!)$, is $5\times10^{-8}$ of $\sigma T^4/\pi$, and the
+$m = 7$ term of @eq-ch04-planck-large is $3\times10^{-6}$; the exponential tail therefore sets the truncation error
+near the switch. The constants are
+also rounded: $c_2 = 1.438786$ cm K against $hc/k = 1.4387769$ cm K, and $\sigma = 5.67032\times10^{-8}$ against
+$5.670374419\times10^{-8}$ $\mathrm{W\,m^{-2}\,K^{-4}}$. The check is `planck_check.py`, a line-for-line numpy port.
+
+### Numerical method
+
+```{python}
+#| label: fig-ch04-planck-series
+#| fig-cap: "The two series of the band Planck function: the fraction of sigma T^4/pi emitted below v = c2 nu / T, from the power series for v < 1.5 (green, solid) and from one minus the six-term exponential series for v > 1.5 (orange, dashed); the dotted line is the switch at v = 1.5. A band value is the difference of the curve at its two edges."
+#| fig-alt: "An S-shaped curve rising from 0 at v = 0 to 1 at large v; a short solid green segment below v = 1.5 joins a dashed orange curve above it at the dotted vertical line."
+#| echo: false
+from pyharp_report.ch04.figures.fig_planck_series import make_fig
+make_fig()
+```
+
+For each temperature the routine computes $v_1$ and $v_2$, evaluates the applicable series at each, and combines
+them as above; there is no iteration and no quadrature. The tensor overload used by the longwave solver,
+`bbflux_wavenumber` ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}}), does the same arithmetic
+element by element with `torch::where`. When $\nu_1 = \nu_2$ the routine returns a point value instead,
+$c_1\nu^3 e^{-c_2\nu/T}/(1 - e^{-c_2\nu/T})$ with $c_1 = 1.1911\times10^{-18}$.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| point value at given $\nu$ | {{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=1 repo=pyharp >}} | `bbflux_wavenumber` | none |
+| band value, scalar band | {{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}} | `bbflux_wavenumber` | none |
+| band value, tensor bands | {{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}} | `bbflux_wavenumber` | none |
+| caller | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `ToonMcKay89Impl::forward` | `planck` |
+
+: Code map of the band Planck function. {#tbl-ch04-planck-code}
+
+1. The band overloads ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}}) refuse
+   $\nu_2 < \nu_1$ or $\nu_1 < 0$ and a non-positive temperature with a `TORCH_CHECK` error.
+2. The point overload ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=1 repo=pyharp >}}) uses its own constants,
+   $c_1 = 1.19144\times10^{-8}$ and $c_2 = 1.4388$, and returns a per-wavenumber radiance.
+3. `ToonMcKay89Impl::forward` ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) calls the
+   tensor overload with the solver's `wave_lower` and `wave_upper` and the level temperatures.
+
+All three overloads are bound to Python as `pyharp.bbflux_wavenumber`.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_bbflux.release` `BBFluxTest.Wavenumber1` | output shape | exact | shape only |
+| `test_bbflux.release` `BBFluxTest.Wavenumber2` | nothing (prints values) | none | no assertion |
+| `planck_check.py` `[C1]`, `[C5]` | band value vs quadrature | $10^{-4}$ | series truncation plus constants |
+| `planck_check.py` `[C3]` | equal-edges branch | ratio $10^{-10}$ | documents the candidate |
+| `toon_pyharp_check.py` `[K3]`, `[K4]` | the same through pyharp | reported | candidate checks |
+
+: Tests of the band Planck function. {#tbl-ch04-planck-tests}
+
+The tests of `tests/test_bbflux.cpp` (ctest `test_bbflux.release`) assert shapes only. For four bands at 300 K the
+numpy port differs from an mpmath quadrature by $1.5\times10^{-5}$, $-4.9\times10^{-6}$, $-1.6\times10^{-5}$ and
+$-5.1\times10^{-5}$ (10-350, 500-800, 1000-1100, 2000-2500 $\mathrm{cm^{-1}}$)[^ch04-planck-port]. With the exact
+$c_2$ and $\sigma$ the same series gives $1.0\times10^{-5}$ for the first band and below $10^{-7}$ for the others, so
+the rounded constants carry most of the error[^ch04-planck-port]. Through pyharp itself, the 500-800
+$\mathrm{cm^{-1}}$ band at 300 K equals $0.999995\int B_\nu\,\mathrm{d}\nu$, which is $0.3183 = 1/\pi$ of the
+hemispheric flux[^ch04-planck-pyharp].
+
+[^ch04-planck-port]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/planck_check.py`, checks [C1]-[C5]; run: `python3 src/pyharp_report/ch04/checks/planck_check.py`, CPU, double; Python 3.11.13, mpmath 1.3.0, numpy 2.4.6; output `src/pyharp_report/ch04/checks/planck_check.out`]
+[^ch04-planck-pyharp]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K3] and [K4]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+Do not give a band equal lower and upper edges with the longwave solver: the equal-edges value is $10^{-10}$ of
+the Planck radiance.
+:::
+
+- **Units (CANDIDATE, documentation).** The header documents the band overloads as a flux in $\mathrm{W\,m^{-2}}$;
+  the value is a radiance in $\mathrm{W\,m^{-2}\,sr^{-1}}$, $1/\pi$ of the flux[^ch04-planck-pyharp]. The longwave
+  solver multiplies by $\pi$ through its normalisation (@eq-ch04-longwave-particular), so its fluxes are correct; a
+  caller who reads the header and multiplies by $\pi$ again would not be.
+- **Equal edges (CANDIDATE, constant).** For $\nu_1 = \nu_2$ the band overloads use $c_1 = 1.1911\times10^{-18}$;
+  the radiance per wavenumber needs $2hc^2\times10^{8} = 1.19104\times10^{-8}$ in these units, so the result is
+  $1.0\times10^{-10}\,B_\nu$ (check `[C3]` of `planck_check.py`, and `[K4]` through pyharp)[^ch04-planck-port]. The
+  longwave solver reaches this branch when every `wave_lower` equals its `wave_upper`, which a YAML band with
+  equal `range` ends produces: `parse_wave_range` ({{< code src/utils/parse_yaml_input.cpp parse_wave_range repo=pyharp >}})
+  refuses only a lower edge above the upper one.
+- **Constants.** $c_2$ and $\sigma$ are rounded as stated above; the effect is below $6\times10^{-5}$ relative at
+  300 K and grows with $v$ (not measured beyond the four bands).

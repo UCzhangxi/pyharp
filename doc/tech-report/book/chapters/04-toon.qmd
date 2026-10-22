@@ -1,3 +1,36 @@
 # Toon et al. 1989 two-stream, as implemented {#sec-ch04}
 
-pending
+This chapter documents pyharp's two-stream solver, selected by `solver: toon` in a band's YAML, which follows
+Toon et al. [-@reading02]. The same solver object runs one of two kernels: without the `planck` flag it is a shortwave solver
+for a collimated beam (quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave); with `planck` it is a
+longwave solver for thermal emission (hemispheric-mean closure with the source-function technique,
+@sec-ch04-longwave), which needs the band-integrated Planck function of @sec-ch04-planck. Both build one
+tridiagonal system per column. The option `zenith_correction` is accepted but has no effect (@sec-ch04-zenith).
+Notation follows @sec-ch02; the accuracy of the closures against the full radiative transfer equation is the
+subject of @sec-ch05.
+
+```{python}
+#| label: fig-ch04-map
+#| fig-cap: "Schemes of this chapter and their couplings. Boxes are schemes (green: documented here; grey: shared numerical step; vermillion: an option that reaches nothing); arrows read selects or requires, as labelled."
+#| fig-alt: "A node labelled solver toon with an arrow to shortwave labelled no planck and an arrow to longwave labelled planck; longwave requires band Planck; both require tridiagonal solve; a dashed arrow from zenith_correction to the solver is labelled accepted, unused."
+#| echo: false
+from pyharp_report.ch04.figures.fig_chapter_map import make_fig
+make_fig()
+```
+
+| scheme | YAML key or option | default | order | main test |
+|---|---|---|---|---|
+| @sec-ch04-shortwave | `solver: toon` | on for the band | exact for the two-stream ODE | `toon_pyharp_check.py` `[C1]`-`[C3]` |
+| @sec-ch04-longwave | `flags: planck` | off | exact sweeps; 5-point angles | `toon_pyharp_check.py` `[C5]` |
+| @sec-ch04-planck | none | always with `planck` | series, $<6\times10^{-5}$ at 300 K | `planck_check.py` `[C1]` |
+| @sec-ch04-zenith | `zenith_correction` | off | no effect | `toon_pyharp_check.py` `[K1]` |
+
+: Schemes of the Toon solver chapter. {#tbl-ch04-schemes}
+
+{{< include 04-toon/_shortwave.qmd >}}
+
+{{< include 04-toon/_longwave.qmd >}}
+
+{{< include 04-toon/_planck.qmd >}}
+
+{{< include 04-toon/_zenith.qmd >}}

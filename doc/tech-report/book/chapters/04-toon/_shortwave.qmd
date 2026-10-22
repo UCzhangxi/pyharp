@@ -1,0 +1,341 @@
+## Shortwave two-stream solver, quadrature closure with delta-Eddington scaling (`solver: toon` without `planck`) {#sec-ch04-shortwave}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89_shortwave_impl.h, src/rtsolver/toon_mckay89.cpp, src/rtsolver/dtridgl_impl.h,
+  src/rtsolver/rtsolver_dispatch.cpp, src/radiation/radiation_band.cpp; Toon et al. 1989 (doi:10.1029/JD094iD13p16287)
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+The shortwave solver turns the optical properties of a column of layers, a collimated beam from above and a
+reflecting surface into upward and downward fluxes at every layer interface. It solves the two-stream equations
+of Toon et al. [-@reading02] exactly for layers whose optical properties are constant, so the only
+approximation is the two-stream closure itself; this section shows which closure the code uses and where
+round-off enters.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Diffuse and direct shortwave fluxes of a layered column; @eq-ch04-shortwave-ode with the gammas of
+@eq-ch04-shortwave-gammas.
+
+**Data.** Per layer $\Delta\tau_n$, $\omega$, $g$ (dimensionless); beam $F_0$ [$\mathrm{W\,m^{-2}}$], $\mu_0$, $A_s$; out:
+$F^+$ and $F^- + F_{\mathrm{dir}}$ [$\mathrm{W\,m^{-2}}$] at levels and layer midpoints.
+
+**Placement.** Called by the band solver for every wavenumber and column; one tridiagonal solve per column.
+
+**Activation.** `solver: toon` in a band, without the `planck` flag. Always quadrature closure, always
+delta-Eddington.
+
+**Guarantee / limits.** Exact solution of the two-stream system to round-off for $\lambda\Delta\tau_n \lesssim 15$;
+see the Limits layer of @sec-ch04-shortwave.
+
+**Evidence.** The Tests layer of @sec-ch04-shortwave.
+:::
+
+Local symbols (not in the notation of @sec-ch02): $\xi$, the optical depth below the top of a layer;
+$E_{1n},\dots,E_{4n}$, the unscaled interface coefficients
+of the code; $x_{\mathrm{cap}} = 35$, the cap on $\lambda\Delta\tau_n$; $e_F$, the flux error measure of the tests.
+
+The scheme has no switches of its own. It always applies delta-Eddington scaling with truncation fraction $f = g^2$
+and always uses the quadrature closure ($\mu_1 = 1/\sqrt{3}$). The interface values are exact for the two-stream
+system; the error against the full radiative transfer equation is the closure error that @sec-ch05 measures. The
+code calls the solver `toon_mckay89`; YAML selects it with `solver: toon`.
+
+### Derivation
+
+The radiative transfer problem, its notation and the two-stream closure family are those of @sec-ch02. Optical
+depth $\tau$ is measured downward from the top of the atmosphere; layers are numbered $n = 1,\dots,L$ from the top;
+inside layer $n$ a local depth $\xi \in [0, \Delta\tau_n]$ is measured from the layer top.
+
+**Scaling.** The code first replaces $\omega$, $g$ and $\Delta\tau_n$ by their delta-Eddington values
+[@reading06] with truncation fraction $f = g^2$:
+
+$$
+\begin{aligned}
+\omega' &= \frac{(1 - f)\,\omega}{1 - \omega f}, \\
+\Delta\tau_n' &= (1 - \omega f)\,\Delta\tau_n, \\
+g' &= \frac{g - f}{1 - f} = \frac{g}{1 + g}.
+\end{aligned}
+$$ {#eq-ch04-shortwave-delta}
+
+@eq-ch04-shortwave-delta is computed in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+The last equality follows from $f = g^2$: $(g - g^2)/(1 - g^2) = g(1 - g)/((1 - g)(1 + g))$. The scaling keeps the
+absorption optical depth, $(1 - \omega')\Delta\tau_n' = (1 - \omega)\Delta\tau_n$, and removes the forward peak
+$f\omega\Delta\tau_n$ from the scattering optical depth. From here on every quantity is the scaled one and the primes
+are dropped.
+
+**Equations.** With the direct beam $F_{\mathrm{dir}}(\tau) = \mu_0 F_0 e^{-\tau/\mu_0}$ as the source, the diffuse
+fluxes in layer $n$ obey [@reading02, eqs. 11-14]
+
+$$
+\begin{aligned}
+\frac{\mathrm{d}F^+}{\mathrm{d}\tau} &= \gamma_1 F^+ - \gamma_2 F^- - \gamma_3\,\omega F_0\,e^{-\tau/\mu_0}, \\
+\frac{\mathrm{d}F^-}{\mathrm{d}\tau} &= \gamma_2 F^+ - \gamma_1 F^- + \gamma_4\,\omega F_0\,e^{-\tau/\mu_0},
+\end{aligned}
+$$ {#eq-ch04-shortwave-ode}
+
+with the quadrature coefficients of Toon et al. [-@reading02, Table 1]
+
+$$
+\begin{aligned}
+\gamma_1 &= \frac{\sqrt{3}}{2}\,\bigl(2 - \omega(1 + g)\bigr), \\
+\gamma_2 &= \frac{\sqrt{3}}{2}\,\omega(1 - g), \\
+\gamma_3 &= \frac{1 - \sqrt{3}\,g\,\mu_0}{2}, \\
+\gamma_4 &= 1 - \gamma_3.
+\end{aligned}
+$$ {#eq-ch04-shortwave-gammas}
+
+@eq-ch04-shortwave-gammas is computed as `g1`, `g2`, `g3`, `g4` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+
+**Homogeneous solution.** Without the beam term, try $(F^+, F^-) = (u, v)\,e^{s\tau}$ in @eq-ch04-shortwave-ode:
+
+$$
+\begin{aligned}
+(\gamma_1 - s)\,u - \gamma_2\,v &= 0, \\
+\gamma_2\,u - (\gamma_1 + s)\,v &= 0.
+\end{aligned}
+$$
+
+A nonzero $(u, v)$ needs a zero determinant, $-(\gamma_1 - s)(\gamma_1 + s) + \gamma_2^2 = 0$, so $s = \pm\lambda$
+with
+
+$$
+\begin{aligned}
+\lambda &= \sqrt{\gamma_1^2 - \gamma_2^2}, \\
+\Gamma &= \frac{\gamma_1 - \lambda}{\gamma_2}.
+\end{aligned}
+$$ {#eq-ch04-shortwave-eigen}
+
+For $s = -\lambda$ the first row gives $u/v = \gamma_2/(\gamma_1 + \lambda)$, and multiplying numerator and
+denominator by $\gamma_1 - \lambda$ gives $u/v = (\gamma_1 - \lambda)/\gamma_2 = \Gamma$; for $s = +\lambda$ the
+second row gives $v/u = \Gamma$ in the same way. @eq-ch04-shortwave-eigen is computed as `lam` and `gam` in
+`toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}); the
+check `[C1]` of `shortwave_check.py` verifies both relations symbolically.
+
+**Particular solution.** Try $(F^+, F^-) = (C^+, C^-)$ with $C^\pm = c^\pm e^{-\tau/\mu_0}$. Substituting into
+@eq-ch04-shortwave-ode and dividing by $e^{-\tau/\mu_0}$:
+
+$$
+\begin{aligned}
+-\frac{c^+}{\mu_0} &= \gamma_1 c^+ - \gamma_2 c^- - \gamma_3\,\omega F_0, \\
+-\frac{c^-}{\mu_0} &= \gamma_2 c^+ - \gamma_1 c^- + \gamma_4\,\omega F_0.
+\end{aligned}
+$$
+
+The first row gives $c^- = \bigl((\gamma_1 + 1/\mu_0)\,c^+ - \gamma_3\omega F_0\bigr)/\gamma_2$. Putting this into
+the second row and collecting $c^+$:
+
+$$
+\begin{aligned}
+\gamma_2 c^- &= (\gamma_1 + 1/\mu_0)\,c^+ - \gamma_3\,\omega F_0, \\
+(\gamma_1 - 1/\mu_0)\,\gamma_2 c^- &= \gamma_2^2 c^+ + \gamma_4\gamma_2\,\omega F_0, \\
+(\gamma_1^2 - 1/\mu_0^2)\,c^+ - \gamma_3(\gamma_1 - 1/\mu_0)\,\omega F_0 &= \gamma_2^2 c^+ + \gamma_4\gamma_2\,\omega F_0,
+\end{aligned}
+$$
+
+where the second line is the second row multiplied by $\gamma_1 - 1/\mu_0$ and rearranged, and the third line
+substitutes the first. With $\lambda^2 = \gamma_1^2 - \gamma_2^2$, and by the same steps for $c^-$:
+
+$$
+\begin{aligned}
+C^+(\tau) &= \omega F_0\,\frac{(\gamma_1 - 1/\mu_0)\,\gamma_3 + \gamma_2\gamma_4}{\lambda^2 - 1/\mu_0^2}\,e^{-\tau/\mu_0}, \\
+C^-(\tau) &= \omega F_0\,\frac{(\gamma_1 + 1/\mu_0)\,\gamma_4 + \gamma_2\gamma_3}{\lambda^2 - 1/\mu_0^2}\,e^{-\tau/\mu_0}.
+\end{aligned}
+$$ {#eq-ch04-shortwave-particular}
+
+@eq-ch04-shortwave-particular is Toon et al. [-@reading02, eqs. 23-24] with $\pi F_s = F_0$; it is computed as
+`Ap`, `Am`, `Cpm1`, `Cmm1`, `Cp`, `Cm` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+Check `[C2]` of `shortwave_check.py` substitutes both lines back into @eq-ch04-shortwave-ode and gets zero. The
+denominator vanishes at $\lambda\mu_0 = 1$; the code's treatment is in the Numerical method layer of @sec-ch04-shortwave.
+
+**Layer solution.** In layer $n$, with the local depth $\xi$ and $\tau = \tau_{n-1} + \xi$ ($\tau_{n-1}$ the depth of
+the layer top), the general solution is the homogeneous part plus @eq-ch04-shortwave-particular:
+
+$$
+\begin{aligned}
+F_n^+(\xi) &= k_{1n}\,e^{\lambda_n \xi} + \Gamma_n k_{2n}\,e^{-\lambda_n \xi} + C_n^+(\tau_{n-1} + \xi), \\
+F_n^-(\xi) &= \Gamma_n k_{1n}\,e^{\lambda_n \xi} + k_{2n}\,e^{-\lambda_n \xi} + C_n^-(\tau_{n-1} + \xi).
+\end{aligned}
+$$ {#eq-ch04-shortwave-layer}
+
+@eq-ch04-shortwave-layer is Toon et al. [-@reading02, eqs. 19-20] written from the layer top; it is evaluated
+at $\xi = 0$ and $\xi = \Delta\tau_n$ as `FLX_UP` and `FLX_DN` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+The code's unknowns are $Y_{2n-1} = (k_{1n} + k_{2n})/2$ and $Y_{2n} = (k_{1n} - k_{2n})/2$, so that
+$k_{1n} = Y_{2n-1} + Y_{2n}$ and $k_{2n} = Y_{2n-1} - Y_{2n}$ (`xk1`, `xk2`). Unlike Toon et al. [-@reading02,
+eqs. 29-32], the code does not rescale them by $e^{\lambda_n\Delta\tau_n}$; the consequence is in
+the Limits layer of @sec-ch04-shortwave.
+
+**Boundary and interface conditions.** No diffuse light enters at the top, the fluxes are continuous at every
+interior interface, and the surface reflects the diffuse and direct downward flux with albedo $A_s$
+[@reading02, eqs. 33-37]:
+
+$$
+\begin{aligned}
+F_1^-(0) &= 0, \\
+F_n^\pm(\Delta\tau_n) &= F_{n+1}^\pm(0), \quad n = 1,\dots,L-1, \\
+F_L^+(\Delta\tau_L) &= A_s\,\bigl(F_L^-(\Delta\tau_L) + F_{\mathrm{dir}}(\tau_L)\bigr).
+\end{aligned}
+$$ {#eq-ch04-shortwave-bc}
+
+@eq-ch04-shortwave-bc is assembled as the rows `Af`, `Bf`, `Cf`, `Df` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+
+**What is exact and what is truncated.** For layers of constant $\omega$, $g$, the interface fluxes solve the
+two-stream system exactly; the delta-Eddington scaling and the quadrature closure are the approximation, and their
+error against the full equation belongs to @sec-ch05. The executable check is `shortwave_check.py` (symbolic,
+`[C1]`-`[C6]`) and `toon_pyharp_check.py` (pyharp against a 40-digit solution of @eq-ch04-shortwave-ode,
+`[C1]`-`[C4]`).
+
+### Numerical method
+
+Writing @eq-ch04-shortwave-bc with @eq-ch04-shortwave-layer gives $2L$ linear equations in the $2L$ unknowns
+$Y_l$. The top condition is the first row, the surface condition the last, and each interior interface gives two
+rows: the code forms the sum and the difference of the two continuity conditions so that each row couples only the
+neighbouring unknowns. The result is tridiagonal (@fig-ch04-shortwave-system), with coefficients built from
+
+$$
+E_{1n} = e^{\lambda_n\Delta\tau_n} + \Gamma_n e^{-\lambda_n\Delta\tau_n},\quad
+E_{2n} = e^{\lambda_n\Delta\tau_n} - \Gamma_n e^{-\lambda_n\Delta\tau_n},
+$$
+
+$$
+E_{3n} = \Gamma_n e^{\lambda_n\Delta\tau_n} + e^{-\lambda_n\Delta\tau_n},\quad
+E_{4n} = \Gamma_n e^{\lambda_n\Delta\tau_n} - e^{-\lambda_n\Delta\tau_n},
+$$
+
+where each exponent is capped, $\lambda_n\Delta\tau_n \leftarrow \min(\lambda_n\Delta\tau_n, x_{\mathrm{cap}})$
+with $x_{\mathrm{cap}} = 35$. The system is solved by the Thomas algorithm in `dtridgl` ({{< code src/rtsolver/dtridgl_impl.h dtridgl repo=pyharp >}}):
+one forward elimination, one back substitution, no pivoting; a pivot that is exactly zero is replaced by
+$10^{-12}$.
+
+```{python}
+#| label: fig-ch04-shortwave-system
+#| fig-cap: "The shortwave system for L = 4 layers. (a) The column: layers n = 1..L from the top with their two unknown amplitudes, pyharp's array index (0 at the bottom), the direct beam (orange arrow) and the reflecting surface (thick line). (b) The 2L x 2L tridiagonal matrix (green: nonzero entries): the top condition, the interface rows, and the surface condition."
+#| fig-alt: "Left, a stack of four layers labelled n = 1 to 4 from the top, array index 3 to 0, each with amplitudes k1 and k2, a slanted orange arrow for the beam and a thick bottom line for the surface. Right, an 8 by 8 grid whose three central diagonals are filled."
+#| echo: false
+from pyharp_report.ch04.figures.fig_shortwave_system import make_fig
+make_fig()
+```
+
+**Where quantities live.** $\Delta\tau_n$, $\omega$, $g$ are layer values; fluxes are level values. pyharp stores
+layers and levels bottom to top (array index 0 at the surface), and the kernel reverses the order on read
+(`DTAU_IN`, `FLX_UP` in `toon_mckay89_shortwave`, {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+The direct beam uses the scaled optical depth, $F_{\mathrm{dir}}(\tau) = \mu_0 F_0 e^{-\tau'/\mu_0}$, and is added
+to the downward channel, which therefore holds $F^- + F_{\mathrm{dir}}$.
+
+**Resonance.** The denominator of @eq-ch04-shortwave-particular vanishes at $\lambda_n\mu_0 = 1$. The fluxes are
+smooth in $\mu_0$ there, but $c^\pm$ grow like $1/(\lambda_n\mu_0 - 1)$ and cancel in the solve. When
+$|\lambda_n\mu_0 - 1| < \sqrt{\epsilon_{\mathrm{mach}}}$ the code moves that layer's $\mu_0$ to
+$(1 \pm \sqrt{\epsilon_{\mathrm{mach}}})/\lambda_n$, a relative change of $\sqrt{\epsilon_{\mathrm{mach}}}$
+($1.5\times10^{-8}$ in double precision, check `[C6]` of `shortwave_check.py`). Toon et al. [-@reading02,
+p. 16290] recommend the same remedy.
+
+**Midpoints.** The midpoint channels hold the layer solution @eq-ch04-shortwave-layer at $\xi = \Delta\tau_n/2$ for
+the diffuse part, and the geometric mean $\sqrt{F_{\mathrm{dir}}(\tau_{n-1})F_{\mathrm{dir}}(\tau_n)}$ for the
+beam, which is exact for an exponential.
+
+**Pure absorption.** When every layer has $\omega \le 10^{-12}$ and $A_s \le 10^{-12}$, the code skips the solve
+and returns the unscaled Beer-Lambert beam $\mu_0 F_0 e^{-\tau/\mu_0}$ in the downward channel and zero upward.
+
+```{python}
+#| label: fig-ch04-shortwave-thick-layer
+#| fig-cap: "Error of pyharp's shortwave fluxes for a single layer (omega = 0.3, g = 0, mu0 = 0.6, A_s = 0) against a 40-to-150-digit reference, as a function of lambda times the layer thickness. Circles: measured maximum flux error over both levels and channels, normalised by F0 mu0; dashed line: 0.4 exp(lambda dtau) times machine epsilon; dotted line: the cap at 35. Read: the error grows like the unscaled exponential until the cap, then stays at 0.15."
+#| fig-alt: "A semi-log plot. The measured error rises along a straight line from 1e-14 at lambda dtau = 5 to about 0.1 at 35, following a dashed reference line, and is flat at 0.15 for lambda dtau from 35 to 60."
+#| echo: false
+from pyharp_report.ch04.figures.fig_shortwave_thick_layer import make_fig
+make_fig()
+```
+
+The cost is one pass over the layers to form the coefficients, one tridiagonal solve of $2L$ rows and one pass to
+evaluate the fluxes: $O(L)$ per column and wavenumber. Columns and wavenumbers are independent; the CPU dispatch
+runs them in parallel through `call_toon89_sw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}}).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| option struct and flags | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}} | `ToonMcKay89OptionsImpl` | `flags` |
+| input checks, boundary data | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `ToonMcKay89Impl::forward` | always |
+| CPU dispatch | {{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}} | `call_toon89_sw_cpu` | no `planck` |
+| kernel | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `toon_mckay89_shortwave` | always |
+| tridiagonal solve | {{< code src/rtsolver/dtridgl_impl.h dtridgl repo=pyharp >}} | `dtridgl` | always |
+
+: Code map of the shortwave solver. {#tbl-ch04-shortwave-code}
+
+1. `ToonMcKay89Impl::forward` ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) requires
+   `prop` of rank 4 (wavenumber, column, layer, property) and pads a property axis shorter than 3 with zeros
+   ($\omega = g = 0$). It reads `umu0` (shape: columns; default 1), `fbeam` (wavenumber x column; default 0) and
+   `albedo` (wavenumber x column; default 0), each optionally prefixed by the band name, and refuses other shapes
+   with a `TORCH_CHECK` error.
+2. `umu0` is broadcast to every level of a column; the kernel's per-level slant path is therefore never taken
+   (@sec-ch04-zenith).
+3. `call_toon89_sw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}}) runs
+   `toon_mckay89_shortwave` per column and wavenumber in float or double; it ignores `top_emission_flag`,
+   `btop_factor`, `hard_surface` and `delta_eddington_lw`.
+4. `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}})
+   applies @eq-ch04-shortwave-delta, forms @eq-ch04-shortwave-gammas, @eq-ch04-shortwave-eigen and
+   @eq-ch04-shortwave-particular, assembles @eq-ch04-shortwave-bc, calls `dtridgl`, and writes the four output
+   channels.
+
+A band selects this solver in YAML with `solver: toon` and no `planck` in its `flags`; the band also gives its
+`name`, its `range` and `nwave` in the list `bands`. These keys are parsed in `RadiationBandOptionsImpl::from_yaml`
+({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
+
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_toon.release` `DeviceTest.shortwave_surface_albedo_reflection` | $F^+ = A_s(F^- + F_{\mathrm{dir}})$ at the surface | $10^{-11}$ (double) | round-off of the bottom row |
+| `test_toon.release` `DeviceTest.shortwave_midpoint_matches_split_layers` | midpoint = level of the column split in two | $10^{-6}$ (double) | test's choice; scaled $10^{-9}$ |
+| `test_toon.release` `DeviceTest.shortwave_resonance_is_continuous` | fluxes at $\lambda\mu_0 = 1$ match neighbours | $10^{-6}$ relative | test's choice |
+| `toon_pyharp_check.py` `[C1]`-`[C3]` | pyharp vs 40-digit ODE, 648 cases | $10^{-9}$, $10^{-12}$ | $e^{\lambda\Delta\tau}\epsilon_{\mathrm{mach}}$ |
+| `toon_pyharp_check.py` `[C4]`, `[C6]` | resonance guard; Toon Table 4 | $5\times10^{-8}$, $1.5\times10^{-3}$ | $\sqrt{\epsilon_{\mathrm{mach}}}$; 3 printed decimals |
+
+: Tests of the shortwave solver. {#tbl-ch04-shortwave-tests}
+
+The tests of `tests/test_toon.cpp` (ctest `test_toon.release`) run on CPU and, in a CUDA build, on the GPU; the
+runs quoted here are CPU only. With $e_F = \max|F^{\mathrm{pyharp}} - F^{\mathrm{ref}}|/(F_0\mu_0)$ over every
+level and both channels, the check gives $e_F = 4.0\times10^{-10}$ for single layers (worst case $\Delta\tau = 10$,
+$\omega = 0.3$, $\mu_0 = 0.6$) and $e_F$ below $10^{-12}$ for 7 and 50 sublayers, 216 cases each[^ch04-sw-grid]. At
+the resonance $e_F = 1.9\times10^{-8}$, the size of the guard's shift[^ch04-sw-grid]. The five cases of Toon et al.
+[-@reading02, Table 4] reproduce the printed two-stream fluxes within $3.5\times10^{-4}$, inside the rounding of
+three printed decimals[^ch04-sw-grid]. The symbolic identities `[C1]`-`[C6]` of `shortwave_check.py` all
+pass[^ch04-sw-sym].
+
+The pyharp suite has no test of the shortwave solver against an independent solution: `tests/test_toon.py`
+compares with four-stream DISORT at 20 % and is not run by ctest (@sec-ch10).
+
+[^ch04-sw-grid]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, checks [C1]-[C4] and [C6]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
+[^ch04-sw-sym]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/shortwave_check.py`; run: `python3 src/pyharp_report/ch04/checks/shortwave_check.py`, CPU, double; Python 3.11.13, sympy 1.14.0, numpy 2.4.6; output `src/pyharp_report/ch04/checks/shortwave_check.out`]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+A single layer with $\lambda_n\Delta\tau_n \gtrsim 20$ at the bottom of the column loses accuracy at the surface;
+$\omega = 1$ passed directly to `ToonMcKay89` gives wrong fluxes.
+:::
+
+- **Unscaled exponentials (CANDIDATE, thick bottom layer).** Because the amplitudes are not rescaled by
+  $e^{\lambda_n\Delta\tau_n}$, the solve carries $e^{\lambda_n\Delta\tau_n}\epsilon_{\mathrm{mach}}$ round-off
+  (@fig-ch04-shortwave-thick-layer): $e_F$ is $4.5\times10^{-8}$ at $\lambda\Delta\tau = 20$,
+  $9.9\times10^{-4}$ at 30, and $0.15$ from the cap at 35 upward[^ch04-sw-thick]. In a column the error appears only
+  at the surface level below a thick bottom layer: with layers $(0.5, 0.5, 30)$ from the top, $\omega = 0.3$,
+  $\mu_0 = 0.6$, the surface fluxes are $F^+ = -2.2\times10^{-2}$ and $F^- + F_{\mathrm{dir}} = -2.0\times10^{-3}$
+  (per unit $F_0$) instead of values below $10^{-19}$ with the bottom layer split into 400 sublayers; the top
+  fluxes agree to $10^{-16}$, and a thick layer with thinner layers below it shows no error[^ch04-sw-thick].
+  Splitting thick bottom layers avoids it.
+- **$\omega = 1$ (CANDIDATE, conservative scattering).** At $\omega' = 1$, $\gamma_1 = \gamma_2$, so $\lambda = 0$,
+  $\Gamma = 1$ and the interface coefficient $1 - \Gamma^2$ vanishes (check `[C4]` of `shortwave_check.py`); the
+  system is singular and `dtridgl` replaces the zero pivot by $10^{-12}$. With $\omega = 1$ exactly,
+  Toon Table 4 case 1 returns $F^+(0) = \pi$ (all incident light reflected) instead of $0.174$, and
+  $e_F = 1.1$; with $\omega = 1 - 10^{-12}$, $e_F = 1.6\times10^{-11}$[^ch04-sw-thick]. The band solver caps
+  $\omega$ at $1 - \delta\omega$ before calling the kernel (@sec-ch07), so the defect is reachable only by calling
+  `ToonMcKay89` directly.
+- **Untested combinations.** Variable $\mu_0$ per level is unreachable (@sec-ch04-zenith). Float32 runs are covered
+  only by the tests of @tbl-ch04-shortwave-tests at their single-precision tolerances; the checks of this section
+  are double only. GPU results: answered at @sec-ch09.
+
+[^ch04-sw-thick]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K5] and [K6], and the sweep of `--data`; run: `python3 derivation-checks/ch04/toon_pyharp_check.py --data src/pyharp_report/ch04/data/shortwave_thick_layer.csv`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1; outputs `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out` and `src/pyharp_report/ch04/data/shortwave_thick_layer.csv`]
