@@ -110,7 +110,8 @@ module holds no tensors:
 ```python
 toon = pyharp.ToonMcKay89(op)                       # no buffers to move
 prop = prop.to("cuda")                              # (nwave, ncol, nlyr, 3)
-flux = toon(prop, fbeam=fbeam.to("cuda"), umu0=umu0.to("cuda"), albedo=albedo.to("cuda"))
+flux = toon(prop, fbeam=fbeam.to("cuda"), umu0=umu0.to("cuda"),
+            albedo=albedo.to("cuda"))
 ```
 
 ### Code
