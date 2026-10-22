@@ -1,0 +1,30 @@
+sections:
+  sec-navigation:
+    - report navigation
+  sec-reading:
+    - bibliography
+  sec-appa-1:
+    - symbols, coordinates and grids
+  sec-appa-2:
+    - symbols, state, thermodynamics and species
+  sec-appa-2a:
+    - symbols, species thermodynamics, phase change and reactions
+  sec-appa-3:
+    - symbols, fluxes and transport
+  sec-appa-4:
+    - symbols, operators and averages
+  sec-appa-5:
+    - symbols, gravity and potential energy
+  sec-appa-6:
+    - symbols, reference states
+  sec-appa-7:
+    - symbols, time integration and the implicit solver
+  sec-appa-8:
+    - symbols, diffusion
+  sec-appa-8a:
+    - symbols, radiation and photochemistry
+  sec-appa-9:
+    - symbols, diagnostics and errors
+  sec-appa-10:
+    - symbols, reserved letters (do not reuse)
+unlabeled:

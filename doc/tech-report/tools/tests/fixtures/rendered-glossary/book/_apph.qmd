@@ -1,0 +1,3 @@
+- **CPU**: central processing unit. Defined in [Driver loop](#sec-ch01-driver).
+- $x_1, x_2, x_3$: coordinates. Defined in [1. Coordinates and grids](#sec-appa-1).
+- `type`: selector. Defined in [Conservation laws](#sec-ch02-laws).

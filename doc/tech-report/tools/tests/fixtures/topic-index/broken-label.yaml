@@ -1,0 +1,10 @@
+# A topic index with an entry whose label no section carries (a typo: sec-ch01-cfI).
+sections:
+  sec-preface-install:
+    - install
+  sec-ch01-implicit:
+    - implicit scheme
+  sec-ch01-cfl:
+    - time step
+  sec-ch01-cfI:
+    - Courant number

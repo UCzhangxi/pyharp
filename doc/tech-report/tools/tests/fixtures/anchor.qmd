@@ -1,0 +1,11 @@
+The rate is `bbflux_wavelength` ([`bbflux.cpp:164-165`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L164-L165)).
+The rate is `bbflux_wavelength` ([`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21)), but those lines are the vapor-cloud helper.
+The helper is defined in [`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21).
+A qualified name with its call: `harp::bbflux_wavenumber()` ([`bbflux.cpp:10`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10)).
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| the helper | [`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21) | `bbflux_wavenumber` | none |
+| the rate | [`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21) | `bbflux_wavelength` | none |
+
+Two links in one sentence: `bbflux_wavenumber` is at [`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21) and the rate at [`bbflux.cpp:164-165`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L164-L165).

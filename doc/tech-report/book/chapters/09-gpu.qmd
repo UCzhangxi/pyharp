@@ -1,0 +1,3 @@
+# GPU and batching {#sec-ch09}
+
+pending

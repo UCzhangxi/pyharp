@@ -1,0 +1,13 @@
+# written before every render by tools/code_anchors.py (pre-render) from code_pin.yml
+/_code_anchors.json
+
+/.quarto/
+**/*.quarto_ipynb
+# written before every render by tools/gen_derivation_index.py and tools/gen_notation_index.py (pre-render):
+# the render-time values of appendices A and B (tools/generated_values.py)
+/_generated/
+/_book/
+# LaTeX files the render gate keeps (quarto render -M latex-clean:false)
+/*.aux
+/*.log
+/*.toc

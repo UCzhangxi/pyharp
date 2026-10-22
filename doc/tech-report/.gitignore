@@ -1,0 +1,7 @@
+# The repository's root .gitignore drops *.json, *.png, *.svg and *.csv as example output.
+# The report keeps its registries, baselines, test fixtures and figures under those suffixes,
+# so they are tracked here; generated files are ignored again in book/.gitignore.
+!*.json
+!*.png
+!*.svg
+!*.csv

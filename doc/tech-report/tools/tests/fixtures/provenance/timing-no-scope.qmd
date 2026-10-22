@@ -1,0 +1,6 @@
+# A {#sec-ch01}
+
+The step takes 0.42 s per cycle.[^t]
+
+[^t]: [sha: {pin}; deck: `examples/a.yaml`; run: `python3 run.py a.yaml`, CPU, double, 1 process;
+    torch 2.10.0]. Wall-clock time of the whole run.

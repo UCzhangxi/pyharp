@@ -1,0 +1,15 @@
+# A task map whose destination is not a label of the book (a typo: sec-ch01-cfI).
+bank_ids: Q-001..Q-003
+tasks:
+- id: Q-001
+  question: How do I install it?
+  status: answered
+  dest: sec-preface-install
+- id: Q-002
+  question: How large may the time step be?
+  status: answered
+  dest: sec-ch01-cfI
+- id: Q-003
+  question: How do I plot the output?
+  status: outside scope
+  not_provided: a plotting tutorial is outside scope

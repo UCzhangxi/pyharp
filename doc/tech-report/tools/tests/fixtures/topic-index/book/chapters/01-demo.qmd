@@ -1,0 +1,11 @@
+# Demo chapter {#sec-ch01}
+
+## 1A. A part divider {.unnumbered .unlisted}
+
+## The implicit solve (`implicit-scheme`) {#sec-ch01-implicit}
+
+```yaml
+## not a heading: inside a code fence
+```
+
+## The time step (`integration/cfl`) {#sec-ch01-cfl}

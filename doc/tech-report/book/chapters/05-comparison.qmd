@@ -1,0 +1,3 @@
+# Solver comparison and accuracy {#sec-ch05}
+
+pending

@@ -1,0 +1,5 @@
+repo: chengcli/pyharp
+sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f
+# Additional repository for repo=pydisort shortcodes.
+pydisort_repo: zoeyzyhu/pydisort
+pydisort_sha: 8af15242a265a60ea6fb51c29d48e6688a63ab67

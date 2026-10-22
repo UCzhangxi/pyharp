@@ -1,0 +1,72 @@
+# The ratchet gate of the pyharp Technical Report (doc/tech-report/tools/ratchet_gate.py; README, "Ratchet gate"):
+# per chapter, the counts of change history in body text, off-pin shas, reviewed/approved files without a valid
+# review record, and cross-references that do not resolve or sections no other chapter cites, against the committed
+# baseline tools/ratchet-baseline.json. A rise fails; a fall must lower the baseline in the same pull request; the
+# baseline itself may rise only together with a move of the code pin.
+name: tech-report-ratchet
+
+on:
+  pull_request:
+    branches: [tech-report]
+    paths:
+      - "doc/tech-report/**"
+      - ".github/workflows/tech-report-ratchet.yml"
+  push:
+    branches: [tech-report]
+    paths:
+      - "doc/tech-report/**"
+      - ".github/workflows/tech-report-ratchet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tech-report-ratchet-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ratchet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: doc/tech-report
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Tests of the gate
+        run: python3 -m pytest -q tools/tests/test_ratchet_gate.py tools/tests/test_glance_boxes.py
+
+      - name: At-a-glance boxes, one field per paragraph
+        run: python3 tools/check_glance_boxes.py
+
+      - name: Counts per chapter
+        run: python3 tools/ratchet_gate.py counts | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The baseline may rise only with a pin move: compare it with the target branch's (a pull request) or with
+      # the previous tip (a push). The target is fetched shallowly; the gate reads two files from it.
+      - name: Ratchet gate
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            git fetch --quiet --depth=1 origin "$BASE_REF"
+            python3 tools/ratchet_gate.py check --base-ref "origin/$BASE_REF"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --quiet --depth=1 origin "$BEFORE"
+            python3 tools/ratchet_gate.py check --base-ref "$BEFORE"
+          else
+            python3 tools/ratchet_gate.py check
+          fi

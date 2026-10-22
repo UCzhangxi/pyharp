@@ -1,0 +1,3 @@
+## One scheme {#sec-ch06-one}
+
+A scheme of this chapter that is not written: @sec-ch06-two. A chapter that does not exist: @sec-ch99.

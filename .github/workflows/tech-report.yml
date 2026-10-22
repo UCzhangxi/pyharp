@@ -1,0 +1,175 @@
+# Renders the pyharp Technical Report (doc/tech-report/book) to HTML and PDF and runs its gates (the tool tests,
+# the code-link check, the code citations and the render gate), for every pull request into the tech-report branch
+# and every push to it. The HTML, the PDF and the LaTeX log are kept as artifacts.
+name: tech-report
+
+on:
+  pull_request:
+    branches: [tech-report]
+    paths:
+      - "doc/tech-report/**"
+      - ".github/workflows/tech-report.yml"
+  push:
+    branches: [tech-report]
+    paths:
+      - "doc/tech-report/**"
+      - ".github/workflows/tech-report.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tech-report-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  QUARTO_VERSION: "1.10.19"
+  # Universal Ctags finds the line ranges of the code citations (tools/code_anchors.py, which names the same version)
+  CTAGS_VERSION: "6.2.1"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: doc/tech-report
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the code pin is an ancestor of the branch: the citation checks read it from this clone
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install pyharp-report, Jupyter and pytest
+        run: pip install -e src jupyter pytest pyyaml
+
+      # Every blob link and path:lines@sha citation names a commit, a file and lines that exist (STYLE 3.1, 10.6).
+      - name: Code links resolve at their shas
+        run: python3 tools/check_citations.py book OUTLINE.md
+
+      - name: Install pdftotext
+        run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+
+      - name: Cache Universal Ctags
+        uses: actions/cache@v4
+        with:
+          path: ~/uctags
+          key: uctags-${{ env.CTAGS_VERSION }}-${{ runner.os }}
+
+      - name: Build Universal Ctags
+        run: |
+          if [ ! -x "$HOME/uctags/bin/ctags" ]; then
+            sudo apt-get install -y -q autoconf automake pkg-config
+            git clone --quiet --depth 1 --branch "v$CTAGS_VERSION" https://github.com/universal-ctags/ctags "$RUNNER_TEMP/uctags"
+            cd "$RUNNER_TEMP/uctags"
+            ./autogen.sh && ./configure --quiet --prefix="$HOME/uctags" --disable-json --disable-xml --disable-yaml \
+              --disable-seccomp && make -s -j4 && make -s install
+          fi
+          echo "CTAGS=$HOME/uctags/bin/ctags" >> "$GITHUB_ENV"
+
+      - name: Tests of the report tools
+        run: python3 -m pytest -q tools/tests
+
+      # The gate of the code citations: every {{< code >}} resolves at the pin of code_pin.yml (README, "Citing code").
+      # The render runs the same check again as its pre-render, which writes the table the shortcode reads.
+      - name: Code citations resolve at the pin
+        run: python3 tools/code_anchors.py check
+
+      - name: Set up Quarto and TinyTeX
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: ${{ env.QUARTO_VERSION }}
+          tinytex: true
+
+      - name: Name the outputs
+        id: name
+        run: |
+          sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "short=${sha:0:7}" >> "$GITHUB_OUTPUT"
+
+      # render_gate.py runs the source gates, renders book/ to HTML and PDF (quarto render -M latex-clean:false,
+      # so the LaTeX log is kept), then gates the render. Its verdict is judged in the gate step below.
+      - name: Render the book
+        id: render
+        run: |
+          set +e
+          python3 tools/render_gate.py book/ --release 2>&1 | tee "$RUNNER_TEMP/gate.txt"
+          echo "rc=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+          pdf=$(ls book/_book/*.pdf 2>/dev/null | head -1)
+          if [ -z "$pdf" ]; then
+            echo "::error::the render produced no PDF in doc/tech-report/book/_book/"
+            exit 1
+          fi
+          if [ ! -f book/_book/index.html ]; then
+            echo "::error::the render produced no HTML in doc/tech-report/book/_book/"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/out" "$RUNNER_TEMP/html"
+          cp "$pdf" "$RUNNER_TEMP/out/pyharp-tech-report-${{ steps.name.outputs.short }}.pdf"
+          cp -R book/_book/. "$RUNNER_TEMP/html/"
+          rm -f "$RUNNER_TEMP"/html/*.pdf
+          ls -l "$RUNNER_TEMP/out" "$RUNNER_TEMP/html"
+
+      - name: Require a passing render gate
+        env:
+          GATE_RC: ${{ steps.render.outputs.rc }}
+        run: test "$GATE_RC" = 0
+
+      - name: Tests including rendered-output checks
+        run: python3 -m pytest -q tools/tests
+
+      - name: Upload the PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyharp-tech-report-${{ steps.name.outputs.short }}
+          path: ${{ runner.temp }}/out/*.pdf
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload the HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyharp-tech-report-html-${{ steps.name.outputs.short }}
+          path: ${{ runner.temp }}/html/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Collect the logs
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          cp book/*.log "$RUNNER_TEMP/gate.txt" "$RUNNER_TEMP/logs/" 2>/dev/null || true
+
+      - name: Upload the LaTeX log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-report-logs-${{ steps.name.outputs.short }}
+          path: ${{ runner.temp }}/logs/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # The tail of the failing log as annotations, which the public API serves without a token.
+      - name: Show the failing log
+        if: failure()
+        run: |
+          annotate() {  # $1 title, $2 file: its last 40 lines as one ::error:: annotation
+            [ -s "$2" ] || return 0
+            msg=$(tail -n 40 "$2" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/%/%25/g; s/\r/%0D/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=$1 (last 40 lines)::$msg"
+          }
+          annotate "render gate output" "$RUNNER_TEMP/gate.txt"
+          log=$(ls -t book/*.log 2>/dev/null | head -1)
+          [ -n "$log" ] && annotate "LaTeX log $log" "$log"
+          true

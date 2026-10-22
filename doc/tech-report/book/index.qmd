@@ -1,0 +1,34 @@
+# Preface {.unnumbered}
+
+This is the report skeleton. Chapter text and numerical derivations are pending.
+
+The code pins identify the implementation described by this report:
+
+- pyharp: {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}
+- pydisort: {{< code src/disort.cpp DisortImpl::forward repo=pydisort >}}
+
+## Report navigation {#sec-navigation}
+
+- @sec-ch01
+- @sec-ch02
+- @sec-ch03
+- @sec-ch04
+- @sec-ch05
+- @sec-ch06
+- @sec-ch07
+- @sec-ch08
+- @sec-ch09
+- @sec-ch10
+- @sec-appa
+- @sec-appb
+- @sec-appc
+- @sec-appf
+- @sec-appg
+- @sec-apph
+
+## Reading list {#sec-reading}
+
+[@reading01]; [@reading02]; [@reading03]; [@reading04]; [@reading05]; [@reading06]; [@reading07]; [@reading08]; [@reading09]; [@reading10]; [@reading11]; [@reading12]; [@reading13]; [@reading14]; [@reading15]; [@reading16]; [@reading17]; [@reading18]; [@reading19]; [@reading20]; [@reading21]; [@reading22]; [@reading23]; [@reading24]; [@reading25]; [@reading26]; [@reading27]; [@reading28]; [@reading29]; [@reading30]; [@reading31]; [@reading32]; [@reading33].
+
+::: {#refs}
+:::

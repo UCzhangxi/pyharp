@@ -1,0 +1,128 @@
+% The PDF theme of the report (STYLE.md 10.7, 10.10): one accent colour plus greys, a title page,
+% chapter openers, four callout kinds, shaded table headers and light code blocks. Style only: nothing
+% here changes numbering, labels or cross-references.
+
+\usepackage[skins,breakable]{tcolorbox}   % Quarto loads these too; the theme needs them earlier
+\usepackage{colortbl}
+
+% --- palette ---------------------------------------------------------------------------------------
+\definecolor{tr-accent}{HTML}{1F5F8B}     % headings, rules, links, table headers, definition boxes
+\definecolor{tr-ink}{HTML}{22272E}        % body text
+\definecolor{tr-grey}{HTML}{5F6B76}       % secondary text: running heads, page numbers, captions labels
+\definecolor{tr-rule}{HTML}{C9D1D9}       % hairlines
+\definecolor{tr-shade}{HTML}{EEF2F6}      % table header and code background
+\definecolor{tr-code}{HTML}{4A5560}       % code-anchor boxes
+\definecolor{tr-check}{HTML}{2E7D5B}      % check / test boxes
+\definecolor{tr-limit}{HTML}{B5532A}      % limits / open-issue boxes
+
+% --- headings, running heads, TOC --------------------------------------------------------------------
+\addtokomafont{disposition}{\color{tr-accent}}
+\addtokomafont{chapterentry}{\color{tr-accent}}
+\addtokomafont{pagehead}{\normalfont\small\color{tr-grey}}
+\addtokomafont{pagenumber}{\small\color{tr-grey}}
+\addtokomafont{captionlabel}{\color{tr-accent}\sffamily\bfseries}
+
+% Chapter opener: a large accent number above the title and a hairline under it.
+\RedeclareSectionCommand[beforeskip=0pt, afterskip=1.4\baselineskip]{chapter}
+\renewcommand*{\chapterformat}{%
+  \mbox{\fontsize{30}{30}\selectfont\color{tr-accent}\thechapter\autodot}}
+\renewcommand*{\chapterlinesformat}[3]{%
+  \ifstr{#2}{}{}{#2\par\nobreak\vspace{0.4\baselineskip}}%
+  #3\par\nobreak\vspace{0.5\baselineskip}%
+  {\color{tr-accent}\rule{\linewidth}{0.8pt}}}
+
+% Title page: accent rule, title, render date. No author line (the report names no person).
+\makeatletter
+\renewcommand*{\maketitle}{%
+  \begin{titlepage}
+    \thispagestyle{empty}
+    \vspace*{0.22\textheight}
+    {\color{tr-accent}\rule{\linewidth}{2pt}}\par\vspace{1.4\baselineskip}
+    {\sffamily\bfseries\fontsize{34}{40}\selectfont\color{tr-ink}\@title\par}
+    \vfill
+    {\sffamily\small\color{tr-grey}Rendered \today\par}
+  \end{titlepage}%
+  \cleardoublepage}
+\makeatother
+
+% --- headings stay with their text ------------------------------------------------------------------
+% A section or subsection heading never ends a page on its own. If the space left on the page is less than a
+% heading plus the first rows of what follows (a Code or Tests table: caption, header and a first row that may
+% wrap to several lines in its narrow link column), the heading moves to the next page. A subsection that
+% follows its section heading directly (\if@nobreak) adds no break of its own, so the two stay together.
+\usepackage{needspace}
+\makeatletter
+\AddToHook{cmd/section/before}{\needspace{14\baselineskip}}
+\AddToHook{cmd/subsection/before}{\if@nobreak\else\needspace{12\baselineskip}\fi}
+\makeatother
+
+% --- links -------------------------------------------------------------------------------------------
+% Links in the accent colour; PDF bookmarks numbered, down to subsections, opened at the chapter level (the
+% printed TOC lists chapters only, toc-depth: 1 in _quarto.yml).
+\AtBeginDocument{\hypersetup{colorlinks=true, linkcolor=tr-accent, urlcolor=tr-accent,
+  citecolor=tr-accent, filecolor=tr-accent, bookmarksnumbered=true, bookmarksdepth=3,
+  bookmarksopenlevel=1}}
+
+% --- callouts ----------------------------------------------------------------------------------------
+% Quarto draws callouts as tcolorbox "enhanced jigsaw" boxes with a white body and a thin frame. Four
+% kinds (STYLE 10.7), one colour each: note = definition / derivation (and "At a glance"),
+% tip = code anchor, important = check / test, warning = limits / open issue. Each box gets a light
+% tint of its colour, a coloured left bar and no other frame line. Code blocks are tcolorboxes too but
+% do not use "enhanced jigsaw", so they are not touched. Inside a callout, paragraphs (the fields of an
+% "At a glance" box) get the same half-line gap as body text (classoption parskip=half-), which tcolorbox
+% would otherwise reset to zero.
+\AtBeginDocument{%
+  \definecolor{quarto-callout-note-color}{named}{tr-accent}%
+  \definecolor{quarto-callout-note-color-frame}{named}{tr-accent}%
+  \definecolor{quarto-callout-tip-color}{named}{tr-code}%
+  \definecolor{quarto-callout-tip-color-frame}{named}{tr-code}%
+  \definecolor{quarto-callout-important-color}{named}{tr-check}%
+  \definecolor{quarto-callout-important-color-frame}{named}{tr-check}%
+  \definecolor{quarto-callout-warning-color}{named}{tr-limit}%
+  \definecolor{quarto-callout-warning-color-frame}{named}{tr-limit}%
+  \definecolor{quarto-callout-caution-color}{named}{tr-limit}%
+  \definecolor{quarto-callout-caution-color-frame}{named}{tr-limit}%
+  \definecolor{shadecolor}{named}{tr-shade}%
+  \definecolor{codebgcolor}{named}{tr-shade}}
+\tcbset{enhanced jigsaw/.style={skin=enhanced jigsaw,
+  interior code={\fill[tcbcolframe!6!white, fill opacity=1] (interior.south west) rectangle (interior.north east);},
+  frame code={\fill[tcbcolframe] (frame.south west) rectangle ([xshift=0.9mm]frame.north west);},
+  fonttitle=\sffamily\bfseries\small,
+  before upper={\setlength{\parskip}{0.5\baselineskip}}}}
+
+% --- tables ---
+% Long tables (every pipe table pandoc writes) in \footnotesize, so code links and identifiers fit their
+% cells; lines may stretch a little more before they overflow.
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize}
+\setlength{\emergencystretch}{3em}
+
+% --- tables (rules) ------------------------------------------------------------------------------------------
+% A shaded header row and light grey rules. booktabs' \toprule is followed by the header row in every
+% table pandoc writes (and in longtable's repeated head), so the shade goes there.
+\setlength{\aboverulesep}{0.3ex}
+\setlength{\belowrulesep}{0.4ex}
+\renewcommand{\arraystretch}{1.12}
+\AtBeginDocument{%
+  \arrayrulecolor{tr-rule}%
+  \let\trorigtoprule\toprule
+  \def\toprule{\trorigtoprule\rowcolor{tr-shade}}}   % a plain macro: \toprule must stay expandable
+
+% --- float placement ----------------------------------------------------------------------------------
+% Figures stay near their text (fig-pos: htbp in _quarto.yml). A float may take most of a text page, and a
+% page of floats alone is made only when the floats fill at least 80 % of it, so no figure sits by itself on
+% a mostly empty page.
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+% A figure left over at the end of a chapter goes on a float page of its own (the next chapter starts a new
+% page); it sits at the top of that page, like the end of a chapter, not centred on an empty page.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{\floatsep}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
