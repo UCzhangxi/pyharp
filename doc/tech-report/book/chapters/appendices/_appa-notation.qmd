@@ -2,7 +2,7 @@
      refresh: python3 tools/gen_notation_index.py. The counts and the "first used" column are filled in at
      render from book/_generated/appa.json (written by the same script from the chapters, not committed). -->
 
-The report's notation: {{< generated appa symbols >}} symbols in {{< generated appa sections >}} sections. "units/shape" is the unit given in the meaning, moved to its own column; "first used" is the first scheme, in book order, whose maths contains the symbol (an exact match after spaces and one-character braces are dropped; "—" where none does, which a different spelling also gives); "code" is the name the code uses, at chengcli/pyharp `f34506f9d14ee7b1f2e1222775baa5093ae6967f`.
+The report's notation (@sec-appa): {{< generated appa symbols >}} symbols in {{< generated appa sections >}} sections. "units/shape" is the unit given in the meaning, moved to its own column; "first used" is the first scheme, in book order, whose maths contains the symbol (an exact match after spaces and one-character braces are dropped; "—" where none does, which a different spelling also gives); "code" is the name the code uses, at chengcli/pyharp `f34506f9d14ee7b1f2e1222775baa5093ae6967f`.
 
 One symbol, one meaning, across all chapters. A symbol used only within one scheme is defined at its first use there.
 Where a published source uses a different letter, the chapter translates to this table; the "source letter" column

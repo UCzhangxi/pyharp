@@ -245,7 +245,11 @@ def outputs(notation: str, book: Path) -> tuple[str, dict[str, str]]:
         "     refresh: python3 tools/gen_notation_index.py. The counts and the \"first used\" column are filled in at",
         "     render from book/_generated/appa.json (written by the same script from the chapters, not committed). -->",
         "",
-        f"The report's notation: {sc('symbols')} symbols in {sc('sections')} sections. "
+        # `(@sec-appa)` is a literal cross-reference, and it must stay: Quarto 1.10 runs its cross-reference
+        # resolver on a file only when the file's source holds a reference (the `has_cites` filter flag is
+        # computed before shortcodes expand), and the first-use cells below are shortcodes. Without a literal
+        # reference they render as unresolved citations ("Citeproc: citation sec-... not found").
+        f"The report's notation (@sec-appa): {sc('symbols')} symbols in {sc('sections')} sections. "
         "\"units/shape\" is the unit given in the meaning, moved to its own column; \"first used\" is "
         "the first scheme, in book order, whose maths contains the symbol (an exact match after spaces and one-character "
         "braces are dropped; \"—\" where none does, which a different spelling also gives); \"code\" is the name the "
