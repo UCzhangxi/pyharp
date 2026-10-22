@@ -1,3 +1,37 @@
 # DISORT (pydisort) {#sec-ch03}
 
-pending
+A band whose YAML says `solver: disort` is solved by DISORT, the discrete-ordinate radiative-transfer solver of
+Stamnes et al. [@reading01]. pyharp does not contain the solver. It packs the band's optical properties into one
+array and calls pydisort, a PyTorch module that wraps the C version of DISORT (cdisort 2.1.3) and runs it once per
+spectral point and column. This chapter follows that call in four steps: how pyharp hands a band to pydisort and
+what it gets back (@sec-ch03-band); the discrete-ordinate solution cdisort computes (@sec-ch03-ordinates); the
+delta-M scaling of strongly forward-peaked phase functions, which cdisort switches on by itself
+(@sec-ch03-deltam); and the intensity corrections, which only change radiances and so never reach a pyharp
+output (@sec-ch03-intcorr). The pydisort release the report is pinned to is 1.7.1; every check was also run on
+1.8.13, the release the package requirement resolves to today, and the two agree wherever both were run.
+
+```{python}
+#| label: fig-ch03-depmap
+#| fig-cap: "The four schemes of this chapter and how they switch each other on or off. A solid arrow means the source scheme needs, or turns on, the target; the dashed vermillion arrow means the band's `onlyfl` flag turns the intensity correction off. The discrete-ordinate solution (green frame) is the scheme every DISORT band runs."
+#| fig-alt: "Four boxes. DISORT band requires the discrete-ordinate solution, which implies delta-M scaling when the moment of order 2N is nonzero. The intensity correction requires delta-M scaling; the band's onlyfl flag turns the intensity correction off."
+#| echo: false
+from pyharp_report.ch03.figures.fig_depmap import make_fig
+make_fig()
+```
+
+| scheme | YAML key or option | default | order | main test |
+|---|---|---|---|---|
+| @sec-ch03-band | `solver: disort`, `nstr`, `flags` | `nstr` 4, flags empty | n/a | E3 slab, beam, closure |
+| @sec-ch03-ordinates | always, in a DISORT band | on | streams $2N$ | E3 slab, disotest |
+| @sec-ch03-deltam | none; $\chi_{2N} \neq 0$ | on if $\chi_{2N} \neq 0$ | n/a | delta-M check |
+| @sec-ch03-intcorr | `intensity_correction` | off | n/a | correction check |
+
+: The schemes of this chapter. {#tbl-ch03-schemes}
+
+{{< include 03-disort/_band.qmd >}}
+
+{{< include 03-disort/_ordinates.qmd >}}
+
+{{< include 03-disort/_deltam.qmd >}}
+
+{{< include 03-disort/_intcorr.qmd >}}

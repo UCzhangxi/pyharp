@@ -1,0 +1,20 @@
+python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1
+pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
+[C1] PASS sympy: (1 - omega') tau' - (1 - omega) tau = 0 and chi*_0 = 1
+[C2] PASS delta-M run vs unscaled run on hand-scaled inputs: max |dF|/(mu0 F0) 8.1e-15 in flup and total downward flux (tol 1e-12; 12 cases)
+[C3] PASS rfldir at the bottom = unscaled beam, delta-M on and off: max rel dev 0.0e+00 (tol 1e-14)
+phase                   tau nstr      R on     R off      T on     T off
+henyey-greenstein         1    4  +7.8e-02  +3.6e-01  -9.1e-03  -5.0e-02
+henyey-greenstein         1    8  -6.1e-04  -2.3e-02  -1.5e-04  +2.6e-03
+henyey-greenstein         1   16  +2.4e-04  -2.8e-03  -2.5e-05  +2.9e-04
+henyey-greenstein         8    4  +7.7e-03  -7.9e-03  -4.5e-03  +2.2e-02
+henyey-greenstein         8    8  -1.2e-03  -5.6e-03  +8.4e-04  +4.3e-03
+henyey-greenstein         8   16  +6.4e-05  -7.1e-04  -4.0e-05  +4.2e-04
+cloud-garcia-siewert      1    4  +3.8e-02  +1.9e-01  -6.4e-03  -4.0e-02
+cloud-garcia-siewert      1    8  +2.5e-05  -1.6e-02  -9.3e-05  +3.0e-03
+cloud-garcia-siewert      1   16  +6.6e-05  -4.7e-03  -1.3e-05  +6.7e-04
+cloud-garcia-siewert      8    4  +1.9e-03  -1.1e-02  -8.2e-05  +2.6e-02
+cloud-garcia-siewert      8    8  -2.4e-04  -2.8e-03  +2.2e-04  +2.5e-03
+cloud-garcia-siewert      8   16  +8.3e-06  -1.5e-03  -7.4e-06  +1.2e-03
+[C4] PASS delta-M lowers the larger of the two flux errors in every case (R: reflected flux, T: bottom total downward flux, relative to 128 streams)
+[P1] CANDIDATE reproduced: pyharp band nstr 4, HG g 0.9, tau 1, omega 0.99, mu0 0.5: opacity nmom 3 gives fluxes bitwise equal to delta-M off: True; max |dF|/(mu0 F0) against nmom 4 = 5.66e-02; top F_up 0.07520 (nmom 3) vs 0.05983 (nmom 4)

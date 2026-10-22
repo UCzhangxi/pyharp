@@ -1,0 +1,199 @@
+## Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$) {#sec-ch03-deltam}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13 (its
+commit is printed in the check outputs): c_disort_set differs only in register/inline keywords sources: Wiscombe
+1977 (J. Atmos. Sci. 34, 1408-1422); pydisort cdisort213/cdisort.c, src/disort_impl.h; pyharp
+src/radiation/disort_config.cpp, src/opacity/scattering_functions.cpp checks: derivation-checks/ch03_delta_m.py
+status: draft author: Jiheng Hu reviewer: -->
+
+### Summary
+
+Cloud and aerosol particles scatter much of their light into a narrow forward peak. A phase function with such
+a peak needs hundreds of Legendre moments, while a $2N$-stream solution can use only $2N$ of them
+(@sec-ch03-ordinates). Delta-M treats the peak as if it were not scattered at all: it moves a fraction $f$ of the
+scattering into the forward direction, rescales the optical depth, the single-scattering albedo and the remaining
+moments to match, and solves the rescaled problem [@reading05]. The fluxes of a strongly forward-scattering layer
+become accurate at a few streams instead of dozens. cdisort applies it on its own; there is no option.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Truncate the phase function at $2N$ moments without losing flux accuracy, @eq-ch03-deltam-scale.
+
+**Data.** Per layer $\Delta\tau$, $\omega$, $\chi_l$ in; the scaled $\Delta\tau'$, $\omega'$, $\chi^{*}_l$ inside cdisort.
+
+**Placement.** `c_disort_set`, before the eigenproblems of every layer.
+
+**Activation.** No option: on when any layer has $\chi_{2N} \neq 0$, off when all have $\chi_{2N} = 0$.
+
+**Guarantee / limits.** Keeps the first $2N$ moments and the absorption optical depth exactly.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $f$ is the truncated fraction of the scattering; $\Delta\tau'$, $\omega'$ and $\chi^{*}_l$ are
+the scaled layer optical depth, single-scattering albedo and moments (primes mark scaled quantities);
+$\delta(\cdot)$ is the Dirac delta function; $\Theta$ the scattering angle; $g$ the asymmetry parameter of a
+Henyey-Greenstein phase function, whose moments are $\chi_l = g^l$. Symbols of @sec-ch03-ordinates keep their
+meaning.
+<!-- local symbols for the editor's notation table: f, Delta tau', omega', chi*_l, delta(), Theta, g -->
+
+Whether delta-M runs depends on the moments pyharp passes. pyharp fixes `nmom = nstr`
+({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}), and pydisort fills the moments a
+band does not supply with zeros. A band whose opacities supply at least $2N$ moments with $\chi_{2N} \neq 0$ runs
+delta-M with $f = \chi_{2N}$; for Henyey-Greenstein moments that is $f = g^{2N}$. A band that supplies fewer runs
+without it, silently (the Limits layer below).
+
+### Derivation
+
+Approximate the phase function by a forward delta peak of weight $f$ plus a smooth part of $2N$ terms
+[@reading05, p. 1412, eq. 13, with $2M = 2N$]:
+
+$$
+P^{*}(\cos\Theta) = 2f\,\delta(1-\cos\Theta) + (1-f)\sum_{l=0}^{2N-1}(2l+1)\,\chi^{*}_l\,P_l(\cos\Theta).
+$$
+
+Its moments follow from $\tfrac12\int_{-1}^{1} 2f\,\delta(1-x)P_l(x)\,\mathrm{d}x = f\,P_l(1) = f$ and from the
+orthogonality of the $P_l$: $\chi_l(P^{*}) = f + (1-f)\chi^{*}_l$ for $l \le 2N-1$ and $f$ for $l \ge 2N$. Require
+the first $2N$ to equal those of $P$ and solve for $\chi^{*}_l$ [@reading05, p. 1412, eq. 14]; fix $f$ by
+requiring the moment of order $2N$ to match too [@reading05, p. 1413, eq. 15]:
+
+$$
+\begin{aligned}
+\chi^{*}_l &= \frac{\chi_l - f}{1 - f}, \quad l = 0, \dots, 2N-1, \\
+f &= \chi_{2N}.
+\end{aligned}
+$$ {#eq-ch03-deltam-moments}
+
+@eq-ch03-deltam-moments is computed in `c_disort_set`
+({{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}), as `f = PMOM(nstr)` and the factors `GL` below.
+Since $\chi_0 = 1$, $\chi^{*}_0 = 1$: the smooth part stays normalised. Now put $P^{*}$ into the transfer
+equation. The delta term scatters the intensity back into its own direction, so the scattering integral of the
+peak is $\omega f\,I(\tau,\mu,\phi)$, and
+
+$$
+\mu\frac{\partial I}{\partial\tau} = (1-\omega f)\,I - \frac{\omega(1-f)}{4\pi}\int \hat P\,I\,\mathrm{d}\Omega' - Q,
+$$
+
+with $\hat P$ the smooth $2N$-term part. Divide by $(1 - \omega f)$ and use $\mathrm{d}\tau' =
+(1-\omega f)\,\mathrm{d}\tau$: the equation has the original form in $\tau'$, with single-scattering albedo
+$\omega' = \omega(1-f)/(1-\omega f)$ and the moments $\chi^{*}_l$ [@reading05, p. 1413, eqs. 20a-20b]:
+
+$$
+\begin{aligned}
+\Delta\tau' &= (1 - \omega f)\,\Delta\tau, \\
+\omega' &= \frac{(1-f)\,\omega}{1-\omega f}.
+\end{aligned}
+$$ {#eq-ch03-deltam-scale}
+
+The thermal source scales consistently: $(1-\omega)\bar B/(1-\omega f) = (1-\omega')\bar B$, because
+$1-\omega' = (1-\omega)/(1-\omega f)$. Multiplying the two lines of @eq-ch03-deltam-scale gives
+$(1-\omega')\Delta\tau' = (1-\omega)\Delta\tau$: the scaling leaves the absorption optical depth of every layer
+unchanged, and a conservative layer ($\omega = 1$) stays conservative ($\omega' = 1$). The direct beam obeys the
+same equation without the smooth part, so it decays as $e^{-\tau'/\mu_0}$ in the scaled problem: the photons in
+the peak travel on with the beam.
+
+@eq-ch03-deltam-moments and @eq-ch03-deltam-scale are computed in `c_disort_set`
+({{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}): `f = PMOM(nstr)`, `OPRIM` $= \omega'$,
+`DTAUCPR` $= \Delta\tau'$, and the factors `GL` $= (2l+1)\,\omega'\chi^{*}_l$ that build the
+kernel @eq-ch03-ordinates-kernel. The decision to scale at all is made in `c_disort`
+({{< code cdisort213/cdisort.c c_disort repo=pydisort >}}), which starts with delta-M on and turns it off when
+`PMOM(nstr)` is zero in every layer.
+
+The scaled problem is solved by @sec-ch03-ordinates in $\tau'$. Only the reported direct flux is changed back:
+`c_fluxes` ({{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}}) reports
+$F_{\mathrm{dir}} = \mu_0F_0e^{-\tau/\mu_0}$ with the unscaled $\tau$ and books the difference, the photons of
+the peak, in the diffuse $F_{\mathrm{dn}}$. Their sum, which is what pyharp returns (@eq-ch03-band-flux), is the
+total downward flux of the scaled problem.
+
+What is exact and what is truncated: @eq-ch03-deltam-scale is an exact change of variables for $P^{*}$; the
+approximation is $P \approx P^{*}$, whose moments of order $2N$ and above all equal $f$ instead of $\chi_l$
+[@reading05, p. 1413, eq. 17]. Check: `ch03_delta_m.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch03-deltam-moments ch03_delta_m.py [C2] -->
+<!-- equation-check: eq-ch03-deltam-scale ch03_delta_m.py [C1] -->
+
+### Numerical method
+
+The scaling is a per-layer substitution done once per call, before any layer is solved; there is no stencil or
+iteration. @fig-ch03-deltam-error shows its effect on a single layer with a strong forward peak: the flux error
+against a 128-stream solution, with delta-M on and with it switched off by zeroing the moments from $\chi_{2N}$ up.
+
+```{python}
+#| label: fig-ch03-deltam-error
+#| fig-cap: "Relative flux error of one layer ($\\tau = 1$, $\\omega = 0.99$, $\\mu_0 = 0.5$) against a 128-stream reference, with delta-M on (green circles, solid) and off (vermillion squares, dashed), at 4, 8 and 16 streams. (a) Henyey-Greenstein phase function with $g = 0.9$; (b) the Garcia-Siewert cloud phase function. The error is the larger of the reflected-flux and bottom total-downward-flux errors."
+#| fig-alt: "Two log plots against the number of streams. In both, the delta-M-on curve lies below the delta-M-off curve at every stream count: at 4 streams about 8e-2 against 4e-1 in (a) and 4e-2 against 2e-1 in (b); at 16 streams 2e-4 against 3e-3 in (a) and 7e-5 against 5e-3 in (b)."
+#| echo: false
+from pyharp_report.ch03.figures.fig_deltam_error import make_fig
+make_fig()
+```
+
+No order of accuracy applies to the scaling itself: it is exact for $P^{*}$, and the error it leaves comes from the
+moments of $P$ beyond $2N$, which decrease as $N$ grows; for Henyey-Greenstein moments $f = g^{2N}$ falls
+geometrically, to $0.9^{32} \approx 0.034$ at 32 streams for $g = 0.9$.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| on/off decision | {{< code cdisort213/cdisort.c c_disort repo=pydisort >}} | `c_disort` | $\chi_{2N} \neq 0$ |
+| scaling | {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}} | `c_disort_set` | same |
+| unscaled direct flux | {{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}} | `c_fluxes` | always |
+| zero-filled moments | {{< code src/disort_impl.h disort_impl repo=pydisort >}} | `disort_impl` | always |
+| moment count | {{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}} | `create_disort_config` | `nstr` |
+| HG moments | {{< code src/opacity/scattering_functions.cpp henyey_greenstein repo=pyharp >}} | `henyey_greenstein` | opacity `nmom` |
+
+: Code map of delta-M. {#tbl-ch03-deltam-code}
+
+1. `create_disort_config` sets `nmom = nstr`, so cdisort sees moments $\chi_0$ to $\chi_{2N}$.
+2. `disort_impl` copies the moments the band supplies and zero-fills the rest up to `nmom`.
+3. `c_disort` sets delta-M on unless `PMOM(nstr)` is 0 in every layer. The test is global: if one layer
+   has $\chi_{2N} \neq 0$, every layer is scaled with its own $f$, which is 0 where its $\chi_{2N}$ is.
+4. `c_disort_set` applies @eq-ch03-deltam-moments and @eq-ch03-deltam-scale.
+5. `c_fluxes` reports the unscaled direct flux.
+
+A Henyey-Greenstein opacity in pyharp fills its moments with `henyey_greenstein`
+({{< code src/opacity/scattering_functions.cpp henyey_greenstein repo=pyharp >}}), $\chi_l = g^l$ for
+$l = 1, \dots, \mathrm{nmom}$.
+
+### Tests
+
+No ctest exercises delta-M. The derivation check `ch03_delta_m.py` does, through pydisort and, for [P1], through
+a `RadiationBand`:
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch03_delta_m.py` [C1] | absorption depth kept, $\chi^{*}_0 = 1$ | exact | sympy identity |
+| `ch03_delta_m.py` [C2] | cdisort's scaling is @eq-ch03-deltam-scale | $10^{-12}\,\mu_0F_0$ | scaling round-off |
+| `ch03_delta_m.py` [C3] | direct flux is the unscaled beam | $10^{-14}$ rel. | one exp and product |
+| `ch03_delta_m.py` [C4] | delta-M lowers the flux error | on $<$ off | qualitative |
+
+: Tests of delta-M (derivation check; no ctest exists). {#tbl-ch03-deltam-tests}
+
+[C2] runs each case twice: once with delta-M on, once with delta-M off on inputs scaled by hand with
+@eq-ch03-deltam-moments and @eq-ch03-deltam-scale. The upward and total downward fluxes agree to
+$8.1\times10^{-15}\,\mu_0F_0$ over 12 cases (Henyey-Greenstein $g = 0.9$ and the Garcia-Siewert cloud; $\tau$ 1
+and 8; 4, 8 and 16 streams), so cdisort's scaling is the formula derived above.[^ch03-dm-run] [C3] finds the
+reported direct flux equal to $\mu_0F_0e^{-\tau/\mu_0}$ with the unscaled $\tau$ to 0.0 relative, on and off.
+In [C4], at 4 streams for $g = 0.9$ and $\tau = 1$, the reflected flux is off by $+7.8\times10^{-2}$ with
+delta-M and $+3.6\times10^{-1}$ without; at 16 streams by $+2.4\times10^{-4}$ and $-2.8\times10^{-3}$
+(@fig-ch03-deltam-error). pydisort 1.8.13 gives the same output lines. All runs were on CPU.
+
+[^ch03-dm-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_delta_m.py` [C1]-[C4], [P1]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Outputs `derivation-checks/ch03_delta_m.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (tag `v1.8.13`, torch 2.10.0+cu126). Phase moments from `pydisort.scattering_moments` with 256 moments; reference 128 streams with delta-M.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **CANDIDATE: delta-M is skipped when a band supplies fewer than `nstr` moments.** Through `RadiationBand`, a
+  4-stream band whose Henyey-Greenstein opacity ($g = 0.9$, $\tau = 1$, $\omega = 0.99$, $\mu_0 = 0.5$) has
+  `nmom: 3` gives fluxes bitwise equal to the same band with $\chi_4 = 0$, that is, without delta-M; with
+  `nmom: 4` the fluxes differ by up to $5.7\times10^{-2}\,\mu_0F_0$ and the top upward flux drops from 0.07520 to
+  0.05983 ([P1] of `ch03_delta_m.py`).[^ch03-dm-run] No message is printed.
+- A band that supplies more than `nstr` moments is not safe either (the Limits layer of @sec-ch03-band).
+- The switch is global over layers, and $f$ is tied to $\chi_{2N}$; there is no option to set $f$ or to turn
+  the scaling off.
+:::
+
+Not tested: delta-M with thermal emission, and the CUDA fast-flux path of pydisort 1.8.13, which repeats the same
+on/off rule (see the chapter on GPU and batching). The delta-M+ method [@reading21] is not in pydisort; not
+provided: no code at the pin.

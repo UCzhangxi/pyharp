@@ -1,0 +1,386 @@
+## Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band) {#sec-ch03-ordinates}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13 (its
+commit is printed in the check outputs), whose cdisort213 headers hold the same functions sources: Stamnes, Tsay,
+Wiscombe and Jayaweera 1988 (Appl. Opt. 27, 2502-2509); pydisort cdisort213/cdisort.c, src/disort_impl.h checks:
+derivation-checks/ch03_ordinates_algebra.py, ch03_e3_slab.py, ch03_disotest.py status: draft author: Jiheng Hu
+reviewer: -->
+
+### Summary
+
+cdisort solves the plane-parallel radiative-transfer equation in a stack of homogeneous layers. It replaces the
+angular integral of the scattering source by a Gauss sum over $2N$ directions, the *streams*, which turns the
+equation into $2N$ coupled linear ordinary differential equations in optical depth. In each layer these have an
+exact solution: exponentials whose rates are the eigenvalues of an $N \times N$ matrix, plus particular
+solutions for the beam and for a Planck source linear in optical depth. Matching the layers at their interfaces
+and the boundaries gives one banded linear system for all layers at once. Nothing is iterated, and the solution
+stays stable at any optical depth because every exponential is scaled to be at most 1. It is the method of
+Stamnes et al. [@reading01], whose equation numbers cdisort's own comments quote.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Fluxes of a layered column from the $2N$-stream equations, @eq-ch03-ordinates-do.
+
+**Data.** Per layer $\Delta\tau$, $\omega$, $\chi_l$; per level $T$; boundary values; out: level fluxes.
+
+**Placement.** One `c_disort` call per spectral point and column, inside `disort_impl`.
+
+**Activation.** Always, in a `solver: disort` band; `nstr` sets $2N$ (default 4).
+
+**Guarantee / limits.** Exact for the discretised problem; error set by $N$ and the moment truncation.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $I(\tau,\mu,\phi)$ is the intensity [$\mathrm{W\,m^{-2}\,sr^{-1}}$, per band] at optical depth
+$\tau$ (counted down from the top) in the direction with cosine $\mu$ (positive upward) and azimuth $\phi$;
+$I^0$ its azimuthal mean; $\mu_i, w_i$ ($i = \pm1, \dots, \pm N$) the quadrature nodes and weights;
+$\mathbf{I}^{\pm}$ the vectors $I^0(\tau, \pm\mu_i)$, $i = 1..N$; $\mathbf{M}$, $\mathbf{W}$ the diagonal
+matrices of $\mu_i$ and $w_i$; $D$ the azimuth-averaged scattering kernel; $\boldsymbol{\alpha}$,
+$\boldsymbol{\beta}$ the coupling matrices; $k_j$, $\mathbf{G}_j$ the eigenvalues and eigenvectors and $C_j$ the
+constants of integration; $\mathbf{Z}_0$, $\mathbf{Y}_0$, $\mathbf{Y}_1$ the particular-solution vectors;
+$\bar B(T)$ the Planck intensity integrated over the band [$\mathrm{W\,m^{-2}\,sr^{-1}}$]; $b_0$, $b_1$ its
+coefficients in a layer; $q$ the layer index, 1 at the top as in cdisort. Symbols of @sec-ch03-band keep their meaning.
+<!-- local symbols for the editor's notation table: I, I^0, mu_i, w_i, I^pm, M, W, D, alpha, beta, k_j, G_j, C_j, Z_0, Y_0, Y_1, Bbar, b_0, b_1, q (layer index; Stamnes writes p, which NOTATION reserves for pressure) -->
+
+DISORT has no switch of its own in pyharp: every DISORT band runs it, with $2N$ = `nstr` streams. With
+`onlyfl` set (every shipped YAML) cdisort computes the azimuthal mean only, which is all the fluxes need.
+Its accuracy is controlled by $N$ alone; @fig-ch03-ordinates-e3 shows the error falling with $N$ in a test with a
+closed-form answer.
+
+### Derivation
+
+Start from the plane-parallel transfer equation for a medium that scatters, absorbs and emits, lit by a parallel
+beam of intensity $F_0$ from the direction $(-\mu_0, \phi_0)$ [@reading01, p. 2502-2503, eqs. 1-4]:
+
+$$
+\mu \frac{\partial I}{\partial \tau} = I - \frac{\omega}{4\pi}\int_0^{2\pi}\!\!\int_{-1}^{1}
+P(\mu,\phi;\mu',\phi')\, I(\tau,\mu',\phi')\,\mathrm{d}\mu'\,\mathrm{d}\phi' - Q(\tau,\mu,\phi).
+$$
+
+The phase function $P$ is normalised to $\tfrac{1}{4\pi}\int P\,\mathrm{d}\Omega = 1$ and expanded in Legendre
+polynomials of the scattering angle with moments $\chi_l$, $\chi_0 = 1$. The source $Q$ is the thermal emission
+$(1-\omega)\bar B$ plus the singly scattered beam $\tfrac{\omega F_0}{4\pi} P(\mu,\phi;-\mu_0,\phi_0)
+e^{-\tau/\mu_0}$. Expanding $I$ in a cosine series of $\phi_0 - \phi$ [@reading01, p. 2503, eq. 5] separates the
+equation into one equation per azimuthal mode. Integrating over $\phi$ keeps only the mode $m = 0$, because
+$\int_0^{2\pi}\cos m\phi\,\mathrm{d}\phi = 0$ for $m \ge 1$. The fluxes therefore need $I^0$ alone, and cdisort
+computes only $m = 0$ when `onlyfl` is set (`c_disort`, {{< code cdisort213/cdisort.c c_disort repo=pydisort >}}).
+The addition theorem of the Legendre polynomials turns the azimuthal mean of $P$ into the kernel
+[@reading01, p. 2503, eq. 6b with $m = 0$]
+
+$$
+D(\mu,\mu') = \frac{\omega}{2}\sum_{l=0}^{2N-1}(2l+1)\,\chi_l\,P_l(\mu)\,P_l(\mu'),
+$$ {#eq-ch03-ordinates-kernel}
+
+truncated at $2N$ terms. Its beam source is $X_0(\mu)\,e^{-\tau/\mu_0}$ with
+$X_0(\mu) = \tfrac{\omega F_0}{4\pi}\sum_{l}(2l+1)\chi_l P_l(\mu)P_l(-\mu_0)$ [@reading01, p. 2503, eqs. 6c-6d].
+@eq-ch03-ordinates-kernel, multiplied by the weight $w_j$, is the matrix `CC` built in `c_solve_eigen`
+({{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}}) from the factors `GL` of `c_disort_set`
+({{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}).
+
+**Discrete ordinates.** Replace the integral over $\mu'$ by the double-Gauss rule: $N$ Gauss-Legendre nodes on
+$(0, 1)$, mirrored to $(-1, 0)$ with $\mu_{-i} = -\mu_i$ and $w_{-i} = w_i$. The azimuthal-mean equation becomes,
+for $i = \pm1, \dots, \pm N$ [@reading01, p. 2503, eq. 7a],
+
+$$
+\mu_i \frac{\mathrm{d}I^0(\tau,\mu_i)}{\mathrm{d}\tau} = I^0(\tau,\mu_i)
+- \sum_{j=\pm1}^{\pm N} w_j\,D(\mu_i,\mu_j)\,I^0(\tau,\mu_j) - Q^0(\tau,\mu_i).
+$$ {#eq-ch03-ordinates-do}
+
+The nodes come from `c_gaussian_quadrature` ({{< code cdisort213/cdisort.c c_gaussian_quadrature repo=pydisort >}}),
+called and mirrored in `c_disort_set`. The rule integrates every polynomial of degree up to $2N-1$ exactly on each
+half-range. The kernel is such a polynomial in $\mu'$, so $\sum_j w_j D(\mu_i,\mu_j) = \omega$ exactly: the
+quadrature scatters no energy away [@reading01, p. 2504, eq. 7c].
+
+**Matrix form.** Write @eq-ch03-ordinates-do separately for the upward directions $+\mu_i$ and the downward ones
+$-\mu_i$, $i = 1..N$. Because $P_l(-x)P_l(-y) = P_l(x)P_l(y)$, the kernel has only two distinct blocks,
+$\mathbf{D}^{+}_{ij} = D(\mu_i,\mu_j) = D(-\mu_i,-\mu_j)$ and
+$\mathbf{D}^{-}_{ij} = D(\mu_i,-\mu_j) = D(-\mu_i,\mu_j)$. Dividing the upward rows by $\mu_i$ and the downward
+rows by $-\mu_i$:
+
+$$
+\begin{aligned} \frac{\mathrm{d}\mathbf{I}^{+}}{\mathrm{d}\tau} &= \mathbf{M}^{-1}\left(\mathbf{I}^{+} -
+\mathbf{D}^{+}\mathbf{W}\mathbf{I}^{+}
+- \mathbf{D}^{-}\mathbf{W}\mathbf{I}^{-} - \mathbf{Q}^{+}\right), \\ \frac{\mathrm{d}\mathbf{I}^{-}}{\mathrm{d}\tau}
+  &= -\mathbf{M}^{-1}\left(\mathbf{I}^{-} - \mathbf{D}^{-}\mathbf{W}\mathbf{I}^{+}
+- \mathbf{D}^{+}\mathbf{W}\mathbf{I}^{-} - \mathbf{Q}^{-}\right).
+\end{aligned}
+$$
+
+With $\boldsymbol{\alpha} = \mathbf{M}^{-1}(\mathbf{D}^{+}\mathbf{W} - \mathbf{1})$ and
+$\boldsymbol{\beta} = \mathbf{M}^{-1}\mathbf{D}^{-}\mathbf{W}$ [@reading01, p. 2503-2504, eq. 7b] the two lines
+read
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}\tau}\begin{bmatrix}\mathbf{I}^{+}\\ \mathbf{I}^{-}\end{bmatrix}
+= \begin{bmatrix}-\boldsymbol{\alpha} & -\boldsymbol{\beta}\\ \boldsymbol{\beta} & \boldsymbol{\alpha}\end{bmatrix}
+\begin{bmatrix}\mathbf{I}^{+}\\ \mathbf{I}^{-}\end{bmatrix}
+- \begin{bmatrix}\mathbf{M}^{-1}\mathbf{Q}^{+}\\ -\mathbf{M}^{-1}\mathbf{Q}^{-}\end{bmatrix}.
+$$
+
+**Homogeneous solution.** Try $\mathbf{I}^{\pm} = \mathbf{G}^{\pm}e^{-k\tau}$ with no source. The derivative is
+$-k\,\mathbf{I}^{\pm}$, so
+
+$$
+\begin{bmatrix}\boldsymbol{\alpha} & \boldsymbol{\beta}\\ -\boldsymbol{\beta} & -\boldsymbol{\alpha}\end{bmatrix}
+\begin{bmatrix}\mathbf{G}^{+}\\ \mathbf{G}^{-}\end{bmatrix} = k\begin{bmatrix}\mathbf{G}^{+}\\
+\mathbf{G}^{-}\end{bmatrix},
+$$
+
+a $2N \times 2N$ eigenproblem [@reading01, p. 2504, eq. 8b]. Its order halves. Adding the two block rows gives
+the first line below, subtracting them the second, and multiplying the second by $(\boldsymbol{\alpha} -
+\boldsymbol{\beta})$ and using the first gives the third [@reading01, p. 2504, eqs. 8c-8e]:
+
+$$
+\begin{aligned} (\boldsymbol{\alpha}-\boldsymbol{\beta})(\mathbf{G}^{+}-\mathbf{G}^{-}) &=
+k\,(\mathbf{G}^{+}+\mathbf{G}^{-}), \\ (\boldsymbol{\alpha}+\boldsymbol{\beta})(\mathbf{G}^{+}+\mathbf{G}^{-}) &=
+k\,(\mathbf{G}^{+}-\mathbf{G}^{-}), \\
+(\boldsymbol{\alpha}-\boldsymbol{\beta})(\boldsymbol{\alpha}+\boldsymbol{\beta})(\mathbf{G}^{+}+\mathbf{G}^{-}) &=
+k^2\,(\mathbf{G}^{+}+\mathbf{G}^{-}). \end{aligned}
+$$ {#eq-ch03-ordinates-eigen}
+
+The eigenvalues come in pairs $\pm k_j$, $j = 1..N$. @eq-ch03-ordinates-eigen is computed in `c_solve_eigen`
+({{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}}), in the transposed order: it solves
+$(\boldsymbol{\alpha}+\boldsymbol{\beta})(\boldsymbol{\alpha}-\boldsymbol{\beta})\mathbf{x} = k^2\mathbf{x}$ for
+$\mathbf{x} = \mathbf{G}^{+}-\mathbf{G}^{-}$ with the real nonsymmetric eigen-solver `c_asymmetric_matrix`
+({{< code cdisort213/cdisort.c c_asymmetric_matrix repo=pydisort >}}), takes $k_j = \sqrt{k_j^2}$, recovers
+$\mathbf{G}^{+}+\mathbf{G}^{-}$ from the first line and $\mathbf{G}^{\pm}$ as half the sum and difference. The two
+orders give the same $k_j$ (check [C2]).
+
+**Beam particular solution.** Try $I^0(\tau,\mu_i) = Z_0(\mu_i)\,e^{-\tau/\mu_0}$ in
+@eq-ch03-ordinates-do with $Q^0 = X_0 e^{-\tau/\mu_0}$. The derivative is $-Z_0 e^{-\tau/\mu_0}/\mu_0$; dividing
+by $e^{-\tau/\mu_0}$ and moving every $Z_0$ term to the left gives, for every $i$ [@reading01, p. 2504, eq. 9a],
+
+$$
+\sum_{j=\pm1}^{\pm N}\left[\left(1 + \frac{\mu_i}{\mu_0}\right)\delta_{ij} - w_j D(\mu_i,\mu_j)\right] Z_0(\mu_j) =
+X_0(\mu_i).
+$$ {#eq-ch03-ordinates-beam}
+
+@eq-ch03-ordinates-beam is computed in `c_upbeam` ({{< code cdisort213/cdisort.c c_upbeam repo=pydisort >}}),
+which solves it by LU decomposition and warns if the matrix is near singular (when $\mu_0$ is close to some
+$\mu_i$; `c_disort_set` moves $\mu_0$ by a relative $10^{-4}$ when it equals a node).
+
+**Thermal particular solution.** Within a layer cdisort takes the Planck source linear in optical depth,
+$\bar B(\tau) = b_0 + b_1\tau$ [@reading01, p. 2504, eq. 9b with $K = 1$], with
+$b_1 = (\bar B_q - \bar B_{q-1})/\Delta\tau_q$ from the band Planck values at the layer's two levels. Try
+$I^0(\tau,\mu_i) = Y_0(\mu_i) + Y_1(\mu_i)\tau$ in @eq-ch03-ordinates-do with $Q^0 = (1-\omega)(b_0 + b_1\tau)$.
+The left side is $\mu_i Y_1(\mu_i)$. Equating the terms in $\tau$, and then the terms free of $\tau$
+[@reading01, p. 2504, eq. 9c]:
+
+$$
+\begin{aligned}
+\sum_{j}\left[\delta_{ij} - w_j D(\mu_i,\mu_j)\right] Y_1(\mu_j) &= (1-\omega)\,b_1, \\
+\sum_{j}\left[\delta_{ij} - w_j D(\mu_i,\mu_j)\right] Y_0(\mu_j) &= (1-\omega)\,b_0 + \mu_i\,Y_1(\mu_i).
+\end{aligned}
+$$ {#eq-ch03-ordinates-thermal}
+
+@eq-ch03-ordinates-thermal is computed in `c_upisot` ({{< code cdisort213/cdisort.c c_upisot repo=pydisort >}});
+the level values $\bar B_q$ come from `c_planck_func2`
+({{< code cdisort213/cdisort.c c_planck_func2 repo=pydisort >}}), which pydisort passes to cdisort in
+`disort_impl` ({{< code src/disort_impl.h disort_impl repo=pydisort >}}).
+
+**General solution and boundary conditions.** In layer $q$, between $\tau_{q-1}$ and $\tau_q$, the solution is the
+sum of the $2N$ homogeneous solutions and the two particular ones [@reading01, p. 2505, eqs. 18-19]:
+
+$$
+I^0_q(\tau,\mu_i) = \sum_{j=1}^{N}\left[C_{jq}\,G_{jq}(\mu_i)\,e^{-k_{jq}\tau} +
+C_{-jq}\,G_{-jq}(\mu_i)\,e^{k_{jq}\tau}\right] + Z_{0q}(\mu_i)\,e^{-\tau/\mu_0} + Y_{0q}(\mu_i) +
+Y_{1q}(\mu_i)\,\tau.
+$$
+
+The $2NL$ constants $C_{\pm jq}$ follow from $2NL$ conditions [@reading01, p. 2505, eqs. 17a-17d]: $N$ at the top,
+where the downward intensity is the isotropic `fisot` plus the band Planck intensity at `ttemp` times `temis`;
+$2N$ at each of the $L - 1$ interfaces, where all $2N$ intensities are continuous; and $N$ at the bottom. For the
+Lambertian surface pyharp uses (`lamber`), the bottom condition is the $m = 0$ case of
+[@reading01, p. 2505, eqs. 12 and 17d] with constant reflectivity $A_{\mathrm{s}}$ and emissivity
+$1 - A_{\mathrm{s}}$ (Kirchhoff):
+
+$$
+I^0(\tau_L,\mu_i) = (1-A_{\mathrm{s}})\,\bar B(T_{\mathrm{s}}) + 2A_{\mathrm{s}}\sum_{j=1}^{N}
+w_j\mu_j\,I^0(\tau_L,-\mu_j) + \frac{A_{\mathrm{s}}}{\pi}\,\mu_0F_0\,e^{-\tau_L/\mu_0}, \quad i = 1..N,
+$$ {#eq-ch03-ordinates-surface}
+
+where $T_{\mathrm{s}}$ is `btemp`. @eq-ch03-ordinates-surface enters the matrix in `c_set_matrix`
+({{< code cdisort213/cdisort.c c_set_matrix repo=pydisort >}}) and the right-hand side in `c_solve0`
+({{< code cdisort213/cdisort.c c_solve0 repo=pydisort >}}), with the reflectivity and emissivity set in
+`c_surface_bidir` ({{< code cdisort213/cdisort.c c_surface_bidir repo=pydisort >}}).
+
+**Scaling.** The $e^{k_{jq}\tau}$ terms overflow in a thick layer. Substituting
+$C_{jq} = \tilde C_{jq}\,e^{k_{jq}\tau_{q-1}}$ and $C_{-jq} = \tilde C_{-jq}\,e^{-k_{jq}\tau_q}$
+[@reading01, p. 2506, eqs. 22a-22b] gives the homogeneous part
+
+$$
+\sum_{j=1}^{N}\left[\tilde C_{jq}\,G_{jq}(\mu_i)\,e^{-k_{jq}(\tau-\tau_{q-1})} + \tilde
+C_{-jq}\,G_{-jq}(\mu_i)\,e^{-k_{jq}(\tau_q-\tau)}\right],
+$$ {#eq-ch03-ordinates-scaled}
+
+in which both exponents are $\le 0$ inside the layer [@reading01, p. 2506, eq. 23]. Every entry of the
+matrix is then at most of size 1 times an eigenvector, and the system is stable for any optical depth.
+@eq-ch03-ordinates-scaled is used in `c_set_matrix` and in `c_fluxes`
+({{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}}).
+
+**Fluxes.** With $I^0$ known at the nodes, the diffuse fluxes are quadrature sums and the direct flux is closed
+form:
+
+$$
+\begin{aligned}
+F_{\mathrm{up}}(\tau) &= 2\pi\sum_{i=1}^{N} w_i\,\mu_i\,I^0(\tau,\mu_i), \\
+F_{\mathrm{dn}}(\tau) &= 2\pi\sum_{i=1}^{N} w_i\,\mu_i\,I^0(\tau,-\mu_i), \\
+F_{\mathrm{dir}}(\tau) &= \mu_0 F_0\,e^{-\tau/\mu_0}.
+\end{aligned}
+$$ {#eq-ch03-ordinates-fluxes}
+
+@eq-ch03-ordinates-fluxes is computed in `c_fluxes` ({{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}}).
+
+**What is exact and what is truncated.** For layers of constant $\omega$ and $\chi_l$ with $\bar B$ linear in
+$\tau$, the solution of @eq-ch03-ordinates-do is exact up to round-off: no step after the quadrature
+approximates. Three truncations remain. The scattering integral is a $2N$-point sum, exact only for a phase
+function with no moments beyond $\chi_{2N-1}$. The moments from $\chi_{2N}$ up are dropped;
+delta-M (@sec-ch03-deltam) moves the forward peak they describe into the direct beam. The Planck source is linear inside
+each layer, so its curvature costs an error that falls with the layer thickness. There is no formal order in $N$;
+@fig-ch03-ordinates-e3 shows the measured rate. Checks: `ch03_ordinates_algebra.py` for the steps above,
+`ch03_e3_slab.py` and `ch03_disotest.py` for the code (the Tests layer below).
+
+<!-- equation-check: eq-ch03-ordinates-kernel ch03_ordinates_algebra.py [C3] -->
+<!-- equation-check: eq-ch03-ordinates-do ch03_ordinates_algebra.py [C6] -->
+<!-- equation-check: eq-ch03-ordinates-eigen ch03_ordinates_algebra.py [C2] -->
+<!-- equation-check: eq-ch03-ordinates-beam ch03_ordinates_algebra.py [C4] -->
+<!-- equation-check: eq-ch03-ordinates-thermal ch03_ordinates_algebra.py [C5] -->
+<!-- equation-check: eq-ch03-ordinates-surface ch03_beam_closure.py [C3] -->
+<!-- equation-check: eq-ch03-ordinates-scaled ch03_disotest.py [C1] -->
+<!-- equation-check: eq-ch03-ordinates-fluxes ch03_ordinates_algebra.py [C7] -->
+
+### Numerical method
+
+The unknowns are the $2N$ scaled constants $\tilde C_{\pm jq}$ of every layer, $2NL$ in all, stored layer by
+layer. The rows are the $N$ top conditions, $2N$ continuity conditions per interface and the $N$ bottom
+conditions (@fig-ch03-ordinates-matrix). A row touches the constants of at most two adjacent layers, so every
+nonzero lies within $3N - 1$ diagonals of the main one and the matrix has $6N - 1$ diagonals
+[@reading01, p. 2506]. cdisort solves it with the LINPACK band routines `c_sgbco` and `c_sgbsl`
+({{< code cdisort213/cdisort.c c_sgbco repo=pydisort >}}, {{< code cdisort213/cdisort.c c_sgbsl repo=pydisort >}}),
+called from `c_solve0` ({{< code cdisort213/cdisort.c c_solve0 repo=pydisort >}}). The cost is
+$O(N^3 L)$ for the eigenproblems and $O(N^3 L)$ for the band solve, per spectral point and column.
+
+```{python}
+#| label: fig-ch03-ordinates-matrix
+#| fig-cap: "Block structure of the boundary-value system for three layers and four streams ($N = 2$). Columns are the constants of integration of each layer; hatched orange blocks are the top and bottom boundary conditions, sky-blue blocks the continuity conditions at each interface, which couple two adjacent layers. White is zero."
+#| fig-alt: "A square matrix of 12 columns. The top two rows touch only layer 1, the bottom two rows only layer 3; each interface has four rows spanning two adjacent layers. The nonzero blocks form a band along the diagonal."
+#| echo: false
+from pyharp_report.ch03.figures.fig_ordinates_matrix import make_fig
+make_fig()
+```
+
+The order of work in one `c_disort` call ({{< code cdisort213/cdisort.c c_disort repo=pydisort >}}) is: check the
+inputs; set the quadrature, the delta-M scaling and the absorption-depth cut (`c_disort_set`); compute the level
+Planck values; for each layer solve the eigenproblem and the particular solutions; build and solve the band
+system; evaluate the fluxes at the requested levels. With `onlyfl` there is one azimuthal mode and no user-angle
+intensities. All quantities are point values at the levels or constants per layer; there are no ghost values and
+no iteration.
+
+When there is no thermal source, cdisort drops every layer below the level where the absorption optical depth,
+$\sum (1-\omega)\Delta\tau$, first exceeds 10, and sets the radiation there to zero
+[@reading01, p. 2508, Sec. III.D]. This is decided in `c_disort_set`; disotest case 12 checks it, and a pyharp
+shortwave band is subject to it.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| driver | {{< code cdisort213/cdisort.c c_disort repo=pydisort >}} | `c_disort` | always |
+| quadrature, scaling, cut | {{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}} | `c_disort_set` | always |
+| eigenproblem | {{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}} | `c_solve_eigen` | always |
+| beam solution | {{< code cdisort213/cdisort.c c_upbeam repo=pydisort >}} | `c_upbeam` | `fbeam` $> 0$ |
+| thermal solution | {{< code cdisort213/cdisort.c c_upisot repo=pydisort >}} | `c_upisot` | `planck` |
+| band Planck | {{< code cdisort213/cdisort.c c_planck_func2 repo=pydisort >}} | `c_planck_func2` | `planck` |
+| band matrix | {{< code cdisort213/cdisort.c c_set_matrix repo=pydisort >}} | `c_set_matrix` | always |
+| solve | {{< code cdisort213/cdisort.c c_solve0 repo=pydisort >}} | `c_solve0` | always |
+| fluxes | {{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}} | `c_fluxes` | always |
+
+: Code map of the discrete-ordinate solution (cdisort at the pydisort pin). {#tbl-ch03-ordinates-code}
+
+1. `c_disort` checks the inputs and prints, rather than returns, every error it finds; with `quiet` it prints no
+   warnings. pydisort ignores its return code (the Limits layer of @sec-ch03-band).
+2. `c_disort_set` computes the Gauss nodes, mirrors them, applies delta-M (@sec-ch03-deltam), sets the
+   absorption-depth cut, and moves $\mu_0$ by a relative $10^{-4}$ if it coincides with a node.
+3. For each layer, `c_solve_eigen` forms `CC`, $\boldsymbol{\alpha}\pm\boldsymbol{\beta}$ and solves
+   @eq-ch03-ordinates-eigen; `c_upbeam` solves @eq-ch03-ordinates-beam and `c_upisot` solves
+   the thermal system @eq-ch03-ordinates-thermal.
+4. `c_set_matrix` and `c_solve0` build and solve the band system, using @eq-ch03-ordinates-scaled for the
+   exponentials.
+5. `c_fluxes` evaluates @eq-ch03-ordinates-fluxes at the output levels; pydisort returns `flup` and
+   `rfldir + rfldn` (@eq-ch03-band-flux).
+
+### Tests
+
+No ctest exercises this solver (the Tests layer of @sec-ch03-band). Three derivation checks do:
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch03_ordinates_algebra.py` [C1]-[C7] | the derivation steps hold in numpy and sympy | $10^{-10}$ to $10^{-15}$ | round-off, per line |
+| `ch03_e3_slab.py` [C1] | grey slab, 32 streams | $2\times10^{-4}$ rel. | outline acceptance |
+| `ch03_e3_slab.py` [C3] | opaque limit set by $\bar B$ | $5\times10^{-6}$ | see the footnote |
+| `ch03_disotest.py` [C1], [C2] | cdisort test problems | ratio in $[0.99, 1.01]$ | disotest's own rule |
+| `ch03_disotest.py` [C4] | pydisort equals C cdisort | 0 | same code, same inputs |
+| `ch03_disotest.py` [C5] | `c_planck_func2` accuracy | $5\times10^{-6}$ | its stated 6 digits |
+
+: Tests of the discrete-ordinate solution (derivation checks; no ctest exists). {#tbl-ch03-ordinates-tests}
+
+**Grey isothermal slab.** A non-scattering slab at 300 K over a black surface at 250 K, band 500 to
+$700\,\mathrm{cm^{-1}}$, run through `RadiationBand` in weight mode, has the closed-form fluxes
+$F^{\uparrow}(0) = \pi\bar B(T)(1 - 2E_3(\tau)) + 2E_3(\tau)\,\pi\bar B(T_{\mathrm{s}})$ and
+$F^{\downarrow}(\tau) = \pi\bar B(T)(1 - 2E_3(\tau))$, with $E_3$ the exponential integral of order 3. Over
+$\tau$ from 0.01 to 10 the largest relative deviation is $3.69\times10^{-2}$, $1.02\times10^{-2}$,
+$2.70\times10^{-3}$ and $1.30\times10^{-4}$ at 4, 8, 16 and 32 streams, inside the $2\times10^{-4}$ acceptance
+at 32 streams.[^ch03-ord-e3] Between successive doublings of the stream count the error falls by factors of 3.6,
+3.8 and 21, so no single order fits. For $\tau \ge 3$ the deviation stops depending on $N$ and stays at
+$4.5\times10^{-6}$ ([C3]): that is the error of `c_planck_func2`, which uses the constants
+$\sigma = 5.67032\times10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$ and $c_2 = 1.438786\,\mathrm{cm\,K}$ and comes out
+$4.52\times10^{-6}$ below the CODATA 2018 integral on this band, while it matches its own constants to
+$1.2\times10^{-6}$ (disotest check [C5]; on 2000 to $2500\,\mathrm{cm^{-1}}$ the deficit is
+$5.0\times10^{-5}$).[^ch03-ord-disotest] Pydisort 1.8.13 gives identical fluxes.
+
+```{python}
+#| label: fig-ch03-ordinates-e3
+#| fig-cap: "Relative deviation of the DISORT band fluxes from the exact grey-slab solution against slab optical depth, for 4, 8, 16 and 32 streams; each point is the larger of the top upward and bottom downward deviations. The dotted vermillion line is the acceptance at 32 streams. Above $\\tau \\approx 1$ all curves meet the floor set by the band Planck integral."
+#| fig-alt: "Log-log plot. The 4-stream curve stays near 1e-2 to 4e-2 up to tau 0.3 then drops; 8 and 16 streams lie lower; 32 streams stays below 1.3e-4 everywhere, below the 2e-4 line, and flattens at about 5e-6 from tau 0.1 on."
+#| echo: false
+from pyharp_report.ch03.figures.fig_ordinates_e3 import make_fig
+make_fig()
+```
+
+**cdisort test problems.** pydisort ships the cdisort 2.1.3 test driver (disotest). `ch03_disotest.py` compiles
+it with every call recorded, replays each case through the pydisort Python API and applies disotest's own rule:
+every ratio of computed to reference value in $[0.99, 1.01]$. All 30 runnable cases with published references
+pass (cases 1-9; largest relative deviation $4.6\times10^{-6}$, at the print precision of the references), and
+so do the self-consistency cases 10b and 11b. Case 12b fails in pydisort exactly as in C, by design: it compares
+a run with the absorption-depth cut against one without, below the cut. pydisort reproduces the C solver bit for
+bit on every runnable case ([C4]). Seven cases cannot be run from Python: the BRDF cases 6d-6h and 7e, and 14b,
+which calls the two-stream routine pydisort does not bind.[^ch03-ord-disotest] On pydisort 1.7.1, `gather_flx`
+returns fewer rows than there are output depths when they are fewer than the levels, so for cases 4, 5, 6, 7 and 9
+the check compares the direct and diffuse downward fluxes at fewer depths there than with 1.8.13; the upward and
+total downward fluxes are compared everywhere on both. All of it ran on CPU.
+
+[^ch03-ord-e3]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_e3_slab.py` [C1]-[C3]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Output `derivation-checks/ch03_e3_slab.pydisort-1.7.1.out`; pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) gives the same lines. The [C3] tolerances: $5\times10^{-6}$ bounds the Planck deficit of [C5] of the disotest check on this band, and the 16- and 32-stream values must agree to $10^{-7}$, 2 % of that floor.
+
+[^ch03-ord-disotest]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_disotest.py` [C1]-[C6] with the pydisort source at 8af15242a265a60ea6fb51c29d48e6688a63ab67; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double, gcc 8.5.0 -O2 for the C driver; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1]. Outputs `derivation-checks/ch03_disotest.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (header-only C++ cdisort, g++ 8.5.0 -O2).
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- Plane-parallel only, with a Lambertian surface: a pyharp band has no input for the pseudo-spherical beam or a
+  BRDF surface (the Limits layer of @sec-ch03-band).
+- The band Planck integral is $4.5\times10^{-6}$ to $5.0\times10^{-5}$ below the CODATA 2018 value on the bands
+  tested, which sets a floor on thermal fluxes (the Tests layer above).
+- In a band with no `planck`, layers below an absorption optical depth of 10 get zero radiation.
+- No order of convergence in $N$ is established; the stream count a problem needs is measured case by case.
+:::
+
+Two behaviours of the pinned cdisort and pydisort are not reachable from a pyharp band, which reads only level
+fluxes, and are recorded here as CANDIDATE defects for users of pydisort itself. **CANDIDATE:** `gather_rad`
+sizes the intensity array from the options, not from the depths and angles cdisort chose, so with `usrtau` or
+`usrang` off it returns wrongly shaped intensities, for example (2, 3, 1) instead of (2, 3, 4) in disotest case
+10b (disotest check [P1]). **CANDIDATE:** `c_albtrans` ({{< code cdisort213/cdisort.c c_albtrans repo=pydisort >}})
+overwrites the first returned albedo and transmissivity with the spherical ones after printing the beam values:
+case 13a prints an albedo of 0.54526 and returns 0.158858 (disotest check [P2]); pydisort refuses the `ibcnd`
+mode that reaches it.[^ch03-ord-disotest] Not tested: CUDA, single precision, user angles through pyharp.

@@ -8,3 +8,14 @@ for a file a model run wrote, a pointer to the run recorded in the file.
 Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<chapter>/`); one chapter:
 `python3 tools/render_figures.py --chapters ch05`. The book itself draws them in the render
 (`quarto render book/`), from the same cells.
+
+## ch03
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch03-band-dataflow` | `03-disort/_band.qmd` | `pyharp_report/ch03/figures/fig_band_dataflow.py` | - |
+| `fig-ch03-deltam-error` | `03-disort/_deltam.qmd` | `pyharp_report/ch03/figures/fig_deltam_error.py`<br>`pyharp_report/ch03/data.py` | `derivation-checks/ch03_delta_m.pydisort-1.7.1.out` |
+| `fig-ch03-depmap` | `03-disort.qmd` | `pyharp_report/ch03/figures/fig_depmap.py` | - |
+| `fig-ch03-intcorr-error` | `03-disort/_intcorr.qmd` | `pyharp_report/ch03/figures/fig_intcorr_error.py`<br>`pyharp_report/ch03/data.py` | `derivation-checks/ch03_intensity_correction.pydisort-1.7.1.out` |
+| `fig-ch03-ordinates-e3` | `03-disort/_ordinates.qmd` | `pyharp_report/ch03/figures/fig_ordinates_e3.py`<br>`pyharp_report/ch03/data.py` | `derivation-checks/ch03_e3_slab.pydisort-1.7.1.out` |
+| `fig-ch03-ordinates-matrix` | `03-disort/_ordinates.qmd` | `pyharp_report/ch03/figures/fig_ordinates_matrix.py` | - |
