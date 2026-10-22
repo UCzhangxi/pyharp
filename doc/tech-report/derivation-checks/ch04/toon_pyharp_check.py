@@ -12,7 +12,8 @@ What is checked (labels as printed; the chapter cites them):
   [K1]-[K6] CANDIDATE defects. Each prints XFAIL when the candidate behaviour is reproduced and XPASS when it is
             not; candidates never change the exit status.
 
-How to run: `python3 toon_pyharp_check.py` with pyharp importable (it imports pyharp, torch and mpmath).
+How to run: `bash derivation-checks/ch04_run.sh <env>` (environment from `derivation-checks/ch04/setup_env.sh`), or
+`PYHARP_WT=<pyharp tree> python3 toon_pyharp_check.py` with pyharp importable (it imports pyharp, torch and mpmath).
 `python3 toon_pyharp_check.py --data <file.csv>` also writes the single-bottom-layer error sweep that the chapter's
 data figure reads (lambda*dtau from 5 to 60).
 Exit status: the number of failed core checks [C1]-[C6].
@@ -276,6 +277,11 @@ def main():
         print(f"pydisort {pydisort.__version__}")
     except ImportError:
         print("pydisort not importable")
+    import os, subprocess
+    wt = os.environ.get("PYHARP_WT")
+    src = subprocess.run(["git", "-C", wt, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip() \
+        if wt else "not recorded (set PYHARP_WT to the pyharp source tree)"
+    print(f"pyharp source {src}")
     print("device: CPU, precision: float64, threads: 1")
     check_C1_C3()
     check_C4()
