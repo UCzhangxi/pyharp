@@ -1,0 +1,312 @@
+## Longwave two-stream source-function solver, hemispheric mean (`solver: toon` with `planck`) {#sec-ch04-longwave}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89_longwave_impl.h, src/rtsolver/toon_mckay89.cpp, src/rtsolver/toon_mckay89.hpp,
+  src/rtsolver/rtsolver_dispatch.cpp, src/radiation/radiation_band.cpp; Toon et al. 1989 (doi:10.1029/JD094iD13p16287)
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+The longwave solver computes the thermal-emission fluxes of a layered column from the temperatures at its levels.
+It runs in two stages, following the source-function technique of Toon et al. [-@reading02]. A hemispheric-mean
+two-stream solve fixes the scattering source in every layer. Then the radiative transfer equation is integrated
+exactly along five directions, down from the top and up from the surface. The second stage makes the result exact
+for a non-scattering layer whose Planck function is linear in optical depth, up to the five-point angular rule.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Thermal $F^\pm$ of a layered column; the source function of @eq-ch04-longwave-source integrated by
+@eq-ch04-longwave-sweep.
+
+**Data.** Per layer $\Delta\tau_n$, $\omega$, $g$; level temperatures $T$ [K]; band edges $\nu$
+[$\mathrm{cm^{-1}}$]; $A_s$. Out: $F^\pm$ [$\mathrm{W\,m^{-2}}$] at levels and layer midpoints.
+
+**Placement.** Called by the band solver for every wavenumber and column; one tridiagonal solve, then ten sweeps.
+
+**Activation.** `solver: toon` with `planck` in `flags`; options `hard_surface`, `delta_eddington_lw`,
+`top_emission_flag` (default 0), `btop_factor` (default $e^{-1}$).
+
+**Guarantee / limits.** Isothermal column in equilibrium to round-off with `hard_surface`; see
+the Limits layer of @sec-ch04-longwave.
+
+**Evidence.** The Tests layer of @sec-ch04-longwave.
+:::
+
+Local symbols (not in the notation of @sec-ch02): $\xi$, the optical depth below the top of a layer;
+$\eta_1$, $\eta_2$, two square roots used once in the Derivation; $a = \sqrt{(1-\omega)/(1-\omega g)}$ (the notation rules of @sec-ch02
+name it $a$; code `alp`); $\tau^\star = 1/(\gamma_1+\gamma_2)$; $G, H, J, K, \alpha_1, \alpha_2, \sigma_1,
+\sigma_2$ of Toon et al. [-@reading02, Table 3] in the code's normalisation; $s_{\mathrm{top}}$ and
+$b_{\mathrm{top}}$ for the options `top_emission_flag` and `btop_factor`; $\rho_n$ for the optional `area_scale`.
+
+The defaults are: no delta scaling, no diffuse light entering at the top ($s_{\mathrm{top}} = 0$), and a surface
+that emits the Planck function of the bottom level extrapolated with the layer gradient (`hard_surface` off).
+Every option is listed in @tbl-ch04-longwave-code. The internal name is `toon_mckay89_longwave`.
+
+### Derivation
+
+Notation and the radiative transfer equation are those of @sec-ch02; $\tau$ increases downward, layers
+$n = 1,\dots,L$ are counted from the top, and $\xi \in [0, \Delta\tau_n]$ is the depth inside layer $n$.
+
+**Planck function.** The code takes $B$ linear in optical depth inside each layer:
+
+$$
+\begin{aligned}
+B_n(\xi) &= B_{0n} + B_{1n}\,\xi, \\
+B_{0n} &= \bar B(T_{n-1/2}), \\
+B_{1n} &= \bigl(\bar B(T_{n+1/2}) - \bar B(T_{n-1/2})\bigr)/\Delta\tau_n,
+\end{aligned}
+$$ {#eq-ch04-longwave-planck}
+
+with $T_{n-1/2}$ and $T_{n+1/2}$ the temperatures at the top and bottom of layer $n$ and $\bar B$ the band radiance
+of @sec-ch04-planck. For $\Delta\tau_n \le 10^{-6}$ the code sets $B_{1n} = 0$ and $B_{0n}$ to the mean of the two
+level values. @eq-ch04-longwave-planck is computed as `B0` and `B1` in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}).
+This is Toon et al. [-@reading02, eqs. 25-26].
+
+**Closure.** The hemispheric mean assumes an isotropic intensity in each hemisphere and a phase function equal to
+$1 + g$ forward and $1 - g$ backward [@reading02, Table 1], so $\mu_1 = 1/2$ and
+
+$$
+\begin{aligned}
+\gamma_1 &= 2 - \omega(1 + g), \\
+\gamma_2 &= \omega(1 - g), \\
+\lambda &= \sqrt{\gamma_1^2 - \gamma_2^2} = \frac{a\,(1 - \omega g)}{\mu_1}, \\
+\Gamma &= \frac{\gamma_2}{\gamma_1 + \lambda} = \frac{1 - a}{1 + a}.
+\end{aligned}
+$$ {#eq-ch04-longwave-closure}
+
+The two right-hand forms are the ones the code uses (`lam`, `gam` in `toon_mckay89_longwave`,
+{{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}). They follow from
+$\gamma_1 = (1-\omega) + (1-\omega g)$ and $\gamma_2 = (1-\omega g) - (1-\omega)$: then
+$\gamma_1^2 - \gamma_2^2 = 4(1-\omega)(1-\omega g) = 4a^2(1-\omega g)^2$, and with $\eta_1 = \sqrt{1-\omega g}$,
+$\eta_2 = \sqrt{1-\omega}$,
+$\Gamma = (\eta_1^2 - \eta_2^2)/(\eta_1 + \eta_2)^2 = (\eta_1 - \eta_2)/(\eta_1 + \eta_2) = (1 - a)/(1 + a)$. Check `[C1]` of `longwave_check.py`
+verifies both on 90 exact points.
+
+**Particular solution.** In the infrared the two-stream equations of @eq-ch04-shortwave-ode carry the source
+$S = 2\pi(1 - \omega)B_n(\xi)$ in place of the beam terms [@reading02, eq. 15]:
+$\mathrm{d}F^+/\mathrm{d}\xi = \gamma_1 F^+ - \gamma_2 F^- - S$ and $\mathrm{d}F^-/\mathrm{d}\xi = \gamma_2 F^+ - \gamma_1 F^- + S$.
+Try $F^\pm = c^\pm + d\,\xi$. The terms in $\xi$ and the constant terms of the two equations give
+
+$$
+\begin{aligned}
+0 &= (\gamma_1 - \gamma_2)\,d - 2\pi(1-\omega)B_{1n}, \\
+d &= \gamma_1 c^+ - \gamma_2 c^- - 2\pi(1-\omega)B_{0n}, \\
+d &= \gamma_2 c^+ - \gamma_1 c^- + 2\pi(1-\omega)B_{0n}.
+\end{aligned}
+$$
+
+For the hemispheric mean $\gamma_1 - \gamma_2 = 2(1-\omega)$, so the first line gives $d = \pi B_{1n}$.
+Subtracting the third line from the second gives $c^+ + c^- = 2\pi B_{0n}$, and adding them gives
+$c^+ - c^- = 2d/(\gamma_1 + \gamma_2)$ (check `[C8]` of `longwave_check.py`). Hence
+
+$$
+\begin{aligned}
+C_n^\pm(\xi) &= \pi\,\bigl(B_{0n} + B_{1n}(\xi \pm \tau^\star)\bigr), \\
+\tau^\star &= \frac{1}{\gamma_1 + \gamma_2} = \frac{\mu_1}{1 - \omega g}.
+\end{aligned}
+$$ {#eq-ch04-longwave-particular}
+
+@eq-ch04-longwave-particular is Toon et al. [-@reading02, eq. 27] ($2\pi\mu_1 = \pi$); the code stores it divided
+by $\pi$ as `Cpm1`, `Cmm1`, `Cp`, `Cm` and $\tau^\star$ as `term` in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}),
+and solves for the homogeneous amplitudes $k_{1n}$, $k_{2n}$ in the same units. The layer solution, the interface
+conditions and the tridiagonal system are those of @eq-ch04-shortwave-layer and @eq-ch04-shortwave-bc with
+@eq-ch04-longwave-particular in place of the beam term, and with these end rows:
+
+$$
+\begin{aligned}
+F_1^-(0) &= \pi B_{\mathrm{top}}, \\
+F_L^+(\Delta\tau_L) &= A_s F_L^-(\Delta\tau_L) + \pi S_s,
+\end{aligned}
+$$ {#eq-ch04-longwave-bc}
+
+where $B_{\mathrm{top}} = s_{\mathrm{top}}\bar B(T_{1/2})$ for $s_{\mathrm{top}} \in \{0, 1\}$ and
+$B_{\mathrm{top}} = (1 - e^{-b_{\mathrm{top}}\Delta\tau_1/\mu_1})\,\bar B(T_{1/2})$ for $s_{\mathrm{top}} < 0$; and
+$S_s = (1 - A_s)\,\bar B(T_{L+1/2})$ with `hard_surface`, $S_s = \bar B(T_{L+1/2}) + B_{1L}\mu_1$ without it.
+@eq-ch04-longwave-bc is assembled as the first and last rows of `Af`, `Bf`, `Cf`, `Df` in `toon_mckay89_longwave`
+({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}).
+
+::: {#prp-ch04-longwave-isothermal}
+For an isothermal column ($B_{1n} = 0$, $B_{0n} = B$), $s_{\mathrm{top}} = 1$ and `hard_surface`, every right-hand
+side of the tridiagonal system vanishes, so $k_{1n} = k_{2n} = 0$ and $F^\pm = \pi B$ at every level, for any
+$\omega$, $g$ and $A_s$.
+:::
+
+The top row has right-hand side $B - B = 0$, each interface row has $C_{n+1}^\pm(0) - C_n^\pm(\Delta\tau_n) = 0$, and
+the bottom row has $(1 - A_s)B - B + A_s B = 0$; check `[C4]` of `longwave_check.py` does this symbolically. Without
+`hard_surface` the bottom right-hand side is $B - B + A_s B = A_s B$ (check `[C5]`), so the proposition needs
+$A_s = 0$ there.
+
+**Source function.** With the two-stream fluxes known, the hemispheric-mean source function of the
+azimuth-integrated intensity is, for upward ($+$) and downward ($-$) directions,
+
+$$
+\begin{aligned}
+2\pi S_n^+(\xi) &= \omega\,\bigl[(1+g)F_n^+ + (1-g)F_n^-\bigr] + 2\pi(1-\omega)B_n(\xi), \\
+2\pi S_n^-(\xi) &= \omega\,\bigl[(1+g)F_n^- + (1-g)F_n^+\bigr] + 2\pi(1-\omega)B_n(\xi).
+\end{aligned}
+$$
+
+Inserting the layer solution and collecting the factors of $e^{\lambda \xi}$ uses
+$(1 + g) + (1 - g)\Gamma = 2(1 + g a)/(1 + a)$ and $(1 + g)\Gamma + (1 - g) = 2(1 - g a)/(1 + a)$, which gives
+
+$$
+\begin{aligned}
+2\pi S_n^+(\xi) &= G\,e^{\lambda \xi} + H\,e^{-\lambda \xi} + \alpha_1 + \alpha_2 \xi, \\
+2\pi S_n^-(\xi) &= J\,e^{\lambda \xi} + K\,e^{-\lambda \xi} + \sigma_1 + \sigma_2 \xi, \\
+G &= 2\pi\omega k_{1n}\,\frac{1 + g a}{1 + a}, \\
+H &= 2\pi\omega k_{2n}\,\frac{1 - g a}{1 + a}, \\
+J &= 2\pi\omega k_{1n}\,\frac{1 - g a}{1 + a}, \\
+K &= 2\pi\omega k_{2n}\,\frac{1 + g a}{1 + a}, \\
+\alpha_1 &= 2\pi\bigl(B_{0n} + \omega g\,\tau^\star B_{1n}\bigr), \\
+\sigma_1 &= 2\pi\bigl(B_{0n} - \omega g\,\tau^\star B_{1n}\bigr), \\
+\alpha_2 &= \sigma_2 = 2\pi B_{1n}.
+\end{aligned}
+$$ {#eq-ch04-longwave-source}
+
+@eq-ch04-longwave-source is Toon et al. [-@reading02, eqs. 53-54 and Table 3] in the code's normalisation, computed
+as `g`, `h`, `xj`, `xk`, `alpha1`, `alpha2`, `sigma1`, `sigma2` in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}});
+for $\omega \le 10^{-4}$ the code drops the scattering terms ($G = H = J = K = 0$, $\alpha_1 = \sigma_1 = 2\pi B_{0n}$).
+Check `[C6]` of `longwave_check.py` verifies the coefficients symbolically.
+
+**Angular sweeps.** Along a direction $\mu > 0$ the azimuth-integrated intensities obey
+$\mu\,\mathrm{d}I^+/\mathrm{d}\tau = I^+ - 2\pi S^+$ and $-\mu\,\mathrm{d}I^-/\mathrm{d}\tau = I^- - 2\pi S^-$.
+Integrating across layer $n$ with an integrating factor gives
+
+$$
+\begin{aligned}
+I_n^+(0) &= I_n^+(\Delta\tau_n)\,e^{-\Delta\tau_n/\mu} + \int_0^{\Delta\tau_n} 2\pi S_n^+(\xi)\,e^{-\xi/\mu}\,\frac{\mathrm{d}\xi}{\mu}, \\
+I_n^-(\Delta\tau_n) &= I_n^-(0)\,e^{-\Delta\tau_n/\mu} + \int_0^{\Delta\tau_n} 2\pi S_n^-(\xi)\,e^{-(\Delta\tau_n - \xi)/\mu}\,\frac{\mathrm{d}\xi}{\mu}.
+\end{aligned}
+$$ {#eq-ch04-longwave-sweep}
+
+The integrals of the four terms of @eq-ch04-longwave-source are elementary; for example the $G$ term of the upward
+sweep is $G\,(e^{(\lambda - 1/\mu)\Delta\tau_n} - 1)/(\lambda\mu - 1)$. All six closed forms are those of Toon et al.
+[-@reading02, eqs. 55-56], and are evaluated in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}});
+check `[C7]` of `longwave_check.py` integrates them with sympy and compares. The top value is
+$I_1^-(0) = 2\pi B_{\mathrm{top}}$, with $\mu_1$ replaced by $\mu$ for $s_{\mathrm{top}} < 0$; the surface value is
+$I_L^+ = 2\pi(1 - A_s)\bar B(T_{L+1/2}) + 2A_s F^-(\tau_L)$ with `hard_surface` (a Lambertian reflector) and
+$2\pi(\bar B(T_{L+1/2}) + B_{1L}\mu)$ without it. The fluxes are
+
+$$
+F^\pm = \sum_{i=1}^{5} w_i\,I^\pm(\mu_i),\qquad \sum_{i=1}^{5} w_i = \tfrac12,
+$$ {#eq-ch04-longwave-flux}
+
+with $\mu_i$, $w_i$ the five-point Gauss rule for the weight $\mu$ on $[0, 1]$, so that
+$F = \int_0^1 I\,\mu\,\mathrm{d}\mu$ is exact for $I$ polynomial of degree 9 in $\mu$. @eq-ch04-longwave-flux is
+computed with `uarr`, `wuarr` in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}});
+check `[C3]` recomputes the rule and matches the ten stored digits.
+
+**What is exact and what is truncated.** The sweeps are exact for the source of @eq-ch04-longwave-source; for
+$\omega = 0$ that source is the exact one, so the only errors are the linear-in-$\tau$ Planck function and the
+five-point angular rule. With scattering, the source carries the hemispheric-mean closure error (@sec-ch05).
+
+### Numerical method
+
+The tridiagonal system has the shape of @fig-ch04-shortwave-system and is solved by `dtridgl`
+({{< code src/rtsolver/dtridgl_impl.h dtridgl repo=pyharp >}}). Its coefficients use the same unscaled exponentials capped at
+$\lambda_n\Delta\tau_n = 35$ as the shortwave solver. The sweeps run as @fig-ch04-longwave-sweep shows: for each
+of the five angles, one downward pass from the top boundary value and, after the surface value is formed from the
+downward flux, one upward pass. The level fluxes accumulate $w_i I^\pm(\mu_i)$; the midpoint channels accumulate the
+same expressions evaluated at $\xi = \Delta\tau_n/2$.
+
+```{python}
+#| label: fig-ch04-longwave-sweep
+#| fig-cap: "The longwave source-function method. Step 1: a hemispheric-mean two-stream solve over the layers (boxes, each with its linear Planck function) fixes the source function. Step 2 (orange, solid): the intensity is integrated down from the top along five directions. Step 3 (green, dashed): it is integrated up from the surface along the same directions. The fluxes are the weighted sums at the right."
+#| fig-alt: "A stack of four layers labelled with B0n plus B1n tau; five solid orange arrows pointing down and five dashed green arrows pointing up beside it; a formula for the flux as the weighted sum of intensities with weights summing to one half."
+#| echo: false
+from pyharp_report.ch04.figures.fig_longwave_sweep import make_fig
+make_fig()
+```
+
+**Near-resonant directions.** The closed forms of @eq-ch04-longwave-sweep contain $1/(\lambda\mu - 1)$. For
+$\lambda_n\Delta\tau_n < 35$ the code evaluates them as $x\,\mathrm{exprel}(\delta x)$ with
+$\mathrm{exprel}(y) = (e^y - 1)/y$ (`longwave_exprel`, {{< code src/rtsolver/toon_mckay89_longwave_impl.h longwave_exprel repo=pyharp >}}),
+which is finite and accurate at $\lambda\mu = 1$; above it uses the plain quotient.
+
+**Where quantities live.** As in the Numerical method layer of @sec-ch04-shortwave, arrays run bottom to top and the kernel reverses them.
+$\bar B$ is evaluated at the levels from the level temperatures `temf`; the surface value is that of the bottom
+level. When the boundary data carry `area_scale` $\rho$ (one value per level, $(r/r_{\mathrm{ref}})^2$), the level
+Planck values are multiplied by it before the kernel runs, so the result is the $\rho$-weighted flux and the caller
+divides by the same factor.
+
+The cost is $O(L)$ for the solve plus $O(5L)$ for the sweeps per column and wavenumber, run in parallel over both by
+`call_toon89_lw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_lw_cpu repo=pyharp >}}).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| options | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}} | `ToonMcKay89OptionsImpl` | `flags`, `top_emission_flag`, `btop_factor` |
+| Planck, `area_scale` | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `ToonMcKay89Impl::forward` | `planck` |
+| CPU dispatch | {{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_lw_cpu repo=pyharp >}} | `call_toon89_lw_cpu` | `planck` |
+| kernel | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `toon_mckay89_longwave` | always |
+| YAML parsing | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `RadiationBandOptionsImpl::from_yaml` | `toon:` block |
+
+: Code map of the longwave solver. {#tbl-ch04-longwave-code}
+
+1. `ToonMcKay89Impl::forward` ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) refuses a
+   `planck` call without `temf` (level temperatures, columns x levels) with a `TORCH_CHECK` error, evaluates
+   $\bar B$ for the option's `wave_lower`, `wave_upper` at every level, and multiplies by `area_scale` when present;
+   `area_scale` of rank other than 1 or 2, or of the wrong length, is refused.
+2. `call_toon89_lw_cpu` ({{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_lw_cpu repo=pyharp >}}) passes
+   `top_emission_flag`, `btop_factor`, `hard_surface` and `delta_eddington_lw` to the kernel; it ignores
+   `zenith_correction`.
+3. `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}})
+   optionally applies the delta-Eddington scaling of @eq-ch04-shortwave-delta (`delta_eddington_lw`), then
+   computes @eq-ch04-longwave-planck to @eq-ch04-longwave-flux.
+4. In YAML, `RadiationBandOptionsImpl::from_yaml` ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}})
+   reads the band's `flags` and a `toon:` block with `top_emission_flag`, `btop_factor`, `flags`, and the boolean
+   keys `zenith_correction`, `hard_surface`, `delta_eddington_lw`, which it appends to the flags. A `flags` key
+   inside `toon:` replaces the band's `flags` rather than adding to them.
+
+For example, a thermal band with `solver: toon`, `flags: planck` and a `toon:` block holding
+`top_emission_flag: -1`, `btop_factor: 0.3679` and `hard_surface: true` runs the longwave solver with the slab
+top boundary of @eq-ch04-longwave-bc and a Lambertian surface.
+
+
+The options `top_emission_flag` and the flags are reachable from Python through `ToonMcKay89Options`;
+`btop_factor` is reachable from YAML only (@sec-ch10).
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_toon.release` `DeviceTest.longwave_hard_surface_mirror` | surface net flux of an isothermal mirror | $10^{-9}\sigma T^4$ | test's choice |
+| `test_toon.release` `DeviceTest.longwave_lambertian_partial_albedo` | surface balance with $A_s = 0.3$ | $10^{-8}$ relative | test's choice |
+| `test_toon.release` `DeviceTest.longwave_area_scale` | $\rho = 4$ scales fluxes by 4 | $10^{-12}$ relative | round-off |
+| `test_toon.release` `DeviceTest.longwave_resonance_is_continuous` | continuity at $\lambda\mu_i = 1$ | $2\times10^{-6}$ relative | test's choice |
+| `toon_pyharp_check.py` `[C5]` | @prp-ch04-longwave-isothermal | $10^{-13}$ | about 450 ulp |
+
+: Tests of the longwave solver. {#tbl-ch04-longwave-tests}
+
+`DeviceTest.longwave_uncapped_ratio_avoids_overflow` of `tests/test_toon.cpp` (ctest `test_toon.release`) asserts
+only finiteness. The tests run on CPU and, in a CUDA build, on the GPU; the numbers quoted here are CPU only. Over
+4 bands, 64 columns and 40 layers with random $\Delta\tau_n \in [10^{-3}, 10]$, $\omega \le 0.99$, $g \le 0.9$,
+@prp-ch04-longwave-isothermal holds at every level and midpoint with relative error below $10^{-13}$, with and
+without `delta_eddington_lw`, for $A_s = 0$ and $0.3$[^ch04-lw-iso]. The symbolic checks `[C1]`-`[C8]` of
+`longwave_check.py` all pass[^ch04-lw-sym].
+
+[^ch04-lw-iso]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, checks [C5] and [K2]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
+[^ch04-lw-sym]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/longwave_check.py`; run: `python3 src/pyharp_report/ch04/checks/longwave_check.py`, CPU, double; Python 3.11.13, sympy 1.14.0, numpy 2.4.6; output `src/pyharp_report/ch04/checks/longwave_check.out`]
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+Without `hard_surface` a nonzero `albedo` breaks Kirchhoff's law at the surface; set `hard_surface` or leave the
+albedo at 0.
+:::
+
+- **Non-hard surface with albedo (CANDIDATE, longwave surface).** Without `hard_surface` the bottom row of the
+  tridiagonal system still contains $A_s$ (@eq-ch04-longwave-bc) but the surface emits $\bar B + B_{1L}\mu_1$
+  undiminished, and the upward sweep starts from $2\pi(\bar B + B_{1L}\mu)$ without the reflected term. For the
+  isothermal column of @prp-ch04-longwave-isothermal with $A_s = 0.3$ the fluxes depart from $\pi B$ by up to
+  $0.19$ relative[^ch04-lw-iso].
+- **Thick layers.** The longwave coefficients use the same capped, unscaled exponentials as the shortwave solver
+  (Limits layer of @sec-ch04-shortwave); the size of the resulting error in the longwave is not measured.
+- **Surface temperature.** The surface emits the Planck value of the bottom level of `temf`; a separate ground
+  temperature is not read by this solver (@sec-ch08).
+- **Untested combinations.** $s_{\mathrm{top}} = -1$ with a non-default $b_{\mathrm{top}}$ has no test; GPU results: answered at
+  @sec-ch09.

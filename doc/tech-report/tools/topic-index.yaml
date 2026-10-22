@@ -55,6 +55,20 @@ sections:
   sec-ch03-intcorr:
     - intensity correction, Nakajima-Tanaka
     - Buras-Emde intensity correction
+  sec-ch04-shortwave:
+    - shortwave two-stream solver
+    - delta-Eddington scaling
+    - quadrature closure
+    - tridiagonal two-stream system
+  sec-ch04-longwave:
+    - longwave two-stream solver
+    - source-function technique
+    - hemispheric mean closure
+    - top boundary thermal emission
+  sec-ch04-planck:
+    - Planck function, band-integrated
+  sec-ch04-zenith:
+    - zenith correction, no effect
 unlabeled:
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
@@ -62,3 +76,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch03.qmd
     heading: DISORT (pydisort) (@sec-ch03)
     covered-by: sec-ch03
+  - file: chapters/appendices/_appb-ch04.qmd
+    heading: Toon et al. 1989 two-stream, as implemented (@sec-ch04)
+    covered-by: sec-ch04

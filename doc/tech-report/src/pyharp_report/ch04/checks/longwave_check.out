@@ -1,0 +1,9 @@
+[C1] PASS a = sqrt((1-w)/(1-wg)): lambda = 2a(1-wg) = sqrt(gamma1^2-gamma2^2) and Gamma = (1-a)/(1+a) = gamma2/(gamma1+lambda), 90 exact (w, g) points to 1e-45 and lambda^2 symbolically
+[C2] PASS term = mu1/(1-wg) = 1/(gamma1+gamma2); 1/(gamma1+gamma2) - mu1 = mu1 w g/(1-wg)
+[C3] PASS max|node - uarr| = 4.9e-11, max|weight - wuarr| = 2.7e-11, sum w = 0.5000000000, max_k<=9 |sum w mu^k - 1/(k+2)| = 5.4e-11
+[C4] PASS hard surface: Df = [0, 0, 0, 0] (all zero for any A_s, gamma, E)
+[C5] PASS non-hard surface: Df = [0, 0, 0, A_s*B]; bottom entry A_s B is nonzero for A_s > 0
+[C6] PASS 2 pi S+ = G e^{lam t} + H e^{-lam t} + alpha1 + alpha2 t and 2 pi S- = J e^{lam t} + K e^{-lam t} + sigma1 + sigma2 t with the code's coefficients
+[C7] PASS the six layer integrals of the sweeps (G, H, alpha2 up; J, K, sigma2 down) minus the code's closed forms, integrated exactly and evaluated at 3 rational points to 50 digits: max 0e+00
+[C8] PASS C+- = pi (B0 + B1 (t +- 1/(gamma1+gamma2))) solves the thermal two-stream equations exactly
+RESULT: 8/8 pass

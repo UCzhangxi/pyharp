@@ -19,3 +19,13 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch03-intcorr-error` | `03-disort/_intcorr.qmd` | `pyharp_report/ch03/figures/fig_intcorr_error.py`<br>`pyharp_report/ch03/data.py` | `derivation-checks/ch03_intensity_correction.pydisort-1.7.1.out` |
 | `fig-ch03-ordinates-e3` | `03-disort/_ordinates.qmd` | `pyharp_report/ch03/figures/fig_ordinates_e3.py`<br>`pyharp_report/ch03/data.py` | `derivation-checks/ch03_e3_slab.pydisort-1.7.1.out` |
 | `fig-ch03-ordinates-matrix` | `03-disort/_ordinates.qmd` | `pyharp_report/ch03/figures/fig_ordinates_matrix.py` | - |
+
+## ch04
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch04-longwave-sweep` | `04-toon/_longwave.qmd` | `pyharp_report/ch04/figures/fig_longwave_sweep.py` | - |
+| `fig-ch04-map` | `04-toon.qmd` | `pyharp_report/ch04/figures/fig_chapter_map.py` | - |
+| `fig-ch04-planck-series` | `04-toon/_planck.qmd` | `pyharp_report/ch04/figures/fig_planck_series.py` | - |
+| `fig-ch04-shortwave-system` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_system.py` | - |
+| `fig-ch04-shortwave-thick-layer` | `04-toon/_shortwave.qmd` | `pyharp_report/ch04/figures/fig_shortwave_thick_layer.py` | `src/pyharp_report/ch04/data/shortwave_thick_layer.csv` |

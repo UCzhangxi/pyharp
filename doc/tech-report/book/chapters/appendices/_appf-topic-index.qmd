@@ -20,6 +20,8 @@
 
 *delta-Eddington*, see **delta scaling**.
 
+**delta-Eddington scaling**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
+
 *delta-M*, see **delta scaling**.
 
 **delta-M scaling**: Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$), @sec-ch03-deltam.
@@ -54,6 +56,8 @@
 
 **hemispheric mean**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
 
+**hemispheric mean closure**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
 ## I {.unnumbered .unlisted}
 
 **intensity correction, Nakajima-Tanaka**: Intensity corrections after delta-M, @sec-ch03-intcorr.
@@ -62,17 +66,21 @@
 
 **layer order, pyharp and DISORT**: Handing a band to DISORT, @sec-ch03-band.
 
+**longwave two-stream solver**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
 ## M {.unnumbered .unlisted}
 
 *Meador-Weaver coefficients*, see **two-stream closure**.
 
 ## P {.unnumbered .unlisted}
 
+**Planck function, band-integrated**: Band-integrated Planck function for the thermal source, @sec-ch04-planck.
+
 **pydisort, how pyharp calls it**: Handing a band to DISORT, @sec-ch03-band.
 
 ## Q {.unnumbered .unlisted}
 
-**quadrature closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
+**quadrature closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures; Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
 
 ## R {.unnumbered .unlisted}
 
@@ -80,7 +88,11 @@
 
 ## S {.unnumbered .unlisted}
 
+**shortwave two-stream solver**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
+
 *single-scattering albedo of one*, see **conservative scattering**.
+
+**source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
 **symbols, coordinates and grids**: [1. Coordinates and grids](#sec-appa-1).
 
@@ -108,4 +120,12 @@
 
 ## T {.unnumbered .unlisted}
 
+**top boundary thermal emission**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
+**tridiagonal two-stream system**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
+
 **two-stream closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
+
+## Z {.unnumbered .unlisted}
+
+**zenith correction, no effect**: Zenith-angle correction (`zenith_correction`): accepted by the parser, has no effect, @sec-ch04-zenith.
