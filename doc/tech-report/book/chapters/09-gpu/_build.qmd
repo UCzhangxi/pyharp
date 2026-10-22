@@ -1,0 +1,173 @@
+## Building pyharp against pydisort and CUDA (`-DCUDA=ON`, `pydisort>=1.7.1`) {#sec-ch09-build}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml); pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+sources: CMakeLists.txt, cmake/modules/FindDisort.cmake, setup.py, pyproject.toml, .github/workflows/ci.yml,
+  src/radiation/radiation_band.cpp, src/radiation/disort_config.cpp; pydisort src/disort.hpp, src/disort.cpp
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+pyharp is compiled against pydisort: its C++ library includes pydisort's headers, creates pydisort's objects, and
+loads pydisort's shared library at run time. The two must therefore come from the same pydisort version. pyharp's
+package metadata asks only for `pydisort>=1.7.1`, so a later `pip install` can replace pydisort under an existing
+pyharp build. This section measures what then happens. When pyharp is built against pydisort 1.7.1 and run with
+1.8.13, the test that builds a DISORT band passes its assertions and the process then aborts with
+`double free or corruption`: the defect-register item D1. Builds that match their pydisort never abort. The
+section also records one build failure of the CUDA option.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** The build contract between pyharp and pydisort, and what breaking it does (D1).
+
+**Data.** pyharp's `libharp_release.so`; the pydisort headers and library it was built and run with.
+
+**Placement.** At build time (`cmake`, `pip install`) and when Python loads pyharp.
+
+**Activation.** `-DCUDA=ON` (default off); the installed pydisort, required `>=1.7.1`.
+
+**Guarantee / limits.** Run with the pydisort pyharp was built against; other pairs are undefined.
+
+**Evidence.** See the Tests layer below.
+:::
+
+D1 is an item of the report's defect register and stays a candidate until a second, independent run agrees.
+
+### Derivation
+
+No equation describes this section; the argument is a chain of code facts, each measured or read at the pin.
+
+1. *pyharp loads one pydisort library, by an absolute path.* pyharp's library `libharp_release.so` needs
+   `libdisort_release.so`, and the build gives it an absolute search path into the pydisort installation found by
+   CMake ({{< code cmake/modules/FindDisort.cmake repo=pyharp >}}). The Python extension adds a relative path to the
+   pydisort next to it (`extra_link_args` in {{< code setup.py repo=pyharp >}}). Measured on an installed build:
+   the library's only search entries are absolute, ending in `pydisort/lib` and `torch/lib` (`check_ch09_abi.py`
+   [C5]). If pydisort is reinstalled in the same environment, the same path then holds the new library.
+2. *pyharp allocates pydisort's objects with the sizes it was compiled with.* `RadiationBandImpl::reset` creates the
+   solver as `disort::Disort(options->disort())` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}),
+   and `create_disort_config` creates the options object
+   ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}). Both allocations are compiled
+   into pyharp from pydisort's headers; the constructors that fill the objects run in the loaded pydisort library.
+3. *The two versions lay these objects out differently.* Compiled against each version's headers, `disort_state`,
+   `DisortImpl` and `DisortOptionsImpl` are 1336, 488 and 1576 bytes with pydisort 1.7.1 and 1344, 496 and 1584
+   bytes with 1.8.13 (`check_ch09_abi.py` [C1]-[C3]). Version 1.8.13 adds one field to the cdisort state and one
+   member to `DisortImpl`, which is consistent with the 8-byte growth.
+4. *So a 1.7.1 build run with 1.8.13 writes past its allocations.* The 1.8.13 constructor fills a 496-byte layout
+   into a 488-byte block, and the heap is corrupted. The allocator notices when the block is freed, which for the
+   module object is at interpreter exit, after the tests have passed. Steps 1 to 3 are measured or read from the
+   code; that this overwrite is the one the allocator reports is consistent with the measured abort and was not
+   traced further.
+5. *The reverse pairing has the opposite error.* A 1.8.13 build run with 1.7.1 allocates 8 bytes more than the
+   library writes. Nothing aborts, but pyharp then reads fields the library never set; the behaviour is undefined
+   and no test detects it.
+
+**The CUDA build on a 12.x toolkit.** `CMakeLists.txt` adds the architectures 90 and 120 to its list whenever the
+CUDA toolkit is 12.0 or newer (`_cuda_arch_list`, {{< code CMakeLists.txt repo=pyharp >}}). nvcc 12.6
+rejects architecture 120 (`nvcc fatal: Unsupported gpu architecture 'compute_120'`), so `-DCUDA=ON` fails at the
+pin with that toolkit. The builds measured in this chapter move that one condition to 12.8 with the patch
+`derivation-checks/ch09_setup/cuda-arch-sm120.patch`, which `derivation-checks/ch09_setup.sh` applies when nvcc
+is older than 12.8; the patch touches only the list of CUDA architectures, not any code.
+
+### Numerical method
+
+The measurement uses four environments, each built by one call of `derivation-checks/ch09_setup.sh` (the four
+calls are listed in `derivation-checks/ch09_run.sh`): pyharp at the pin with `-DCUDA=ON`, torch 2.10.0+cu126, and
+pydisort installed from its published wheels, checked by hash:
+
+1. built against 1.7.1, run with 1.7.1;
+2. built against 1.8.13, run with 1.8.13;
+3. built against 1.7.1, then pydisort reinstalled in place as 1.8.13 (`pip install --no-deps --force-reinstall`);
+4. built against 1.8.13, then reinstalled in place as 1.7.1.
+
+In each, pyharp's `tests/test_rayleigh.py` and then the whole Python test suite run three times, and the exit status
+and any heap-corruption message are recorded. The type sizes are measured by compiling a ten-line program against
+each version's headers.
+
+```{python}
+#| label: fig-ch09-build-chain
+#| fig-cap: "How an installed pyharp reaches pydisort's library. pyharp's extension module needs pyharp's library, which needs libdisort_release.so and finds it through an absolute search path into the pydisort installation it was built against; pydisort's own module needs the same library. Only one copy is loaded, so the object layout in the headers pyharp was compiled with must match that library."
+#| fig-alt: "Four boxes: pyharp module above pyharp library on the left, pydisort module above libdisort on the right. Arrows: pyharp module needs pyharp library; pyharp library reaches libdisort through an absolute search path; pydisort module needs libdisort. A red note says one copy is loaded and its layout must match pyharp's headers."
+#| echo: false
+from pyharp_report.ch09.figures.fig_abi_chain import make_fig
+make_fig()
+```
+
+@fig-ch09-build-chain shows the chain of step 1. To keep a build and its pydisort together, install pydisort at the
+exact version pyharp was built against, as pyharp's CI does with `pip install --no-deps 'pydisort==1.7.1'`
+({{< code .github/workflows/ci.yml repo=pyharp >}}), and rebuild pyharp after any change of pydisort.
+
+### Code
+
+@tbl-ch09-build-code lists the build code involved.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| finds pydisort's headers and library | {{< code cmake/modules/FindDisort.cmake repo=pyharp >}} | `find_package(Disort)` | always |
+| CUDA architecture list | {{< code CMakeLists.txt repo=pyharp >}} | `_cuda_arch_list` | `-DCUDA=ON` |
+| extension's library search path | {{< code setup.py repo=pyharp >}} | `extra_link_args` | `pip install` |
+| version requirement on pydisort | {{< code pyproject.toml repo=pyharp >}} | `pydisort>=1.7.1` | `pip install` |
+| creates the DISORT solver | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `RadiationBandImpl::reset` | `solver: disort` |
+
+: Code map of the pyharp-pydisort build contract. {#tbl-ch09-build-code}
+
+1. `FindDisort.cmake` asks the active Python for the installed pydisort and takes its header and library
+   directories from there ({{< code cmake/modules/FindDisort.cmake repo=pyharp >}}); the version is printed at
+   configure time and not recorded in the build.
+2. `setup.py` links the extension against the libraries of the CMake build and adds the search path
+   `$ORIGIN/../pydisort/lib` ({{< code setup.py repo=pyharp >}}).
+3. `pyproject.toml` requires `pydisort>=1.7.1` both to build and to run ({{< code pyproject.toml repo=pyharp >}}).
+
+### Tests
+
+@tbl-ch09-build-tests lists the checks.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch09_d1.sh` | no heap-corruption abort in matched builds | none allowed | D1 is the abort |
+| `check_ch09_d1.sh` | the abort in a drifted build is reported, not hidden | `EXPECTED-FAIL` | D1, candidate |
+| `check_ch09_abi.py` | type sizes per pydisort version; pyharp's search path | reported | a measurement |
+| `test_rayleigh.py` (pytest) | the Rayleigh band with DISORT returns finite fluxes | as in the test | set in the test |
+
+: Tests of the build contract. {#tbl-ch09-build-tests}
+
+In the two matched environments, `test_rayleigh.py` passes 3 times out of 3 and the full suite finishes 3 times
+out of 3 without an abort. Built against 1.7.1 and run with 1.8.13, `test_rayleigh.py` reports its 2 tests passed
+and then aborts with `double free or corruption (!prev)` and exit status 134, 3 times out of 3. The full suite
+aborts too, 3 times out of 3, with `corrupted size vs. prev_size` or `free(): invalid pointer`; the check also
+counts an exit by segmentation fault (status 139) as a crash. Built against
+1.8.13 and run with 1.7.1, nothing aborts in 6 runs.[^ch09-build-d1] The abort comes from the DISORT test of
+`test_rayleigh.py`, `test_radiation_band_regularizes_conservative_ssa_for_disort`: run alone it aborts, and the
+other test of the file does not.[^ch09-build-iso]
+
+In every environment the full suite also reports 10 to 12 failures in the spectroscopy tests and the Sonora test.
+They are the same in all four environments, and none involves DISORT: a download that returns HTTP error 500, a
+missing data file, and test code that calls functions the package at the pin does not have.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **D1 (candidate): pyharp built against pydisort 1.7.1 and run with 1.8.13 aborts** after a DISORT band is created,
+  at the latest at exit. Running with the pydisort pyharp was built against avoids it in every measured run.
+- **The reverse pairing is silent**, not safe: no abort, but pyharp reads object fields the library did not write.
+- **`-DCUDA=ON` fails with CUDA 12.6** at the pin, because the architecture list includes 120. Only 12.6 was
+  measured.
+- **One host, one GPU, published wheels.** pydisort was not built from source; the wheels are identified by
+  version and file hash in the footnote.
+:::
+
+[^ch09-build-d1]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort: the 1.7.1 wheel
+(pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67, file sha256
+4e61379008c1769b7ec2c61e08b2d9441eb4385db08e08f47c69abef79d77843) and the 1.8.13 wheel (tag `v1.8.13`, file sha256
+f9470a736baecac5fbb4660abc57fd0ac45963cca46614d242e5f04d78bc1aa6; not a pin of this report); deck: pyharp's
+`tests/` at the pin, in the four environments 171, 1813, 171b-1813-drift and 1813b-171-drift given as NAME=TESTS
+arguments; run: `bash derivation-checks/ch09_run.sh <setup root>`, which calls `check_ch09_d1.sh` with N=3 and
+the four environments of `derivation-checks/ch09_setup.sh`; Python 3.11.13, torch 2.10.0+cu126, pytest 9.1.1,
+CUDA 12.6, nvcc 12.6, gcc 11.5.0, AMD Ryzen 9 7950X, GTX 1080 Ti; output
+`derivation-checks/check_ch09_d1.out`, lines [C1]-[C24]; type sizes: `python3 derivation-checks/check_ch09_abi.py`
+with the two site-packages directories as arguments, output `derivation-checks/check_ch09_abi.out`.]
+
+[^ch09-build-iso]: [sha, environments and versions as in the footnote above; run:
+`N=3 bash derivation-checks/check_ch09_d1.sh`, whose last part runs the two tests of `test_rayleigh.py` one at a
+time in each drifted environment; output `derivation-checks/check_ch09_d1.out`, lines [C25]-[C36].]
