@@ -1,3 +1,36 @@
 # The radiative-transfer problem and its approximations {#sec-ch02}
 
-pending
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89_shortwave_impl.h, src/rtsolver/toon_mckay89_longwave_impl.h,
+  src/rtsolver/toon_mckay89.hpp, src/rtsolver/toon_mckay89.cpp, src/radiation/radiation_band.cpp;
+  pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67 cdisort213/cdisort.c
+status: draft
+author: Isaac Malsky
+reviewer: requested
+-->
+
+This chapter sets up the radiative-transfer problem that both pyharp solvers approximate, and fixes the symbols the
+solver chapters use. The atmosphere is a stack of homogeneous plane-parallel layers, each with optical thickness
+$\Delta\tau$, single-scattering albedo $\omega$ and asymmetry parameter $g$, lit by a collimated beam and, in the
+infrared, by its own Planck emission. The two-stream approximation keeps only two hemispheric fluxes. The sections
+show that every named closure is one choice of four coefficients and which one each Toon path uses; how the forward
+peak of a phase function is removed first; and the energy identities, with the failure of the closed-form solution
+at $\omega = 1$. Every equation is checked by a script under `derivation-checks/`. The heating rate and the flux
+output conventions are not provided here: they belong to the Radiation API chapter, not written yet.
+
+The dependency map of the schemes is not provided: its figure module is not written yet.
+
+| scheme | YAML key or option | default | order | main test |
+|---|---|---|---|---|
+| @sec-ch02-closures | `flags: planck` (Toon) | shortwave, quadrature | exact algebra | `check_ch02_closures.py` |
+| @sec-ch02-delta-scaling | `delta_eddington_lw` (Toon) | shortwave on, longwave off | exact algebra | `check_ch02_delta_scaling.py` |
+| @sec-ch02-conservation | always; clamp in `RadiationBand` | clamp on | exact identities | `check_ch02_conservation.py` |
+
+: Schemes of the radiative-transfer chapter. {#tbl-ch02-schemes}
+
+{{< include 02-radiative-transfer/_closures.qmd >}}
+
+{{< include 02-radiative-transfer/_delta-scaling.qmd >}}
+
+{{< include 02-radiative-transfer/_conservation.qmd >}}

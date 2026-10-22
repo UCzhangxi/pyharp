@@ -27,6 +27,18 @@ sections:
     - symbols, diagnostics and errors
   sec-appa-10:
     - symbols, reserved letters (do not reuse)
+  sec-ch02-closures:
+    - two-stream closure: [Meador-Weaver coefficients, gamma coefficients]
+    - quadrature closure
+    - hemispheric mean
+    - Eddington approximation
+  sec-ch02-delta-scaling:
+    - delta scaling: [delta-M, delta-Eddington]
+    - forward-peak truncation
+  sec-ch02-conservation:
+    - energy conservation, two-stream
+    - conservative scattering: [single-scattering albedo of one]
+    - albedo clamp
   sec-ch03-band:
     - DISORT band, inputs and outputs
     - pydisort, how pyharp calls it
@@ -44,6 +56,9 @@ sections:
     - intensity correction, Nakajima-Tanaka
     - Buras-Emde intensity correction
 unlabeled:
+  - file: chapters/appendices/_appb-ch02.qmd
+    heading: The radiative-transfer problem and its approximations (@sec-ch02)
+    covered-by: sec-ch02
   - file: chapters/appendices/_appb-ch03.qmd
     heading: DISORT (pydisort) (@sec-ch03)
     covered-by: sec-ch03

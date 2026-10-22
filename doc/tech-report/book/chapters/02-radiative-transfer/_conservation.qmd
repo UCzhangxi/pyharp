@@ -1,0 +1,198 @@
+## Energy conservation of the two-stream equations and the conservative limit (`RadiationBand` albedo clamp) {#sec-ch02-conservation}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/rtsolver/toon_mckay89_shortwave_impl.h, src/rtsolver/toon_mckay89_longwave_impl.h,
+  src/radiation/radiation_band.cpp
+status: draft
+author: Isaac Malsky
+reviewer: requested
+-->
+
+### Summary
+
+A layer that only scatters must pass its net flux through unchanged, and a layer that absorbs must lose exactly
+what it absorbs. Both statements follow from the two-stream equations for every closure of @sec-ch02-closures. The
+closed-form solution that the Toon solver evaluates is a different matter: it is singular when the single-scattering
+albedo is exactly 1. pyharp avoids that point by capping the albedo in `RadiationBand` before any solver runs; the
+Toon kernels themselves do not.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Energy balance of @eq-ch02-closures-ode, @eq-ch02-conservation-divergence; the $\omega = 1$ limit.
+
+**Data.** Per layer: $\gamma_1$ to $\gamma_4$, $\omega$; fluxes in $\mathrm{W\,m^{-2}}$.
+
+**Placement.** Clamp in `RadiationBandImpl::forward`, before the solver call.
+
+**Activation.** Always on in `RadiationBand`; absent in the bare Toon kernels.
+
+**Guarantee / limits.** Conservation is exact; the closed form is singular at $\omega = 1$.
+
+**Evidence.** See the Tests layer.
+:::
+
+Local symbols: $F_{\mathrm{net}}$, net upward flux including the direct beam [$\mathrm{W\,m^{-2}}$]; $J$, mean
+intensity [$\mathrm{W\,m^{-2}\,sr^{-1}}$]; $B$, Planck function of the layer, linear in $\tau$
+[$\mathrm{W\,m^{-2}\,sr^{-1}}$]; $k_1$, $k_2$, amplitudes of the homogeneous solution [$\mathrm{W\,m^{-2}}$]; $C^{\pm}$,
+particular solutions [$\mathrm{W\,m^{-2}}$]; $R$, reflectance of a layer [-]; $\delta\omega$, albedo margin [-].
+
+The clamp (@eq-ch02-conservation-clamp) is on in every `RadiationBand` call; a direct call of the Toon module skips
+it. Toon et al. prescribe the same remedy, with $1 - \omega$ ten times the machine precision.[^ch02-conservation-tn]
+
+### Derivation
+
+**Step 1: divergence of the net flux.** Let $F_{\mathrm{net}} = F^{+} - F^{-} - \mu_0F_0e^{-\tau/\mu_0}$, where the
+last term is the direct beam, positive downward. Subtracting the two lines of @eq-ch02-closures-ode and adding
+$\mathrm{d}(\mu_0F_0e^{-\tau/\mu_0})/\mathrm{d}\tau = -F_0e^{-\tau/\mu_0}$ gives Toon's eq. (28),
+
+$$
+\frac{\mathrm{d}F_{\mathrm{net}}}{\mathrm{d}\tau} = (\gamma_1 - \gamma_2)\left(F^{+} + F^{-}\right)
+  + \left[1 - \omega(\gamma_3 + \gamma_4)\right]F_0\,e^{-\tau/\mu_0} .
+$$ {#eq-ch02-conservation-divergence}
+<!-- equation-check: eq-ch02-conservation-divergence check_ch02_conservation.py [C1] -->
+
+**Step 2: the conservative layer.** At $\omega = 1$ every closure has $\gamma_1 = \gamma_2$ (Meador-Weaver eq. 23),
+and $\gamma_3 + \gamma_4 = 1$ (their eq. 21). Both terms of @eq-ch02-conservation-divergence vanish:
+$F_{\mathrm{net}}$ is constant through a conservative layer.
+
+**Step 3: absorption.** Every closure of @sec-ch02-closures has $\gamma_1 - \gamma_2 = (1-\omega)/\mu_1$ with $\mu_1$
+independent of $\omega$: $\mu_1 = \tfrac12$ for Eddington and the hemispheric mean, $3^{-1/2}$ for quadrature and
+$\mu_0$ for the delta function. With Toon's mean intensity
+$J = (F^{+}+F^{-})/(4\pi\mu_1) + F_0e^{-\tau/\mu_0}/(4\pi)$ (his eqs. 17, 18), @eq-ch02-conservation-divergence becomes
+
+$$
+\frac{\mathrm{d}F_{\mathrm{net}}}{\mathrm{d}\tau} = 4\pi(1-\omega)\,J ,
+$$ {#eq-ch02-conservation-absorption}
+<!-- equation-check: eq-ch02-conservation-absorption check_ch02_conservation.py [C3] -->
+
+the power absorbed per unit optical depth. In the thermal form the beam terms are replaced by the sources
+$\mp 2\pi(1-\omega)B$ (Toon eq. 15), there is no direct beam, and the same steps give
+$4\pi(1-\omega)(J - B)$: absorption minus emission.
+
+**Step 4: the closed form.** In a homogeneous layer the general solution of @eq-ch02-closures-ode is Toon's eqs.
+(19) and (20),
+
+$$
+\begin{aligned}
+F^{+}(\tau) &= k_1 e^{\lambda\tau} + \Gamma k_2 e^{-\lambda\tau} + C^{+}(\tau) , \\
+F^{-}(\tau) &= \Gamma k_1 e^{\lambda\tau} + k_2 e^{-\lambda\tau} + C^{-}(\tau) ,
+\end{aligned}
+$$ {#eq-ch02-conservation-closed}
+<!-- equation-check: eq-ch02-conservation-closed check_ch02_conservation.py [C17] -->
+
+with $\lambda$ and $\Gamma$ of @eq-ch02-closures-hm-a and the particular solutions $C^{\pm}$ of Toon's eqs. (23),
+(24) and (27). @eq-ch02-conservation-closed is evaluated as `xk1`, `xk2`, `gam`, `Ep`, `Em`, `Cp` and `Cm` in
+`toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+
+**Step 5: why it fails at $\omega = 1$.** There $\gamma_1 = \gamma_2$, so $\lambda = 0$ and $\Gamma = 1$. Both
+homogeneous terms of @eq-ch02-conservation-closed become $(k_1 + k_2)(1, 1)$: the determinant of the basis,
+$1 - \Gamma^2$, is zero, and the basis carries no net diffuse flux. The solution it has lost is linear in $\tau$:
+
+$$
+\begin{aligned}
+F^{+} - F^{-} &= c , \\
+F^{+} + F^{-} &= 2\gamma_1 c\,\tau + d ,
+\end{aligned}
+$$ {#eq-ch02-conservation-linear}
+<!-- equation-check: eq-ch02-conservation-linear check_ch02_conservation.py [C8] -->
+<!-- equation-source: eq-ch02-conservation-linear the solution the closed form lacks at omega = 1, not evaluated by pyharp -->
+
+for constants $c$ and $d$, which solves @eq-ch02-closures-ode with $\gamma_1 = \gamma_2$ and no source. Toon et al.
+state that eqs. (19)-(20) do not apply at $\omega$ exactly 1 (p. 16,290). The tridiagonal matrix the shortwave kernel
+assembles from @eq-ch02-conservation-closed inherits the singularity. Near $\omega = 1$, $\lambda$ vanishes like
+$(1-\omega)^{1/2}$: $\lambda \approx [3(1-\omega)(1-g)]^{1/2}$ for quadrature and $2[(1-\omega)(1-g)]^{1/2}$ for the
+hemispheric mean.
+
+**Step 6: the conservative answer.** For one conservative layer of optical thickness $\Delta\tau$ over a black
+surface, Meador and Weaver's eq. (24) gives the reflectance in closed form,
+
+$$
+R = \frac{\gamma_1\Delta\tau + (\gamma_3 - \gamma_1\mu_0)\left(1 - e^{-\Delta\tau/\mu_0}\right)}{1 + \gamma_1\Delta\tau} ,
+$$ {#eq-ch02-conservation-r1}
+<!-- equation-check: eq-ch02-conservation-r1 check_ch02_conservation.py [C12] -->
+<!-- equation-source: eq-ch02-conservation-r1 reference solution, not evaluated by pyharp -->
+
+with transmittance $1 - R$. The closed form of @eq-ch02-conservation-closed tends to @eq-ch02-conservation-r1 as
+$\omega \to 1$; the error falls like $1 - \omega$.
+
+**Step 7: the clamp.** `RadiationBandImpl::forward` replaces the albedo by
+
+$$
+\omega \leftarrow \min\left(\omega,\ 1 - \delta\omega\right) ,
+$$ {#eq-ch02-conservation-clamp}
+<!-- equation-check: eq-ch02-conservation-clamp check_ch02_toon_coefficients.py [C24] -->
+
+with $\delta\omega = 10^{-12}$ for double and $10^{-6}$ for other types. @eq-ch02-conservation-clamp is computed as
+`ssa_margin` in `RadiationBandImpl::forward`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}). It trades an error of order
+$\delta\omega$ for a solvable system.
+
+**What is exact.** Steps 1 to 3 are exact identities of the two-stream equations for every closure, and Step 6 is
+exact for the conservative two-stream problem. The clamp is the one approximation. The checks are
+`derivation-checks/check_ch02_conservation.py` and `derivation-checks/check_ch02_closures.py`.
+
+### Numerical method
+
+The Toon kernels join the layers of @eq-ch02-conservation-closed through a tridiagonal system, described in the
+chapter on Toon's method. At $\Gamma = 1$ and $e^{\lambda\Delta\tau} = 1$ the two-layer shortwave matrix has
+determinant zero (check `[C9]`). The shortwave scaling maps $\omega = 1$ to exactly 1 in double precision, so
+$\gamma_1^2 - \gamma_2^2$ is round-off of either sign, and $\lambda$ comes out not a number, 0 or below $10^{-7}$
+depending on $g$ (check `[C10]`, a numpy transcription; the split is compiler dependent and not quoted).
+
+At 53-bit precision, for one layer ($\Delta\tau = 1$, $g = 0.75$, $\mu_0 = 0.5$, black surface), the error of the
+closed-form $R$ against @eq-ch02-conservation-r1 is smallest at $1 - \omega = 10^{-12}$, about $2\times10^{-12}$. It
+grows to about $5\times10^{-9}$ at $10^{-8}$ (truncation) and $7\times10^{-10}$ at $10^{-16}$ (cancellation; check
+`[C14]`). The double-precision margin is at the optimum for this case.[^ch02-conservation-run] The figure of this
+scheme is not provided: its module is not written yet.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| albedo clamp | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `ssa_margin` | always |
+| shortwave closed form | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `lam`, `gam`, `xk1`, `xk2` | always |
+| longwave closed form | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `alp`, `lam`, `gam` | `planck` |
+
+: Code map of the conservative limit. {#tbl-ch02-conservation-code}
+
+1. `RadiationBandImpl::forward` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}})
+   converts attenuation to optical thickness and then caps `prop` channel `ISS` with `clamp_max_(1.0 - ssa_margin)`.
+2. `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}})
+   has no path for $\omega = 1$; its guard `g2 = 1e-10` acts at $\omega = 0$.
+3. `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}})
+   gets `alp` $= 0$ and `gam` $= 1$ at $\omega = 1$.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| check (`check_ch02_conservation.py`) | @eq-ch02-conservation-divergence, @eq-ch02-conservation-absorption and the particular solutions (`[C1]`-`[C6]`); the $\omega = 1$ limit (`[C7]`-`[C10]`) | exact | symbolic |
+| check (`check_ch02_conservation.py`) | 40-digit ODE solution: constant $F_{\mathrm{net}}$ at $\omega = 1$ (`[C11]`, `[C15]`); @eq-ch02-conservation-r1 (`[C12]`); flux jump equals absorption (`[C16]`, `[C18]`); closed form equals ODE (`[C17]`, `[C19]`) | $10^{-30}$ | 40-digit working precision |
+| check (`check_ch02_conservation.py`) | closed form tends to @eq-ch02-conservation-r1 (`[C13]`); 53-bit optimum at $10^{-12}$ (`[C14]`) | $10^{-23}$; minimum | truncation $\propto 1-\omega$ |
+| check (`check_ch02_toon_coefficients.py`) | the clamp in `RadiationBandImpl::forward`, none in the kernels (`[C24]`) | text match | the source at the pin |
+
+: Tests of the conservation identities. {#tbl-ch02-conservation-tests}
+
+All 19 claims of the conservation check pass.[^ch02-conservation-run] No pyharp test runs a Toon solve at or near
+$\omega = 1$: missing evidence for the compiled path. (`DeviceTest.shortwave_resonance_is_continuous` covers
+$\lambda\mu_0 = 1$.)
+
+### Limits
+
+- CANDIDATE, from checks `[C9]` and `[C10]`: a direct call of the Toon module, which skips the clamp, with $\omega$
+  exactly 1 in a layer, solves a singular system, so its fluxes are set by round-off. Untested hypothesis: a solver
+  comparison that calls the Toon module directly at $\omega = 1$ sees wrong fluxes for this reason. The compiled
+  solver was not run for this chapter.
+- The single-precision margin $10^{-6}$ was not compared with the closed form here.
+- The clamp changes only $\omega$; a conservative layer then absorbs a fraction of order $\delta\omega\,\Delta\tau$,
+  which is not measured.
+
+[^ch02-conservation-tn]: Source: Toon et al. [@reading02] p. 16,291, citing W. J. Wiscombe, "The delta-Eddington
+    approximation for a vertically inhomogeneous atmosphere", NCAR Technical Note TN-121+STR, 1977. That note has no
+    DOI on Crossref or DataCite and was not read; it is not Wiscombe's delta-M paper [@reading05].
+
+[^ch02-conservation-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck:
+    `derivation-checks/check_ch02_conservation.py`, all claims (cases: $\Delta\tau = 1$, $g = 0.75$, $\mu_0 = 0.5$,
+    black surface; $\Delta\tau = 5$, $g = 0.5$, $\mu_0 = 0.866$, albedo 0.3; $\omega = 0.9$ and $0.5$ layers); run:
+    `python3 derivation-checks/check_ch02_conservation.py`, CPU, mpmath at 40 digits and at 53 bits, numpy double;
+    Python 3.13.15, sympy 1.14.0, mpmath 1.3.0, numpy 2.5.4]. Output: `derivation-checks/check_ch02_conservation.out`.
