@@ -78,7 +78,6 @@ format:
     fig-pos: htbp
     fig-width: 6.2
     fig-height: 3.4
-    latex-auto-install: false
     pdf-engine: lualatex
     fig-format: pdf       # STYLE 10.4: vector figures, PDF in the PDF
     include-in-header:
