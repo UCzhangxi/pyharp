@@ -1,0 +1,1841 @@
+[
+  {
+    "number": 1,
+    "url": "https://api.crossref.org/works/10.1364%2FAO.27.002502?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Optica Publishing Group",
+      "issue": "12",
+      "published-print": {
+        "date-parts": [
+          [
+            1988,
+            6,
+            15
+          ]
+        ]
+      },
+      "DOI": "10.1364/ao.27.002502",
+      "type": "journal-article",
+      "page": "2502",
+      "title": [
+        "Numerically stable algorithm for discrete-ordinate-method radiative transfer in multiple scattering and emitting layered media"
+      ],
+      "volume": "27",
+      "author": [
+        {
+          "given": "Knut",
+          "family": "Stamnes"
+        },
+        {
+          "given": "S-Chee",
+          "family": "Tsay"
+        },
+        {
+          "given": "Warren",
+          "family": "Wiscombe"
+        },
+        {
+          "given": "Kolf",
+          "family": "Jayaweera"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            1988,
+            6,
+            15
+          ]
+        ]
+      },
+      "container-title": [
+        "Applied Optics"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1988,
+            6,
+            15
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 2,
+    "url": "https://api.crossref.org/works/10.1029%2FJD094iD13p16287?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Geophysical Union (AGU)",
+      "issue": "D13",
+      "published-print": {
+        "date-parts": [
+          [
+            1989,
+            11,
+            20
+          ]
+        ]
+      },
+      "DOI": "10.1029/jd094id13p16287",
+      "type": "journal-article",
+      "page": "16287-16301",
+      "title": [
+        "Rapid calculation of radiative heating rates and photodissociation rates in inhomogeneous multiple scattering atmospheres"
+      ],
+      "volume": "94",
+      "author": [
+        {
+          "given": "Owen B.",
+          "family": "Toon"
+        },
+        {
+          "given": "C. P.",
+          "family": "McKay"
+        },
+        {
+          "given": "T. P.",
+          "family": "Ackerman"
+        },
+        {
+          "given": "K.",
+          "family": "Santhanam"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2012,
+            9,
+            21
+          ]
+        ]
+      },
+      "container-title": [
+        "Journal of Geophysical Research: Atmospheres"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1989,
+            11,
+            20
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 3,
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2011.03.019?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "issue": "12",
+      "published-print": {
+        "date-parts": [
+          [
+            2011,
+            8
+          ]
+        ]
+      },
+      "DOI": "10.1016/j.jqsrt.2011.03.019",
+      "type": "journal-article",
+      "page": "2028-2034",
+      "title": [
+        "New secondary-scattering correction in DISORT with increased efficiency for forward scattering"
+      ],
+      "volume": "112",
+      "author": [
+        {
+          "given": "Robert",
+          "family": "Buras"
+        },
+        {
+          "given": "Timothy",
+          "family": "Dowling"
+        },
+        {
+          "given": "Claudia",
+          "family": "Emde"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2011,
+            8
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 4,
+    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2888%2990031-3?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            1988,
+            7
+          ]
+        ]
+      },
+      "DOI": "10.1016/0022-4073(88)90031-3",
+      "type": "journal-article",
+      "page": "51-69",
+      "title": [
+        "Algorithms for radiative intensity calculations in moderately thick atmospheres using a truncation approximation"
+      ],
+      "volume": "40",
+      "author": [
+        {
+          "given": "T.",
+          "family": "Nakajima"
+        },
+        {
+          "given": "M.",
+          "family": "Tanaka"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1988,
+            7
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 5,
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281977%29034%3C1408%3ATDMRYA%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Meteorological Society",
+      "issue": "9",
+      "published-print": {
+        "date-parts": [
+          [
+            1977,
+            9
+          ]
+        ]
+      },
+      "DOI": "10.1175/1520-0469(1977)034<1408:tdmrya>2.0.co;2",
+      "type": "journal-article",
+      "page": "1408-1422",
+      "title": [
+        "The Delta–<i>M</i>Method: Rapid Yet Accurate Radiative Flux Calculations for Strongly Asymmetric Phase Functions"
+      ],
+      "volume": "34",
+      "author": [
+        {
+          "given": "W. J.",
+          "family": "Wiscombe"
+        }
+      ],
+      "container-title": [
+        "Journal of the Atmospheric Sciences"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1977,
+            9
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 6,
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281976%29033%3C2452%3ATDEAFR%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Meteorological Society",
+      "issue": "12",
+      "published-print": {
+        "date-parts": [
+          [
+            1976,
+            12
+          ]
+        ]
+      },
+      "DOI": "10.1175/1520-0469(1976)033<2452:tdeafr>2.0.co;2",
+      "type": "journal-article",
+      "page": "2452-2459",
+      "title": [
+        "The Delta-Eddington Approximation for Radiative Flux Transfer"
+      ],
+      "volume": "33",
+      "author": [
+        {
+          "given": "J. H.",
+          "family": "Joseph"
+        },
+        {
+          "given": "W. J.",
+          "family": "Wiscombe"
+        },
+        {
+          "given": "J. A.",
+          "family": "Weinman"
+        }
+      ],
+      "container-title": [
+        "Journal of the Atmospheric Sciences"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1976,
+            12
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 7,
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281980%29037%3C0630%3ATSATRT%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Meteorological Society",
+      "issue": "3",
+      "published-print": {
+        "date-parts": [
+          [
+            1980,
+            3
+          ]
+        ]
+      },
+      "DOI": "10.1175/1520-0469(1980)037<0630:tsatrt>2.0.co;2",
+      "type": "journal-article",
+      "page": "630-643",
+      "title": [
+        "Two-Stream Approximations to Radiative Transfer in Planetary Atmospheres: A Unified Description of Existing Methods and a New Improvement"
+      ],
+      "volume": "37",
+      "author": [
+        {
+          "given": "W. E.",
+          "family": "Meador"
+        },
+        {
+          "given": "W. R.",
+          "family": "Weaver"
+        }
+      ],
+      "container-title": [
+        "Journal of the Atmospheric Sciences"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1980,
+            3
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 8,
+    "url": "https://api.crossref.org/works/10.1029%2F90JD01945?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Geophysical Union (AGU)",
+      "issue": "D5",
+      "published-print": {
+        "date-parts": [
+          [
+            1991,
+            5,
+            20
+          ]
+        ]
+      },
+      "DOI": "10.1029/90jd01945",
+      "type": "journal-article",
+      "page": "9027-9063",
+      "title": [
+        "A description of the correlated <i>k</i> distribution method for modeling nongray gaseous absorption, thermal emission, and multiple scattering in vertically inhomogeneous atmospheres"
+      ],
+      "volume": "96",
+      "author": [
+        {
+          "given": "Andrew A.",
+          "family": "Lacis"
+        },
+        {
+          "given": "Valdar",
+          "family": "Oinas"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2012,
+            9,
+            21
+          ]
+        ]
+      },
+      "container-title": [
+        "Journal of Geophysical Research: Atmospheres"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1991,
+            5,
+            20
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 9,
+    "url": "https://api.crossref.org/works/10.1175%2F1520-0469%281992%29049%3C2139%3AOTCDMF%3E2.0.CO%3B2?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Meteorological Society",
+      "issue": "22",
+      "published-print": {
+        "date-parts": [
+          [
+            1992,
+            11
+          ]
+        ]
+      },
+      "DOI": "10.1175/1520-0469(1992)049<2139:otcdmf>2.0.co;2",
+      "type": "journal-article",
+      "page": "2139-2156",
+      "title": [
+        "On the Correlated<i>k</i>-Distribution Method for Radiative Transfer in Nonhomogeneous Atmospheres"
+      ],
+      "volume": "49",
+      "author": [
+        {
+          "given": "Qiang",
+          "family": "Fu"
+        },
+        {
+          "given": "K. N.",
+          "family": "Liou"
+        }
+      ],
+      "container-title": [
+        "Journal of the Atmospheric Sciences"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1992,
+            11
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 10,
+    "url": "https://api.crossref.org/works/10.1016%2F0022-4073%2889%2990044-7?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "issue": "6",
+      "published-print": {
+        "date-parts": [
+          [
+            1989,
+            12
+          ]
+        ]
+      },
+      "DOI": "10.1016/0022-4073(89)90044-7",
+      "type": "journal-article",
+      "page": "539-550",
+      "title": [
+        "The correlated-k method for radiation calculations in nonhomogeneous atmospheres"
+      ],
+      "volume": "42",
+      "author": [
+        {
+          "given": "Richard",
+          "family": "Goody"
+        },
+        {
+          "given": "Robert",
+          "family": "West"
+        },
+        {
+          "given": "Luke",
+          "family": "Chen"
+        },
+        {
+          "given": "David",
+          "family": "Crisp"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1989,
+            12
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 11,
+    "url": "https://api.crossref.org/works/10.1088%2F0004-637X%2F808%2F2%2F182?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "2",
+      "DOI": "10.1088/0004-637x/808/2/182",
+      "type": "journal-article",
+      "page": "182",
+      "title": [
+        "<tt>HELIOS-K</tt>: AN ULTRAFAST, OPEN-SOURCE OPACITY CALCULATOR FOR RADIATIVE TRANSFER"
+      ],
+      "volume": "808",
+      "author": [
+        {
+          "given": "Simon L.",
+          "family": "Grimm"
+        },
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2015,
+            8,
+            3
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2015,
+            8,
+            3
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 12,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fab1b51?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            2019,
+            6,
+            10
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4357/ab1b51",
+      "type": "journal-article",
+      "page": "70",
+      "title": [
+        "Exoplanet Reflected-light Spectroscopy with PICASO"
+      ],
+      "volume": "878",
+      "author": [
+        {
+          "given": "Natasha E.",
+          "family": "Batalha"
+        },
+        {
+          "given": "Mark S.",
+          "family": "Marley"
+        },
+        {
+          "given": "Nikole K.",
+          "family": "Lewis"
+        },
+        {
+          "given": "Jonathan J.",
+          "family": "Fortney"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2019,
+            6,
+            14
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2019,
+            6,
+            10
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 13,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fac9f48?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "2",
+      "published-print": {
+        "date-parts": [
+          [
+            2023,
+            1,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4357/ac9f48",
+      "type": "journal-article",
+      "page": "71",
+      "title": [
+        "PICASO 3.0: A One-dimensional Climate Model for Giant Planets and Brown Dwarfs"
+      ],
+      "volume": "942",
+      "author": [
+        {
+          "given": "Sagnick",
+          "family": "Mukherjee"
+        },
+        {
+          "given": "Natasha E.",
+          "family": "Batalha"
+        },
+        {
+          "given": "Jonathan J.",
+          "family": "Fortney"
+        },
+        {
+          "given": "Mark S.",
+          "family": "Marley"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2023,
+            1,
+            12
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2023,
+            1,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 14,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Fae47ff?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            2026,
+            3,
+            20
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4357/ae47ff",
+      "type": "journal-article",
+      "page": "98",
+      "title": [
+        "<tt>PICASO 4.0</tt>\n                    : Clouds and Photochemistry in Climate Models of Brown Dwarfs and Exoplanets"
+      ],
+      "volume": "1000",
+      "author": [
+        {
+          "given": "James",
+          "family": "Mang"
+        },
+        {
+          "given": "Natasha E.",
+          "family": "Batalha"
+        },
+        {
+          "given": "Caroline V.",
+          "family": "Morley"
+        },
+        {
+          "given": "Nicholas F.",
+          "family": "Wogan"
+        },
+        {
+          "given": "Sagnick",
+          "family": "Mukherjee"
+        },
+        {
+          "given": "Channon",
+          "family": "Visscher"
+        },
+        {
+          "given": "Mark S.",
+          "family": "Marley"
+        },
+        {
+          "given": "Jonathan J.",
+          "family": "Fortney"
+        },
+        {
+          "given": "Katy L.",
+          "family": "Chubb"
+        },
+        {
+          "given": "Peter",
+          "family": "Gao"
+        },
+        {
+          "given": "Isaac",
+          "family": "Malsky"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2026,
+            3,
+            16
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2026,
+            3,
+            16
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 15,
+    "url": "https://api.crossref.org/works/10.1088%2F0067-0049%2F215%2F1%2F4?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "1",
+      "DOI": "10.1088/0067-0049/215/1/4",
+      "type": "journal-article",
+      "page": "4",
+      "title": [
+        "ANALYTICAL MODELS OF EXOPLANETARY ATMOSPHERES. II. RADIATIVE TRANSFER VIA THE TWO-STREAM APPROXIMATION"
+      ],
+      "volume": "215",
+      "author": [
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        },
+        {
+          "given": "João M.",
+          "family": "Mendonça"
+        },
+        {
+          "given": "Jae-Min",
+          "family": "Lee"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2014,
+            10,
+            20
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal Supplement Series"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2014,
+            10,
+            20
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 16,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faa8907?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "2",
+      "published-print": {
+        "date-parts": [
+          [
+            2017,
+            10,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4365/aa8907",
+      "type": "journal-article",
+      "page": "20",
+      "title": [
+        "Analytical Models of Exoplanetary Atmospheres. IV. Improved Two-stream Radiative Transfer for the Treatment of Aerosols"
+      ],
+      "volume": "232",
+      "author": [
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        },
+        {
+          "given": "Daniel",
+          "family": "Kitzmann"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2017,
+            9,
+            27
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal Supplement Series"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2017,
+            9,
+            27
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 17,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-3881%2F153%2F2%2F56?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "2",
+      "DOI": "10.3847/1538-3881/153/2/56",
+      "type": "journal-article",
+      "page": "56",
+      "title": [
+        "HELIOS: AN OPEN-SOURCE, GPU-ACCELERATED RADIATIVE TRANSFER CODE FOR SELF-CONSISTENT EXOPLANETARY ATMOSPHERES"
+      ],
+      "volume": "153",
+      "author": [
+        {
+          "given": "Matej",
+          "family": "Malik"
+        },
+        {
+          "given": "Luc",
+          "family": "Grosheintz"
+        },
+        {
+          "given": "João M.",
+          "family": "Mendonça"
+        },
+        {
+          "given": "Simon L.",
+          "family": "Grimm"
+        },
+        {
+          "given": "Baptiste",
+          "family": "Lavie"
+        },
+        {
+          "given": "Daniel",
+          "family": "Kitzmann"
+        },
+        {
+          "given": "Shang-Min",
+          "family": "Tsai"
+        },
+        {
+          "given": "Adam",
+          "family": "Burrows"
+        },
+        {
+          "given": "Laura",
+          "family": "Kreidberg"
+        },
+        {
+          "given": "Megan",
+          "family": "Bedell"
+        },
+        {
+          "given": "Jacob L.",
+          "family": "Bean"
+        },
+        {
+          "given": "Kevin B.",
+          "family": "Stevenson"
+        },
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2017,
+            1,
+            9
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astronomical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2017,
+            1,
+            9
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 18,
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201323169?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "EDP Sciences",
+      "published-print": {
+        "date-parts": [
+          [
+            2014,
+            4
+          ]
+        ]
+      },
+      "DOI": "10.1051/0004-6361/201323169",
+      "type": "journal-article",
+      "page": "A59",
+      "title": [
+        "Accuracy tests of radiation schemes used in hot Jupiter global circulation models"
+      ],
+      "volume": "564",
+      "author": [
+        {
+          "given": "David S.",
+          "family": "Amundsen"
+        },
+        {
+          "given": "Isabelle",
+          "family": "Baraffe"
+        },
+        {
+          "given": "Pascal",
+          "family": "Tremblin"
+        },
+        {
+          "given": "James",
+          "family": "Manners"
+        },
+        {
+          "given": "Wolfgang",
+          "family": "Hayek"
+        },
+        {
+          "given": "Nathan J.",
+          "family": "Mayne"
+        },
+        {
+          "given": "David M.",
+          "family": "Acreman"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2014,
+            4,
+            7
+          ]
+        ]
+      },
+      "container-title": [
+        "Astronomy &amp; Astrophysics"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2014,
+            4
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 19,
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F201629322?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "EDP Sciences",
+      "published-print": {
+        "date-parts": [
+          [
+            2017,
+            2
+          ]
+        ]
+      },
+      "DOI": "10.1051/0004-6361/201629322",
+      "type": "journal-article",
+      "page": "A97",
+      "title": [
+        "Treatment of overlapping gaseous absorption with the correlated-\n                    <i>k</i>\n                    method in hot Jupiter and brown dwarf atmosphere models"
+      ],
+      "volume": "598",
+      "author": [
+        {
+          "given": "David S.",
+          "family": "Amundsen"
+        },
+        {
+          "given": "Pascal",
+          "family": "Tremblin"
+        },
+        {
+          "given": "James",
+          "family": "Manners"
+        },
+        {
+          "given": "Isabelle",
+          "family": "Baraffe"
+        },
+        {
+          "given": "Nathan J.",
+          "family": "Mayne"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2017,
+            2,
+            9
+          ]
+        ]
+      },
+      "container-title": [
+        "Astronomy &amp; Astrophysics"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2017,
+            2
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 20,
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2015.02.014?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "published-print": {
+        "date-parts": [
+          [
+            2015,
+            5
+          ]
+        ]
+      },
+      "DOI": "10.1016/j.jqsrt.2015.02.014",
+      "type": "journal-article",
+      "page": "119-134",
+      "title": [
+        "Improved discrete ordinate solutions in the presence of an anisotropically reflecting lower boundary: Upgrades of the DISORT computational tool"
+      ],
+      "volume": "157",
+      "author": [
+        {
+          "given": "Z.",
+          "family": "Lin"
+        },
+        {
+          "given": "S.",
+          "family": "Stamnes"
+        },
+        {
+          "given": "Z.",
+          "family": "Jin"
+        },
+        {
+          "given": "I.",
+          "family": "Laszlo"
+        },
+        {
+          "given": "S.-C.",
+          "family": "Tsay"
+        },
+        {
+          "given": "W.J.",
+          "family": "Wiscombe"
+        },
+        {
+          "given": "K.",
+          "family": "Stamnes"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2015,
+            5
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 21,
+    "url": "https://api.crossref.org/works/10.1175%2FJAS-D-17-0233.1?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Meteorological Society",
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            2018,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.1175/jas-d-17-0233.1",
+      "type": "journal-article",
+      "page": "327-336",
+      "title": [
+        "New Treatment of Strongly Anisotropic Scattering Phase Functions: The Delta-<i>M</i>+ Method"
+      ],
+      "volume": "75",
+      "author": [
+        {
+          "given": "Zhenyi",
+          "family": "Lin"
+        },
+        {
+          "given": "Nan",
+          "family": "Chen"
+        },
+        {
+          "given": "Yongzhen",
+          "family": "Fan"
+        },
+        {
+          "given": "Wei",
+          "family": "Li"
+        },
+        {
+          "given": "Knut",
+          "family": "Stamnes"
+        },
+        {
+          "given": "Snorre",
+          "family": "Stamnes"
+        }
+      ],
+      "container-title": [
+        "Journal of the Atmospheric Sciences"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2018,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 22,
+    "url": "https://api.crossref.org/works/10.1007%2F978-3-662-49538-4_1?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Springer Berlin Heidelberg",
+      "published-print": {
+        "date-parts": [
+          [
+            2016
+          ]
+        ]
+      },
+      "DOI": "10.1007/978-3-662-49538-4_1",
+      "type": "book-chapter",
+      "page": "3-65",
+      "title": [
+        "The Discrete Ordinate Algorithm, DISORT for Radiative Transfer"
+      ],
+      "author": [
+        {
+          "given": "Istvan",
+          "family": "Laszlo"
+        },
+        {
+          "given": "Knut",
+          "family": "Stamnes"
+        },
+        {
+          "given": "Warren J.",
+          "family": "Wiscombe"
+        },
+        {
+          "given": "Si-Chee",
+          "family": "Tsay"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2016,
+            5,
+            13
+          ]
+        ]
+      },
+      "container-title": [
+        "Light Scattering Reviews, Volume 11"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2016
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 23,
+    "url": "https://api.crossref.org/works/10.21105%2Fjoss.06442?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "The Open Journal",
+      "issue": "103",
+      "published-print": {
+        "date-parts": [
+          [
+            2024,
+            11,
+            18
+          ]
+        ]
+      },
+      "DOI": "10.21105/joss.06442",
+      "type": "journal-article",
+      "page": "6442",
+      "title": [
+        "PythonicDISORT: A Python reimplementation of the\nDiscrete Ordinate Radiative Transfer package DISORT"
+      ],
+      "volume": "9",
+      "author": [
+        {
+          "given": "Dion J. X.",
+          "family": "Ho"
+        }
+      ],
+      "container-title": [
+        "Journal of Open Source Software"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2024,
+            11,
+            18
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 24,
+    "url": "https://api.crossref.org/works/10.1017%2F9781316148549?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Cambridge University Press",
+      "published-print": {
+        "date-parts": [
+          [
+            2017,
+            7,
+            13
+          ]
+        ]
+      },
+      "DOI": "10.1017/9781316148549",
+      "type": "monograph",
+      "title": [
+        "Radiative Transfer in the Atmosphere and Ocean"
+      ],
+      "author": [
+        {
+          "given": "Knut",
+          "family": "Stamnes"
+        },
+        {
+          "given": "Gary E.",
+          "family": "Thomas"
+        },
+        {
+          "given": "Jakob J.",
+          "family": "Stamnes"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2017,
+            7,
+            13
+          ]
+        ]
+      },
+      "container-title": [],
+      "issued": {
+        "date-parts": [
+          [
+            2017,
+            7,
+            13
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 25,
+    "url": "https://api.crossref.org/works/10.1080%2F00411458508211687?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Informa UK Limited",
+      "issue": "4",
+      "published-print": {
+        "date-parts": [
+          [
+            1985,
+            10
+          ]
+        ]
+      },
+      "DOI": "10.1080/00411458508211687",
+      "type": "journal-article",
+      "page": "437-483",
+      "title": [
+        "Benchmark results in radiative transfer"
+      ],
+      "volume": "14",
+      "author": [
+        {
+          "given": "R. D. M.",
+          "family": "Garcia"
+        },
+        {
+          "given": "C. E.",
+          "family": "Siewert"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2006,
+            8,
+            19
+          ]
+        ]
+      },
+      "container-title": [
+        "Transport Theory and Statistical Physics"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            1985,
+            10
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 26,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4357%2Facca79?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "1",
+      "published-print": {
+        "date-parts": [
+          [
+            2023,
+            6,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4357/acca79",
+      "type": "journal-article",
+      "page": "22",
+      "title": [
+        "Spherical Harmonics for the 1D Radiative Transfer Equation. I. Reflected Light"
+      ],
+      "volume": "950",
+      "author": [
+        {
+          "given": "Caoimhe M.",
+          "family": "Rooney"
+        },
+        {
+          "given": "Natasha E.",
+          "family": "Batalha"
+        },
+        {
+          "given": "Mark S.",
+          "family": "Marley"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2023,
+            6,
+            7
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2023,
+            6,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 27,
+    "url": "https://api.crossref.org/works/10.5194%2Fgmd-13-6501-2020?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Copernicus GmbH",
+      "issue": "12",
+      "DOI": "10.5194/gmd-13-6501-2020",
+      "type": "journal-article",
+      "page": "6501-6521",
+      "title": [
+        "Evaluating and improving the treatment of gases in radiation schemes: the Correlated K-Distribution Model Intercomparison Project (CKDMIP)"
+      ],
+      "volume": "13",
+      "author": [
+        {
+          "given": "Robin J.",
+          "family": "Hogan"
+        },
+        {
+          "given": "Marco",
+          "family": "Matricardi"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2020,
+            12,
+            22
+          ]
+        ]
+      },
+      "container-title": [
+        "Geoscientific Model Development"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2020,
+            12,
+            22
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 28,
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2010.01.002?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "issue": "11",
+      "published-print": {
+        "date-parts": [
+          [
+            2010,
+            7
+          ]
+        ]
+      },
+      "DOI": "10.1016/j.jqsrt.2010.01.002",
+      "type": "journal-article",
+      "page": "1651-1652",
+      "title": [
+        "A retrospective view on “algorithms for radiative intensity calculations in moderately thick atmospheres using a truncation approximation” by Teruyuki Nakajima and Masayuki Tanaka (1988)"
+      ],
+      "volume": "111",
+      "author": [
+        {
+          "given": "Teruyuki",
+          "family": "Nakajima"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2010,
+            7
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 29,
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2009.04.006?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "issue": "17",
+      "published-print": {
+        "date-parts": [
+          [
+            2009,
+            11
+          ]
+        ]
+      },
+      "DOI": "10.1016/j.jqsrt.2009.04.006",
+      "type": "journal-article",
+      "page": "1926-1939",
+      "title": [
+        "Fast and accurate radiance calculations using truncation approximation for anisotropic scattering phase functions"
+      ],
+      "volume": "110",
+      "author": [
+        {
+          "given": "Hironobu",
+          "family": "Iwabuchi"
+        },
+        {
+          "given": "Tsuneaki",
+          "family": "Suzuki"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2009,
+            11
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 30,
+    "url": "https://api.crossref.org/works/10.1051%2F0004-6361%2F202039040?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "EDP Sciences",
+      "published-print": {
+        "date-parts": [
+          [
+            2021,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.1051/0004-6361/202039040",
+      "type": "journal-article",
+      "page": "A20",
+      "title": [
+        "Spectral binning of precomputed correlated-\n                    <i>k</i>\n                    coefficients"
+      ],
+      "volume": "645",
+      "author": [
+        {
+          "given": "Jérémy",
+          "family": "Leconte"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2020,
+            12,
+            22
+          ]
+        ]
+      },
+      "container-title": [
+        "Astronomy &amp; Astrophysics"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2020,
+            12,
+            22
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 31,
+    "url": "https://api.crossref.org/works/10.1016%2Fj.jqsrt.2014.11.006?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Elsevier BV",
+      "published-print": {
+        "date-parts": [
+          [
+            2015,
+            3
+          ]
+        ]
+      },
+      "DOI": "10.1016/j.jqsrt.2014.11.006",
+      "type": "journal-article",
+      "page": "72-90",
+      "title": [
+        "The response matrix discrete ordinates solution to the 1D radiative transfer equation"
+      ],
+      "volume": "154",
+      "author": [
+        {
+          "given": "Barry D.",
+          "family": "Ganapol"
+        }
+      ],
+      "container-title": [
+        "Journal of Quantitative Spectroscopy and Radiative Transfer"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2015,
+            3
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 32,
+    "url": "https://api.crossref.org/works/10.1093%2Fmnras%2Fstac680?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "Oxford University Press (OUP)",
+      "issue": "3",
+      "published-print": {
+        "date-parts": [
+          [
+            2022,
+            4,
+            5
+          ]
+        ]
+      },
+      "DOI": "10.1093/mnras/stac680",
+      "type": "journal-article",
+      "page": "3759-3787",
+      "title": [
+        "The <tt>THOR + HELIOS</tt> general circulation model: multiwavelength radiative transfer with accurate scattering by clouds/hazes"
+      ],
+      "volume": "512",
+      "author": [
+        {
+          "given": "Russell",
+          "family": "Deitrick"
+        },
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        },
+        {
+          "given": "Urs",
+          "family": "Schroffenegger"
+        },
+        {
+          "given": "Daniel",
+          "family": "Kitzmann"
+        },
+        {
+          "given": "Simon L",
+          "family": "Grimm"
+        },
+        {
+          "given": "Matej",
+          "family": "Malik"
+        },
+        {
+          "given": "João M",
+          "family": "Mendonça"
+        },
+        {
+          "given": "Brett M",
+          "family": "Morris"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2022,
+            3,
+            12
+          ]
+        ]
+      },
+      "container-title": [
+        "Monthly Notices of the Royal Astronomical Society"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2022,
+            3,
+            12
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "number": 33,
+    "url": "https://api.crossref.org/works/10.3847%2F1538-4365%2Faad199?mailto=tianhaol%40umich.edu",
+    "message": {
+      "publisher": "American Astronomical Society",
+      "issue": "2",
+      "published-print": {
+        "date-parts": [
+          [
+            2018,
+            8,
+            1
+          ]
+        ]
+      },
+      "DOI": "10.3847/1538-4365/aad199",
+      "type": "journal-article",
+      "page": "29",
+      "title": [
+        "Analytical Models of Exoplanetary Atmospheres. VI. Full Solutions for Improved Two-stream Radiative Transfer, Including Direct Stellar Beam"
+      ],
+      "volume": "237",
+      "author": [
+        {
+          "given": "Kevin",
+          "family": "Heng"
+        },
+        {
+          "given": "Matej",
+          "family": "Malik"
+        },
+        {
+          "given": "Daniel",
+          "family": "Kitzmann"
+        }
+      ],
+      "published-online": {
+        "date-parts": [
+          [
+            2018,
+            8,
+            2
+          ]
+        ]
+      },
+      "container-title": [
+        "The Astrophysical Journal Supplement Series"
+      ],
+      "issued": {
+        "date-parts": [
+          [
+            2018,
+            8,
+            1
+          ]
+        ]
+      }
+    }
+  }
+]

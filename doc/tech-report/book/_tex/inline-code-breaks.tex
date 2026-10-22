@@ -1,0 +1,86 @@
+% The PDF template of the report (STYLE 10.9: no overfull line over 10 pt). Three parts: inline code may
+% break after _ / : @ and dots, and at CamelCase boundaries; running heads show the chapter title;
+% long hex strings may break inside.
+%
+% Inline code may break after _ / : @ and dots, and at CamelCase word boundaries.
+% Pandoc writes inline code as \texttt{...}. This wraps \texttt so that every \_, /, : and @ in its
+% argument is followed by an empty discretionary: a line break with no hyphen, at the penalty
+% \exhyphenpenalty, taken only where the line needs it. A C++ scope :: stays together and breaks
+% after its second colon. Prose, headings and code blocks (Shaded, verbatim) do not change: blocks do
+% not use \texttt. PDF bookmarks do not change: hyperref's \pdfstringdef replaces \texttt by its
+% argument. The patterns are strings (catcode 12), as the characters are in the document body,
+% whatever \ExplSyntaxOn or \makeatletter make of : and @ here.
+\ExplSyntaxOn
+\NewCommandCopy \__pyharp_texttt:n \texttt
+\cs_new:Npn \__pyharp_tt_break: { \discretionary { } { } { } }
+\cs_generate_variant:Nn \tl_replace_all:Nnn { Nee }
+\tl_new:N \l__pyharp_tt_tl
+\cs_new_protected:Npn \__pyharp_tt_after:n #1
+  {
+    \tl_replace_all:Nee \l__pyharp_tt_tl
+      { \tl_to_str:n {#1} } { \tl_to_str:n {#1} \exp_not:N \__pyharp_tt_break: }
+  }
+\RenewDocumentCommand \texttt { m }
+  {
+    \tl_set:Nn \l__pyharp_tt_tl {#1}
+    \tl_replace_all:Nnn \l__pyharp_tt_tl { \_ } { \_ \__pyharp_tt_break: }
+    % Test-suite separators and CamelCase word boundaries are legal break points.
+    % Empty discretionaries preserve the identifier spelling (no visible hyphen).
+    \regex_replace_all:nnN { ([a-z]) ([A-Z]) }
+      { \1 \c{__pyharp_tt_break:} \2 } \l__pyharp_tt_tl
+    \__pyharp_tt_after:n { . }
+    \__pyharp_tt_after:n { / }
+    \__pyharp_tt_after:n { @ }
+    \__pyharp_tt_after:n { : }
+    \tl_replace_all:Nee \l__pyharp_tt_tl
+      { \exp_not:N \__pyharp_tt_break: \tl_to_str:n { : } } { \tl_to_str:n { : } }
+    \__pyharp_texttt:n { \tl_use:N \l__pyharp_tt_tl }
+  }
+\ExplSyntaxOff
+
+% Running heads show the chapter title only, on left and right pages (editor's ruling): a section title
+% with a long code name does not fit a one-line head, and authors do not shorten their titles.
+\usepackage{scrlayer-scrpage}
+\automark[chapter]{chapter}
+\pagestyle{scrheadings}
+
+% Long hex strings in running text (a 40-character sha, path@sha) may break anywhere inside, with no
+% hyphen (STYLE 10.9). A Lua filter, run on each paragraph before line breaking, puts an empty
+% discretionary (penalty \exhyphenpenalty) between the characters of every run of at least 16
+% lower-case hex characters that holds a digit and a letter, outside math. Ordinary words never
+% qualify, so their hyphenation is unchanged.
+\directlua{
+  local GLYPH, KERN, DISC, MATH = node.id("glyph"), node.id("kern"), node.id("disc"), node.id("math")
+  local function hex(c) return (c >= 48 and c <= 57) or (c >= 97 and c <= 102) end
+  local function hexbreaks(head)
+    local n, inmath = head, false
+    while n do
+      if n.id == MATH then
+        inmath = (n.subtype == 0)
+        n = n.next
+      elseif inmath or n.id ~= GLYPH or not hex(n.char) then
+        n = n.next
+      else
+        local run, k, digit, letter, m = {}, 0, false, false, n
+        while m and ((m.id == GLYPH and hex(m.char)) or m.id == KERN) do
+          if m.id == GLYPH then
+            k = k + 1
+            run[k] = m
+            if m.char <= 57 then digit = true else letter = true end
+          end
+          m = m.next
+        end
+        if k >= 16 and digit and letter then
+          for i = 1, k - 1 do
+            local d = node.new(DISC)
+            d.penalty = tex.exhyphenpenalty
+            head = node.insert_after(head, run[i], d)
+          end
+        end
+        n = m
+      end
+    end
+    return head
+  end
+  luatexbase.add_to_callback("pre_linebreak_filter", hexbreaks, "pyharp-report hex breaks")
+}

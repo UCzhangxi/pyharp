@@ -1,0 +1,3 @@
+# The radiative-transfer problem and its approximations {#sec-ch02}
+
+pending

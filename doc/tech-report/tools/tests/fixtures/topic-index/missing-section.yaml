@@ -1,0 +1,6 @@
+# A topic index that leaves sec-ch01-cfl without an entry.
+sections:
+  sec-preface-install:
+    - install
+  sec-ch01-implicit:
+    - implicit scheme

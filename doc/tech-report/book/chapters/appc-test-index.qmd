@@ -1,0 +1,7 @@
+# Test index {#sec-appc}
+
+pending
+
+The inventory below was captured by running `ctest --show-only=json-v1` in the configured build's `tests/` directory. The build root registers zero tests; the imported refresh command still needs explicit subdirectory support. No test execution is implied by this inventory.
+
+{{< include appendices/_appc-test-index.qmd >}}

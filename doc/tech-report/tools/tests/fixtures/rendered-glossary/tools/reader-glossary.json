@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entries": [
+    {"kind": "acronym", "term": "CPU", "meaning": "central processing unit", "section": "sec-ch01-driver"},
+    {"kind": "symbol", "term": "$x_1, x_2, x_3$", "notation_group": "1", "section": "sec-appa-1"},
+    {"kind": "key", "term": "type", "meaning": "selector", "section": "sec-ch02-laws"}
+  ]
+}

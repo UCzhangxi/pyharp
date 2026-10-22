@@ -1,0 +1,3 @@
+Good: `bbflux_wavelength` ([`bbflux.cpp:164-166`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L164-L166)).
+Bad sha: `bbflux_wavelength` ([`bbflux.cpp:164-166`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae69670/src/radiation/bbflux.cpp#L164-L166)).
+Out of range: `bbflux_wavelength` ([`bbflux.cpp:188-200`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L188-L200)).

@@ -1,0 +1,7 @@
+Past the end: [`bbflux.cpp:188-191`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L188-L191).
+No such file: [`nope.cpp:1`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/nope.cpp#L1).
+Not pinned: [`bbflux.cpp:1`](https://github.com/chengcli/pyharp/blob/main/src/radiation/bbflux.cpp#L1).
+Short sha in a URL: [`bbflux.cpp:1`](https://github.com/chengcli/pyharp/blob/f34506f/src/radiation/bbflux.cpp#L1).
+Link text and anchor disagree: [`bbflux.cpp:2-5`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L2-L6).
+Unknown sha: [`bbflux.cpp:1`](https://github.com/chengcli/pyharp/blob/0000000000000000000000000000000000000000/src/radiation/bbflux.cpp#L1).
+Notation in a .qmd: `src/radiation/bbflux.cpp:1@f34506f9d14ee7b1f2e1222775baa5093ae6967f`.

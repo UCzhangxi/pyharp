@@ -1,0 +1,10 @@
+Test project /src/build
+Could not find executable rand
+Looked in the following places:
+rand
+Unable to find executable: rand
+  Test    #1: rand
+  Test  #12: test_eos.release
+  Test #113: test_seam_gloo
+
+Total Tests: 3

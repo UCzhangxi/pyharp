@@ -1,0 +1,6 @@
+A note reference, STYLE 3.2: `docs/source/conf.py@f34506f9d14ee7b1f2e1222775baa5093ae6967f` §1.
+The same with a short sha: `docs/source/conf.py@f34506f` §1.
+A script with an output label: `docs/_static/example_sonora_2020_flux.py@f34506f9d14ee7b1f2e1222775baa5093ae6967f`, output label `[C6]`.
+A note that is not at that sha: `docs/no-such-note.md@f34506f9d14ee7b1f2e1222775baa5093ae6967f` §1.
+Code is not a note: `src/radiation/bbflux.cpp@f34506f9d14ee7b1f2e1222775baa5093ae6967f`.
+A note with lines is the code-citation notation: `docs/source/conf.py:10-20@f34506f9d14ee7b1f2e1222775baa5093ae6967f`.

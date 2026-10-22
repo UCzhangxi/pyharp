@@ -1,0 +1,13 @@
+## C {.unnumbered .unlisted}
+
+**CPU**: Driver loop, @sec-ch01-driver. See also **processor**.
+
+**conservation laws**: Conservation laws, @sec-ch02-laws.
+
+## T {.unnumbered .unlisted}
+
+**`type`**: Conservation laws, @sec-ch02-laws.
+
+## X {.unnumbered .unlisted}
+
+**$x_1, x_2, x_3$**: [1. Coordinates and grids](#sec-appa-1).

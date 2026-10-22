@@ -1,0 +1,3 @@
+# Optical-property assembly and spectral integration {#sec-ch07}
+
+pending

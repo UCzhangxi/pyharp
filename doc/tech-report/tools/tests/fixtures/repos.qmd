@@ -1,0 +1,5 @@
+Allowed: `bbflux_wavenumber` ([`bbflux.cpp:10-21`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21)).
+A fork not on the list: `bbflux_wavenumber` ([`bbflux.cpp:10-21`](https://github.com/octocat/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10-L21)).
+Another repository: `map` ([`disort.cpp:1-10`](https://github.com/zoeyzyhu/pydisort/blob/8af15242a265a60ea6fb51c29d48e6688a63ab67/src/disort.cpp#L1-L10)).
+Another repository: `map` ([`disort.cpp:1-10`](https://github.com/zoeyzyhu/pydisort/blob/8af15242a265a60ea6fb51c29d48e6688a63ab67/src/disort.cpp#L1-L10)).
+Named repository: `map` ([`pydisort disort.cpp:1-10`](https://github.com/zoeyzyhu/pydisort/blob/8af15242a265a60ea6fb51c29d48e6688a63ab67/src/disort.cpp#L1-L10)).

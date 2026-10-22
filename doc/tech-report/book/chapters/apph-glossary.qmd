@@ -1,0 +1,5 @@
+# Glossary {#sec-apph}
+
+pending
+
+{{< include appendices/_apph-glossary.qmd >}}

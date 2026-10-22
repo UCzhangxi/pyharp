@@ -1,0 +1,9 @@
+# A topic index that covers every section of the fixture book.
+sections:
+  sec-preface-install:
+    - install: [pip install]
+  sec-ch01-implicit:
+    - implicit scheme: [VIC]
+  sec-ch01-cfl:
+    - time step: [CFL, dt]
+    - implicit scheme, time step

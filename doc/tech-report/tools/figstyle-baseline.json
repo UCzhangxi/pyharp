@@ -1,0 +1,6 @@
+{
+ "about": "per-chapter count of figure styling outside pyharp_report.figstyle; may only shrink (tools/check_figstyle.py)",
+ "chapters": {
+  "package": 1
+ }
+}

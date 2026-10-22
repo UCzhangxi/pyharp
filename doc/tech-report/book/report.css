@@ -1,0 +1,3 @@
+/* The HTML template of the report (STYLE 10.9): long inline code names wrap instead of running out of their
+   line or table cell. */
+code { overflow-wrap: anywhere; }

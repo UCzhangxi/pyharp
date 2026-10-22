@@ -1,0 +1,4 @@
+# A {#sec-ch01}
+
+The relative error is 3e-4 [sha: the code pin; deck: `b.yaml`; run: `python3 run.py b.yaml`, CPU].
+The flux uses 2 calls [sha: the code pin and pydisort@{pin}; deck: `b.yaml`; run: `python3 run.py b.yaml`].

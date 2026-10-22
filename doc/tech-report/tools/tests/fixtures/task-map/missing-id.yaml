@@ -1,0 +1,11 @@
+# A task map with no record for bank question Q-002.
+bank_ids: Q-001..Q-003
+tasks:
+- id: Q-001
+  question: How do I install it?
+  status: answered
+  dest: sec-preface-install
+- id: Q-003
+  question: How do I plot the output?
+  status: outside scope
+  not_provided: a plotting tutorial is outside scope

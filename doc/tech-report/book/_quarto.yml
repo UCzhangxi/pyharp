@@ -1,0 +1,88 @@
+# The pyharp Technical Report, a Quarto 1.10 book (STYLE.md 8 and 10). Only the editor edits this file; the chapter
+# list between the markers is written by tools/book_chapters.py from OUTLINE.md and the chapter files that exist.
+project:
+  type: book
+  # Appendices B (from the chapters' Derivation layers) and A (from NOTATION.md) are generated before every
+  # render, local or CI (the lead's decision). Quarto 1.10 expands every chapter's includes once before pre-render
+  # runs (to find each file's engine) and stops if an included file is missing, so the fragments stay committed;
+  # it reads them again for the render, after pre-render, so the render shows what pre-render wrote. A committed
+  # fragment holds only what one chapter (or NOTATION.md) decides; totals and first uses are render-time values
+  # ({{< generated >}}, tools/generated_values.py). tools/tests fails when a committed copy differs from a fresh
+  # generation.
+  pre-render:
+    - ../tools/gen_reader_reference.py  # first-use glossary notes, from tools/reader-glossary.json
+    - ../tools/gen_derivation_index.py
+    - ../tools/gen_notation_index.py
+    - ../tools/gen_topic_index.py     # Appendix F, the topic index, from tools/topic-index.yaml
+    - ../tools/gen_reader_tasks.py    # Appendix G, the task map, from tools/reader-tasks.md
+    - ../tools/gen_glossary_appendix.py  # Appendix H, the glossary, from tools/reader-glossary.json
+    - ../tools/code_anchors.py   # resolves every code citation at code_pin.yml; fails the render if one does not
+
+execute:
+  freeze: auto            # STYLE 10.4, 10.9: _freeze/ is committed; a chapter re-runs only when its .qmd changes
+  echo: false
+
+book:
+  title: "pyharp Technical Report"
+  # BEGIN chapter list: written by tools/book_chapters.py from OUTLINE.md and the files in chapters/
+  chapters:
+    - index.qmd
+    - chapters/01-overview.qmd
+    - chapters/02-radiative-transfer.qmd
+    - chapters/03-disort.qmd
+    - chapters/04-toon.qmd
+    - chapters/05-comparison.qmd
+    - chapters/06-opacity.qmd
+    - chapters/07-assembly.qmd
+    - chapters/08-api.qmd
+    - chapters/09-gpu.qmd
+    - chapters/10-verification.qmd
+  appendices:
+    - chapters/appa-notation.qmd
+    - chapters/appb-derivations.qmd
+    - chapters/appc-test-index.qmd
+    - chapters/appf-topic-index.qmd
+    - chapters/appg-task-map.qmd
+    - chapters/apph-glossary.qmd
+  # END chapter list
+
+shortcodes:
+  - _shortcodes/code.lua          # {{< code <path> <symbol> >}}: a code citation by symbol (README, "Citing code")
+  - _shortcodes/generated.lua     # {{< generated <name> <key> >}}: a render-time value of appendix A or B
+
+filters:
+  - _filters/codemap-widths.lua   # column widths of the Code-layer tables (STYLE 10.10)
+
+number-sections: true     # STYLE 10.1: never type a section number
+toc-depth: 2              # STYLE 10.1: the table of contents lists chapters and schemes only
+
+# No math macros (STYLE 5, 10.3): the HTML uses MathML, which has no macro layer.
+format:
+  html:
+    html-math-method: mathml
+    fig-format: svg       # STYLE 10.4: vector figures, SVG in the HTML
+    code-overflow: wrap   # long code lines wrap instead of scrolling
+    css: report.css       # inline code wraps too: code { overflow-wrap: anywhere; }
+  pdf:
+    # An on-screen report (the team's agreed layout): KOMA scrreprt, A4, one-sided, chapters open on any page
+    # (no blank pages), DIV=12 margins, 10 pt, compact headings, no dot after numbers ("Figure 4.1:").
+    documentclass: scrreprt
+    classoption: [a4paper, oneside, openany, DIV=12, parskip=half-, numbers=noenddot, headings=small]
+    fontsize: 10pt
+    toc-depth: 2          # printed TOC: chapters and sections
+    # Figures stay with their text: here, top or bottom of the page; a page of floats only when the floats
+    # fill most of it (float fractions in _tex/theme.tex). Figures are drawn at the text width, 6.2 in
+    # (\textwidth = 448.13 pt at DIV=12, A4, 10 pt), and placed without shrinking.
+    fig-pos: htbp
+    fig-width: 6.2
+    fig-height: 3.4
+    latex-auto-install: false
+    pdf-engine: lualatex
+    fig-format: pdf       # STYLE 10.4: vector figures, PDF in the PDF
+    include-in-header:
+      - file: _tex/inline-code-breaks.tex   # STYLE 10.9, no line over 10 pt: inline code breaks after _ / : @,
+                                            # long hex strings break inside, running heads show the chapter
+      - file: _tex/theme.tex                # STYLE 10.10: palette, title page, chapter openers, callouts,
+                                            # tables, code, float placement
+
+bibliography: references.bib

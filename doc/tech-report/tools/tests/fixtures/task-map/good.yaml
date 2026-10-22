@@ -1,0 +1,16 @@
+# A task map that covers every question of a three-question bank, against the topic-index fixture book.
+bank_ids: Q-001..Q-003
+tasks:
+- id: Q-001
+  question: 'How do I install it, and does it need a GPU?'
+  status: answered
+  dest: sec-preface-install
+- id: Q-002
+  question: How large may the time step be?
+  status: partly documented
+  dest: sec-ch01-cfl
+  missing: the largest stable CFL per integrator
+- id: Q-003
+  question: How do I plot the output?
+  status: outside scope
+  not_provided: a plotting tutorial is outside scope

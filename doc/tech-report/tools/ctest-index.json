@@ -1,0 +1,96 @@
+{
+ "configure": "-DBUILD_EXAMPLES=OFF -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE= -DCUDA=OFF -DNETCDF=ON",
+ "ctest_directory": "tests",
+ "ctest_version": "3.31.8",
+ "external": {},
+ "format": "pyharp-report ctest index 1",
+ "pin": "f34506f9d14ee7b1f2e1222775baa5093ae6967f",
+ "registered": 14,
+ "repository": "chengcli/pyharp",
+ "tests": [
+  {
+   "defined_at": "tests/CMakeLists.txt:7",
+   "name": "test_attenuator.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:12",
+   "name": "test_bbflux.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:8",
+   "name": "test_cia_autograd.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:13",
+   "name": "test_flux_utils.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:10",
+   "name": "test_hypsometric.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:9",
+   "name": "test_interpn.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:14",
+   "name": "test_rayleigh.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:21",
+   "name": "test_scattering_functions.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:20",
+   "name": "test_toon.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:11",
+   "name": "test_trapez.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:19",
+   "name": "test_tridiag.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:17",
+   "name": "test_water_cloud_temperature.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:15",
+   "name": "test_water_ice_fu96_98.release",
+   "properties": {},
+   "via": "setup_test"
+  },
+  {
+   "defined_at": "tests/CMakeLists.txt:16",
+   "name": "test_water_liquid_mie.release",
+   "properties": {},
+   "via": "setup_test"
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+# A {#sec-ch01}
+
+The step takes 0.42 s per cycle.[^t]
+
+[^t]: [sha: {pin}; deck: `examples/a.yaml`; run: `python3 run.py a.yaml`, CPU, double, 1 process;
+    scope: one full cycle, after one warm-up; reps: 5, median; torch 2.10.0]
+
+The relative error is 3e-4 [sha: pyharp@{later}; deck: `b.yaml`; run: `python3 run.py b.yaml`, CPU].

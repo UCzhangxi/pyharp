@@ -1,0 +1,3 @@
+# A {#sec-ch01}
+
+The relative error is 3e-4 [sha: {unknown}; deck: `b.yaml`; run: `python3 run.py b.yaml`, CPU].

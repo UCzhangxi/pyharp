@@ -1,0 +1,6 @@
+# Demo {#sec-ch06}
+
+The reference state is @sec-ch05 and its wall closure @sec-ch05-wbref; the implicit solve is
+@sec-ch07b, with @eq-ch07b-vic. This chapter's own scheme is @sec-ch06-one.
+
+{{< include 06-demo/_one.qmd >}}

@@ -1,0 +1,12 @@
+project:
+  type: book
+book:
+  title: "gate test: references into chapters not written yet"
+  chapters:
+    - index.qmd
+    - chapters/06-demo.qmd
+format:
+  html: default
+  pdf:
+    documentclass: scrbook
+    pdf-engine: lualatex

@@ -1,0 +1,4 @@
+The headers start with `cfloat` ([`bbflux.cpp:1-14`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L1-L14)).
+One line, with the last directory in the link text: `bbflux_wavenumber` ([`radiation/bbflux.cpp:10`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L10)).
+The last line of the file closes `namespace harp` ([`bbflux.cpp:190`](https://github.com/chengcli/pyharp/blob/f34506f9d14ee7b1f2e1222775baa5093ae6967f/src/radiation/bbflux.cpp#L190)).
+A commit is cited as pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f.

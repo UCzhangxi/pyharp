@@ -1,0 +1,28 @@
+{
+ "kind": "ctestInfo",
+ "version": {"major": 1, "minor": 0},
+ "backtraceGraph": {
+  "commands": ["add_test", "setup_test", "ei_add_test"],
+  "files": ["/src/cmake/macros/macro_setup_test.cmake", "/src/tests/CMakeLists.txt",
+            "/src/build/_deps/eigen-src/cmake/EigenTesting.cmake", "/src/build/_deps/eigen-src/test/CMakeLists.txt"],
+  "nodes": [
+   {"file": 1},
+   {"file": 1, "line": 7, "command": 1, "parent": 0},
+   {"file": 0, "line": 33, "command": 0, "parent": 1},
+   {"file": 1, "line": 133, "command": 0, "parent": 0},
+   {"file": 3},
+   {"file": 3, "line": 12, "command": 2, "parent": 4},
+   {"file": 2, "line": 99, "command": 0, "parent": 5}
+  ]
+ },
+ "tests": [
+  {"name": "test_seam_gloo", "backtrace": 3, "command": ["/usr/bin/torchrun", "--no-python"],
+   "properties": [{"name": "LABELS", "value": ["exchange", "decomp"]}, {"name": "SKIP_RETURN_CODE", "value": 125},
+                  {"name": "WORKING_DIRECTORY", "value": "/src/build/tests"},
+                  {"name": "ENVIRONMENT", "value": ["BACKEND=gloo"]}]},
+  {"name": "rand", "backtrace": 6,
+   "properties": [{"name": "LABELS", "value": ["Official"]}]},
+  {"name": "test_eos.release", "backtrace": 2,
+   "properties": [{"name": "WILL_FAIL", "value": true}, {"name": "WORKING_DIRECTORY", "value": "/src/build/tests"}]}
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "about": "per-chapter count of pipe tables outside STYLE 10.5 and the Code/Tests headers of STYLE 2; may only shrink (tools/check_tables.py)",
+ "chapters": {
+  "appb": {
+   "columns": 1
+  }
+ }
+}
