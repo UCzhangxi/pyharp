@@ -24,6 +24,6 @@ source src/radiation/radiation_band.cpp sha256 ccc959a7b0cc0055e9b1bef70ea8bad76
 [C21] PASS LW Toon Table 3 H with (Y1 +- Y2) -> pi xk1, pi xk2: `h[n] = twopi * w0[n] * xk2[n] * (1.0 - hg[n] * alp[n]) / common_den;`  diff = 0
 [C22] PASS LW Toon Table 3 J with (Y1 +- Y2) -> pi xk1, pi xk2: `xj[n] = twopi * w0[n] * xk1[n] * (1.0 - hg[n] * alp[n]) / common_den;`  diff = 0
 [C23] PASS LW Toon Table 3 K with (Y1 +- Y2) -> pi xk1, pi xk2: `xk[n] = twopi * w0[n] * xk2[n] * (1.0 + hg[n] * alp[n]) / common_den;`  diff = 0
-[C24] PASS SSA clamp 1e-12 (f64) / 1e-6 (f32) in RadiationBandImpl::forward; none in the Toon kernels: band clamp present: True; kernel clamp absent: True
+[C24] PASS SSA clamp lines 1e-12 (f64) / 1e-6 (f32) present in RadiationBandImpl::forward (text only; the effect, and the absence of a cap in the Toon kernels, is measured by check_ch02_clamp_pyharp.py): band clamp lines present: True
 [C25] PASS LW optional delta-Eddington (delta_eddington_lw) uses the SW scaling lines verbatim: 3 of 3 lines
 check_ch02_toon_coefficients: 25 of 25 claims pass

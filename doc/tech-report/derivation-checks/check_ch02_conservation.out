@@ -6,7 +6,7 @@
 [C6] PASS Toon eqs. 23-24 C+- solve the beam ODE: residuals [0, 0]
 [C7] PASS lambda = 0 and Gamma = 1 at w = 1: quadrature: lambda(1 - eps) ~ sqrt(3)*sqrt(epsilon)*sqrt(1 - g); hemispheric mean: lambda(1 - eps) ~ 2*sqrt(epsilon)*sqrt(1 - g)
 [C8] PASS Toon basis collapses at Gamma = 1: det = 1 - Gamma**2; the missing solution F+ - F- = c, F+ + F- = 2 gamma c tau + d solves the ODE
-[C9] PASS 2-layer shortwave tridiagonal is singular at Gamma = 1, e^{lambda dtau} = 1: det = 0 there; -2835/128 at Gamma = 1/2, e = 2
+[C9] PASS 2-layer shortwave tridiagonal is singular at Gamma = 1: kernel rows and right-hand side read from the source equal this transcription (0 of 20 entries differ); its solution equals that of the continuity conditions at 2 rational points (residual 0); at Gamma = 1 for symbolic e0, e1, A_s: det = 0, and the continuity system's det = 0; -2835/128 at Gamma = 1/2, e = 2
 [C10] PASS float64 at W = 1: scaled w is exactly 1 and lambda is round-off: NaN (disc < 0) 0.136, zero 0.727, positive 0.137 of 100001 g in [0, 0.99]; max lambda below 1e-7
 [C11] PASS w = 1, tau = 1.0, g = 0.75, mu0 = 0.5, A_s = 0.0: Fnet constant over 21 levels: max - min below 1e-30 (40 digits)
 [C12] PASS R(w = 1) = MW eq. 24 and R + T = 1: R = 0.210084549474905; both residuals below 1e-30
