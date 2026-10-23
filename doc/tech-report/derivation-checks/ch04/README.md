@@ -41,5 +41,6 @@ The exit status of `toon_pyharp_check.py` is the number of failed core checks `[
 are CANDIDATE until a second independent run agrees; they are named by content, not by register number.
 
 `defects_pyharp_check.py` reproduces the pyharp defects P11 (Planck switch hole at v = 1.5) and P12 (infinite fluxes
-at an exact longwave resonance in a thick layer) of `DEFECTS.md` with fixed inputs. Its checks pass while the pinned
+at an exact longwave resonance in a thick layer, and large or percent-level errors near it and in thick layers) of
+`DEFECTS.md` with fixed inputs. Its checks pass while the pinned
 pyharp shows the defect and fail once pyharp is fixed, which is the signal to update the chapter's Limits.

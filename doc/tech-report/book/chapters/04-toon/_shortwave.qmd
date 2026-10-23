@@ -62,6 +62,7 @@ $$
 g^{\mathrm{s}} &= \frac{g - f}{1 - f} = \frac{g}{1 + g}.
 \end{aligned}
 $$ {#eq-ch04-shortwave-delta}
+<!-- equation-check: eq-ch04-shortwave-delta shortwave_check.py [C3] -->
 
 @eq-ch04-shortwave-delta is computed in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
 The last equality follows from $f = g^2$: $(g - g^2)/(1 - g^2) = g(1 - g)/((1 - g)(1 + g))$. The scaling keeps the
@@ -78,6 +79,7 @@ $$
 \frac{\mathrm{d}F^-}{\mathrm{d}\tau} &= \gamma_2 F^+ - \gamma_1 F^- + \gamma_4\,\omega F_0\,e^{-\tau/\mu_0},
 \end{aligned}
 $$ {#eq-ch04-shortwave-ode}
+<!-- equation-check: eq-ch04-shortwave-ode shortwave_check.py [C2] -->
 
 with the quadrature coefficients of Toon et al. [-@reading02, Table 1]
 
@@ -89,6 +91,7 @@ $$
 \gamma_4 &= 1 - \gamma_3.
 \end{aligned}
 $$ {#eq-ch04-shortwave-gammas}
+<!-- equation-check: eq-ch04-shortwave-gammas shortwave_check.py [C1] -->
 
 @eq-ch04-shortwave-gammas is computed as `g1`, `g2`, `g3`, `g4` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
 
@@ -110,6 +113,7 @@ $$
 \Gamma &= \frac{\gamma_1 - \lambda}{\gamma_2}.
 \end{aligned}
 $$ {#eq-ch04-shortwave-eigen}
+<!-- equation-check: eq-ch04-shortwave-eigen shortwave_check.py [C1] -->
 
 For $s = -\lambda$ the first row gives $u/v = \gamma_2/(\gamma_1 + \lambda)$, and multiplying numerator and
 denominator by $\gamma_1 - \lambda$ gives $u/v = (\gamma_1 - \lambda)/\gamma_2 = \Gamma$; for $s = +\lambda$ the
@@ -138,7 +142,7 @@ $$
 \end{aligned}
 $$
 
-where the second line is the second row multiplied by $\gamma_2$ (check `[C7]` of `shortwave_check.py`), and the
+where the second line is the second row multiplied by $\gamma_2$, and the
 third line replaces $\gamma_2 c^-$ on its left by the first line, multiplied by $\gamma_1 - 1/\mu_0$.
 With $\lambda^2 = \gamma_1^2 - \gamma_2^2$, and by the same steps for $c^-$:
 
@@ -148,10 +152,13 @@ C^+(\tau) &= \omega F_0\,\frac{(\gamma_1 - 1/\mu_0)\,\gamma_3 + \gamma_2\gamma_4
 C^-(\tau) &= \omega F_0\,\frac{(\gamma_1 + 1/\mu_0)\,\gamma_4 + \gamma_2\gamma_3}{\lambda^2 - 1/\mu_0^2}\,e^{-\tau/\mu_0}.
 \end{aligned}
 $$ {#eq-ch04-shortwave-particular}
+<!-- equation-check: eq-ch04-shortwave-particular shortwave_check.py [C2] -->
+<!-- equation-check: eq-ch04-shortwave-particular shortwave_check.py [C7] -->
 
 @eq-ch04-shortwave-particular is Toon et al. [-@reading02, eqs. 23-24] with $\pi F_s = F_0$; it is computed as
 `Ap`, `Am`, `Cpm1`, `Cmm1`, `Cp`, `Cm` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
-Check `[C2]` of `shortwave_check.py` substitutes both lines back into @eq-ch04-shortwave-ode and gets zero. The
+Check `[C2]` of `shortwave_check.py` substitutes both lines back into @eq-ch04-shortwave-ode and gets zero, and
+check `[C7]` confirms that the second line of the elimination above is the second row multiplied by $\gamma_2$. The
 denominator vanishes at $\lambda\mu_0 = 1$; the code's treatment is in the Numerical method layer of @sec-ch04-shortwave.
 
 **Layer solution.** In layer $n$, with the local depth $\xi$ and $\tau = \tau_{n-1} + \xi$ ($\tau_{n-1}$ the depth of
@@ -166,6 +173,7 @@ $$ {#eq-ch04-shortwave-layer}
 
 @eq-ch04-shortwave-layer is Toon et al. [-@reading02, eqs. 19-20] written from the layer top; it is evaluated
 at $\xi = 0$ and $\xi = \Delta\tau_n$ as `FLX_UP` and `FLX_DN` in `toon_mckay89_shortwave` ({{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}).
+Together with the conditions below it is checked end to end by `toon_pyharp_check.py` `[C1]`-`[C3]`.
 The code's unknowns are $Y_{2n-1} = (k_{1n} + k_{2n})/2$ and $Y_{2n} = (k_{1n} - k_{2n})/2$, so that
 $k_{1n} = Y_{2n-1} + Y_{2n}$ and $k_{2n} = Y_{2n-1} - Y_{2n}$ (`xk1`, `xk2`). Unlike Toon et al. [-@reading02,
 eqs. 29-32], the code does not rescale them by $e^{\lambda_n\Delta\tau_n}$; the consequence is in
@@ -187,9 +195,9 @@ $$ {#eq-ch04-shortwave-bc}
 
 **What is exact and what is truncated.** For layers of constant $\omega$, $g$, the interface fluxes solve the
 two-stream system exactly; the delta-Eddington scaling and the quadrature closure are the approximation, and their
-error against the full equation belongs to @sec-ch05. The executable check is `shortwave_check.py` (symbolic,
-`[C1]`-`[C7]`) and `toon_pyharp_check.py` (pyharp against a 40-digit solution of @eq-ch04-shortwave-ode,
-`[C1]`-`[C4]`).
+error against the full equation belongs to @sec-ch05. The boundary and interface conditions are checked end to end by
+`toon_pyharp_check.py` `[C1]`-`[C3]` (pyharp against a 40-digit solution of @eq-ch04-shortwave-ode); the symbolic
+identities of the equations above are in `shortwave_check.py`, as tagged next to each equation.
 
 ### Numerical method
 

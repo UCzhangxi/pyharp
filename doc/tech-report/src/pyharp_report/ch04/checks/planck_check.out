@@ -4,5 +4,5 @@
 [C4] PASS point overload / B_nu(667 cm-1, 300 K) - 1 = 2.8e-04; its c1 is +3.3e-04 and c2 +1.6e-05 relative to 2hc^2 x 1e8 and hc/k
 [C5] PASS exact c2 and sigma, port / int B_nu - 1: +1.0e-05, -6.7e-08, -3.3e-11, -3.3e-11
 [C6] PASS at v = 1.5: next power-series term 4.8e-08, m = 7 exponential term 2.8e-06 (fractions of sigma T^4/pi); hc/k = 1.4387769 cm K
-[C7] PASS T = 287.7572000000 K (v = 1.5 at 300 cm-1), port / int B_nu - 1: 300-600: inclusive -3.1e-07, code (strict) -3.04; 150-300: inclusive +4.4e-06, code (strict) +11.52
+[C7] PASS T = 287.7572000000 K (v = 1.5 at 300 cm-1), port / int B_nu: 300-600: inclusive, relative error -3.1e-07; code (strict) ratio -2.035, relative error -3.035; 150-300: inclusive, relative error +4.4e-06; code (strict) ratio +12.515, relative error +11.515; chapter quotes ratios (-2.04, 12.5)
 RESULT: 7/7 pass
