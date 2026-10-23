@@ -113,10 +113,9 @@ INVENTORY = [
     ("src/math/interpolation.cpp", "torch::clamp(out.weight_high, 0.0, 1.0)", CLAMP,
      "interpolation weight clamped: constant extrapolation outside the table", "opacity_probe [Z6]; V27"),
     ("src/integrator/radiation_model.cpp", "atm[\"temp\"].clamp_(20, 1000)", CLAMP,
-     "atmospheric temperature clamped to [20, 1000] K after each step", "not measured: RadiationModel has no "
-     "Python binding and no test at the pin"),
+     "atmospheric temperature clamped to [20, 1000] K after each step", "model_probe [M2]"),
     ("src/integrator/radiation_model.cpp", "bc[\"btemp\"].clamp_(20, 1000)", CLAMP,
-     "surface temperature clamped to [20, 1000] K after each step", "not measured (as above)"),
+     "surface temperature clamped to [20, 1000] K after each step", "model_probe [M2] (same call)"),
     ("src/integrator/radiation_model.hpp", "kappa) = 2.e-5", NOT, "default thermal diffusivity", "-"),
     # --- opacities
     ("src/opacity/helios.cpp", "clamp_(1.0e-99).log_()", FLOOR, "table zeros stored as 1e-99 before the log",
