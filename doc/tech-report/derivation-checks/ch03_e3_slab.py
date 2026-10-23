@@ -16,6 +16,8 @@ Labels:
   [C3] in the opaque limit (tau >= 3) the deviation no longer depends on the quadrature: the 16- and
        32-stream deviations agree to 1e-7 (2 % of the floor) and stay below 5e-6; the value left is
        the band-integrated Planck function's own error (ch03_disotest.py prints it, label [C5])
+  [C4] the floor of [C3] is reached by 16 and 32 streams only: at tau = 3 the 4- and 8-stream deviations
+       (larger of up and down) are both above 2 x the 32-stream value there, i.e. still set by the quadrature
 
 Needs: torch, numpy, scipy, pydisort and a pyharp built against that pydisort.
 Run:   python ch03_e3_slab.py [--work DIR]      (default: a fresh temporary directory)
@@ -150,6 +152,11 @@ def main():
     nfail += not ok
     print(f"[C3] {'PASS' if ok else 'FAIL'} opaque limit tau >= 3: 32-stream max rel dev "
           f"{max(d32.values()):.2e} (tol 5e-6), |16 - 32 stream| = {same:.1e} (tol 1e-7)")
+    at3 = {r["nstr"]: max(r["rel_up"], r["rel_dn"]) for r in thick if r["tau"] == 3.0}
+    ok = all(at3[n] > 2 * at3[32] for n in (4, 8))
+    nfail += not ok
+    print(f"[C4] {'PASS' if ok else 'FAIL'} floor reached at 16 and 32 streams only: tau = 3 max rel dev "
+          + ", ".join(f"{n}: {at3[n]:.1e}" for n in nstrs) + " (4 and 8 must exceed 2 x the 32-stream value)")
     sys.exit(nfail)
 
 

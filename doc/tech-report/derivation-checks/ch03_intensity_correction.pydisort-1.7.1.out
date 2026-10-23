@@ -9,3 +9,5 @@ nstr aureole off       on outside off       on  top off       on I(beam dir) off
 [C3] PASS sympy: one-layer single-scattering integral = closed form of c_single_scat (mu written as |mu|, so 1 + mu/mu0 appears as 1 - |mu|/mu0)
 [C4] PASS sympy: IMS factor h = closed form of c_xi_func, and its x = 0 limit
 [C5] PASS sympy: moments of Phat are 1 (l < 2N) and chi_l/f (l >= 2N)
+[C6] PASS TMS: I(on) - I(off) outside the aureole = I_1[omega P/(1 - f omega), tau'] - I_1[omega' P*, tau'], rel dev 8/16/32 streams 4.2e-15/3.7e-15/2.0e-14 (tol 1e-10)
+[C7] PASS IMS: in the aureole the rest = -(F0/4 pi) (f omega)^2/(1 - f omega) sum (2l+1)(2 chihat - chihat^2) P_l h(tau, |mu|, mu0*), rel dev 8/16/32 streams 3.4e-15/1.2e-14/1.1e-13 (tol 1e-10)

@@ -77,7 +77,11 @@ truncated at $2N$ terms. Its beam source is $X_0(\mu)\,e^{-\tau/\mu_0}$ with
 $X_0(\mu) = \tfrac{\omega F_0}{4\pi}\sum_{l}(2l+1)\chi_l P_l(\mu)P_l(-\mu_0)$ [@reading01, p. 2503, eqs. 6c-6d].
 @eq-ch03-ordinates-kernel, multiplied by the weight $w_j$, is the matrix `CC` built in `c_solve_eigen`
 ({{< code cdisort213/cdisort.c c_solve_eigen repo=pydisort >}}) from the factors `GL` of `c_disort_set`
-({{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}).
+({{< code cdisort213/cdisort.c c_disort_set repo=pydisort >}}). The sum over $l$ is checked against the azimuthal
+mean of the truncated phase function computed directly, by quadrature in $\phi$ without the addition theorem: the
+two agree to $2.2\times10^{-15}$ of the largest kernel value for $N = 1$ to 16 ([C8]).[^ch03-ord-algebra]
+Conservation, $\sum_j w_j D(\mu_i,\mu_j) = \omega$ ([C3]), cannot test the terms $l \ge 1$: the Gauss rule
+integrates $P_l$ to zero for $1 \le l \le 2N-1$.
 
 **Discrete ordinates.** Replace the integral over $\mu'$ by the double-Gauss rule: $N$ Gauss-Legendre nodes on
 $(0, 1)$, mirrored to $(-1, 0)$ with $\mu_{-i} = -\mu_i$ and $w_{-i} = w_i$. The azimuthal-mean equation becomes,
@@ -159,7 +163,8 @@ $$ {#eq-ch03-ordinates-beam}
 
 @eq-ch03-ordinates-beam is computed in `c_upbeam` ({{< code cdisort213/cdisort.c c_upbeam repo=pydisort >}}),
 which solves it by LU decomposition and warns if the matrix is near singular (when $\mu_0$ is close to some
-$\mu_i$; `c_disort_set` moves $\mu_0$ by a relative $10^{-4}$ when it equals a node).
+$\mu_i$; when a beam is present and $\mu_0$ lies within a relative $10^{-4}$ of a node $\mu_i$, `c_disort_set` sets
+$\mu_0 = (1 + 10^{-4})\mu_i$ in the input state, so the direct flux then uses the shifted $\mu_0$ too).
 
 **Thermal particular solution.** Within a layer cdisort takes the Planck source linear in optical depth,
 $\bar B(\tau) = b_0 + b_1\tau$ [@reading01, p. 2504, eq. 9b with $K = 1$], with
@@ -232,6 +237,9 @@ F_{\mathrm{dir}}(\tau) &= \mu_0 F_0\,e^{-\tau/\mu_0}.
 $$ {#eq-ch03-ordinates-fluxes}
 
 @eq-ch03-ordinates-fluxes is computed in `c_fluxes` ({{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}}).
+Its $F_{\mathrm{dn}}$ is cdisort's diffuse `fldn` of the scaled problem; the `rfldn` that pydisort returns
+(@eq-ch03-band-flux) equals it when delta-M is off, and differs by the scaled minus the unscaled direct flux when
+it is on (@sec-ch03-deltam).
 
 **What is exact and what is truncated.** For layers of constant $\omega$ and $\chi_l$ with $\bar B$ linear in
 $\tau$, the solution of @eq-ch03-ordinates-do is exact up to round-off: no step after the quadrature
@@ -243,6 +251,7 @@ each layer, so its curvature costs an error that falls with the layer thickness.
 `ch03_e3_slab.py` and `ch03_disotest.py` for the code (the Tests layer below).
 
 <!-- equation-check: eq-ch03-ordinates-kernel ch03_ordinates_algebra.py [C3] -->
+<!-- equation-check: eq-ch03-ordinates-kernel ch03_ordinates_algebra.py [C8] -->
 <!-- equation-check: eq-ch03-ordinates-do ch03_ordinates_algebra.py [C6] -->
 <!-- equation-check: eq-ch03-ordinates-eigen ch03_ordinates_algebra.py [C2] -->
 <!-- equation-check: eq-ch03-ordinates-beam ch03_ordinates_algebra.py [C4] -->
@@ -278,7 +287,8 @@ system; evaluate the fluxes at the requested levels. With `onlyfl` there is one 
 intensities. All quantities are point values at the levels or constants per layer; there are no ghost values and
 no iteration.
 
-When there is no thermal source, cdisort drops every layer below the level where the absorption optical depth,
+When there is no thermal source, there is more than one layer and the boundary condition is the general one
+(not `ibcnd` = special), cdisort drops every layer below the level where the absorption optical depth,
 $\sum (1-\omega)\Delta\tau$, first exceeds 10, and sets the radiation there to zero
 [@reading01, p. 2508, Sec. III.D]. This is decided in `c_disort_set`; disotest case 12 checks it, and a pyharp
 shortwave band is subject to it.
@@ -302,7 +312,8 @@ shortwave band is subject to it.
 1. `c_disort` checks the inputs and prints, rather than returns, every error it finds; with `quiet` it prints no
    warnings. pydisort ignores its return code (the Limits layer of @sec-ch03-band).
 2. `c_disort_set` computes the Gauss nodes, mirrors them, applies delta-M (@sec-ch03-deltam), sets the
-   absorption-depth cut, and moves $\mu_0$ by a relative $10^{-4}$ if it coincides with a node.
+   absorption-depth cut, and replaces $\mu_0$ by $(1 + 10^{-4})\mu_i$ if it lies within a relative $10^{-4}$ of a
+   node $\mu_i$.
 3. For each layer, `c_solve_eigen` forms `CC`, $\boldsymbol{\alpha}\pm\boldsymbol{\beta}$ and solves
    @eq-ch03-ordinates-eigen; `c_upbeam` solves @eq-ch03-ordinates-beam and `c_upisot` solves
    the thermal system @eq-ch03-ordinates-thermal.
@@ -318,8 +329,10 @@ No ctest exercises this solver (the Tests layer of @sec-ch03-band). Three deriva
 | test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
 |---|---|---|---|
 | `ch03_ordinates_algebra.py` [C1]-[C7] | the derivation steps hold in numpy and sympy | $10^{-10}$ to $10^{-15}$ | round-off, per line |
+| `ch03_ordinates_algebra.py` [C8] | @eq-ch03-ordinates-kernel equals the azimuthal mean of the truncated phase function | $10^{-13}$ of max $D$ | round-off of $2N$-term sums |
 | `ch03_e3_slab.py` [C1] | grey slab, 32 streams | $2\times10^{-4}$ rel. | outline acceptance |
-| `ch03_e3_slab.py` [C3] | opaque limit set by $\bar B$ | $5\times10^{-6}$ | see the footnote |
+| `ch03_e3_slab.py` [C3] | opaque limit set by $\bar B$, 16 and 32 streams | $5\times10^{-6}$ | see the footnote |
+| `ch03_e3_slab.py` [C4] | 4 and 8 streams still above that limit at $\tau = 3$ | factor 2 | see the footnote |
 | `ch03_disotest.py` [C1], [C2] | cdisort test problems | ratio in $[0.99, 1.01]$ | disotest's own rule |
 | `ch03_disotest.py` [C4] | pydisort equals C cdisort | 0 | same code, same inputs |
 | `ch03_disotest.py` [C5] | `c_planck_func2` accuracy | $5\times10^{-6}$ | its stated 6 digits |
@@ -333,8 +346,11 @@ $F^{\downarrow}(\tau) = \pi\bar B(T)(1 - 2E_3(\tau))$, with $E_3$ the exponentia
 $\tau$ from 0.01 to 10 the largest relative deviation is $3.69\times10^{-2}$, $1.02\times10^{-2}$,
 $2.70\times10^{-3}$ and $1.30\times10^{-4}$ at 4, 8, 16 and 32 streams, inside the $2\times10^{-4}$ acceptance
 at 32 streams.[^ch03-ord-e3] Between successive doublings of the stream count the error falls by factors of 3.6,
-3.8 and 21, so no single order fits. For $\tau \ge 3$ the deviation stops depending on $N$ and stays at
-$4.5\times10^{-6}$ ([C3]): that is the error of `c_planck_func2`, which uses the constants
+3.8 and 21, so no single order fits. At 16 and 32 streams the deviation for $\tau \ge 3$ stops depending on $N$
+and stays at $4.5\times10^{-6}$ ([C3]). Fewer streams have not reached it at $\tau = 3$: the upward and downward
+deviations there are $1.3\times10^{-4}$ and $2.9\times10^{-4}$ at 4 streams and $9.3\times10^{-6}$ and
+$1.5\times10^{-5}$ at 8 ([C4]); at $\tau = 10$ the 8-stream value is $4.5\times10^{-6}$ as well and the 4-stream
+one is $2.4\times10^{-6}$. The $4.5\times10^{-6}$ is the error of `c_planck_func2`, which uses the constants
 $\sigma = 5.67032\times10^{-8}\,\mathrm{W\,m^{-2}\,K^{-4}}$ and $c_2 = 1.438786\,\mathrm{cm\,K}$ and comes out
 $4.52\times10^{-6}$ below the CODATA 2018 integral on this band, while it matches its own constants to
 $1.2\times10^{-6}$ (disotest check [C5]; on 2000 to $2500\,\mathrm{cm^{-1}}$ the deficit is
@@ -342,7 +358,7 @@ $5.0\times10^{-5}$).[^ch03-ord-disotest] Pydisort 1.8.13 gives identical fluxes.
 
 ```{python}
 #| label: fig-ch03-ordinates-e3
-#| fig-cap: "Relative deviation of the DISORT band fluxes from the exact grey-slab solution against slab optical depth, for 4, 8, 16 and 32 streams; each point is the larger of the top upward and bottom downward deviations. The dotted vermillion line is the acceptance at 32 streams. Above $\\tau \\approx 1$ all curves meet the floor set by the band Planck integral."
+#| fig-cap: "Relative deviation of the DISORT band fluxes from the exact grey-slab solution against slab optical depth, for 4, 8, 16 and 32 streams; each point is the larger of the top upward and bottom downward deviations. The dotted vermillion line is the acceptance at 32 streams. At 16 and 32 streams the curves meet the floor set by the band Planck integral from $\\tau \\approx 1$ on; at 4 and 8 streams they are still above it at $\\tau = 3$."
 #| fig-alt: "Log-log plot. The 4-stream curve stays near 1e-2 to 4e-2 up to tau 0.3 then drops; 8 and 16 streams lie lower; 32 streams stays below 1.3e-4 everywhere, below the 2e-4 line, and flattens at about 5e-6 from tau 0.1 on."
 #| echo: false
 from pyharp_report.ch03.figures.fig_ordinates_e3 import make_fig
@@ -361,7 +377,10 @@ returns fewer rows than there are output depths when they are fewer than the lev
 the check compares the direct and diffuse downward fluxes at fewer depths there than with 1.8.13; the upward and
 total downward fluxes are compared everywhere on both. All of it ran on CPU.
 
-[^ch03-ord-e3]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_e3_slab.py` [C1]-[C3]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Output `derivation-checks/ch03_e3_slab.pydisort-1.7.1.out`; pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) gives the same lines. The [C3] tolerances: $5\times10^{-6}$ bounds the Planck deficit of [C5] of the disotest check on this band, and the 16- and 32-stream values must agree to $10^{-7}$, 2 % of that floor.
+[^ch03-ord-e3]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_e3_slab.py` [C1]-[C4]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Output `derivation-checks/ch03_e3_slab.pydisort-1.7.1.out`; pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) gives the same lines. The [C3] tolerances: $5\times10^{-6}$ bounds the Planck deficit of [C5] of the disotest check on this band, and the 16- and 32-stream values must agree to $10^{-7}$, 2 % of that floor. [C4] asks the 4- and 8-stream values at
+$\tau = 3$ to exceed twice the 32-stream one, i.e. to be still set by the quadrature.
+
+[^ch03-ord-algebra]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_ordinates_algebra.py` [C3], [C8]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, numpy 2.4.6, sympy 1.14.0; needs neither pydisort nor pyharp]. Output `derivation-checks/ch03_ordinates_algebra.out`. [C8] uses $\omega = 0.8$, Henyey-Greenstein $g = 0.85$ and the 512-point trapezoid rule in $\phi$, exact for the trigonometric polynomial of degree $2N-1$ it integrates.
 
 [^ch03-ord-disotest]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_disotest.py` [C1]-[C6] with the pydisort source at 8af15242a265a60ea6fb51c29d48e6688a63ab67; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double, gcc 8.5.0 -O2 for the C driver; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, scipy 1.17.1, pydisort 1.7.1]. Outputs `derivation-checks/ch03_disotest.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (header-only C++ cdisort, g++ 8.5.0 -O2).
 
@@ -372,7 +391,8 @@ total downward fluxes are compared everywhere on both. All of it ran on CPU.
   BRDF surface (the Limits layer of @sec-ch03-band).
 - The band Planck integral is $4.5\times10^{-6}$ to $5.0\times10^{-5}$ below the CODATA 2018 value on the bands
   tested, which sets a floor on thermal fluxes (the Tests layer above).
-- In a band with no `planck`, layers below an absorption optical depth of 10 get zero radiation.
+- In a band with no `planck` and more than one layer, layers below an absorption optical depth of 10 get zero
+  radiation.
 - No order of convergence in $N$ is established; the stream count a problem needs is measured case by case.
 :::
 

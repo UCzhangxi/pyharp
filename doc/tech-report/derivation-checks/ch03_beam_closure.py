@@ -16,8 +16,14 @@ pyharp RadiationBand + DISORT (weight mode, one g-point of weight 1) and through
     (1e-12) x tau / mu0 <= 1e-9 here; the rest is round-off of the band solve. 1e-6 leaves three
     orders of magnitude above the largest value measured.
 
+(c) The solver input pyharp hands to DISORT (eq-ch03-band-prop), read back from the band's `prop` buffer
+    after forward: layer optical depth k dz and albedo min(omega, 1 - 1e-12) (float64), for omega = 1 and 0.5,
+    tau 0.1 and 10, 4 layers. The albedo must equal 1 - 1e-12 bitwise when omega = 1 and omega when
+    omega = 0.5; the optical depth k dz to 1e-15 relative (one product).
+
 Labels: [C1] beam through pyharp, [C2] beam through pydisort, [C3] closure through pyharp,
-        [C4] closure through pydisort, [C5] R + T - 1 for A = 0 (part of [C3]/[C4], printed alone).
+        [C4] closure through pydisort, [C5] R + T - 1 for A = 0 (part of [C3]/[C4], printed alone),
+        [C6] pyharp's DISORT input: dtau = k dz and omega <- min(omega, 1 - 1e-12) in the `prop` buffer.
 
 Needs: torch, numpy, pydisort and a pyharp built against that pydisort.
 Run:   python ch03_beam_closure.py [--work DIR]   (default: a fresh temporary directory)
@@ -87,7 +93,7 @@ class Slab(torch.nn.Module):
         return out
 
 
-def pyharp_run(work, tau, ssa, g, mu0, alb, nstr, nlyr=4, ztot=1000.0):
+def pyharp_run(work, tau, ssa, g, mu0, alb, nstr, nlyr=4, ztot=1000.0, prop_out=None):
     tag = f"{tau}_{ssa}_{g}_{nstr}"
     pt = os.path.join(work, f"slab_{tag}.pt")
     if not os.path.exists(pt):
@@ -108,6 +114,9 @@ def pyharp_run(work, tau, ssa, g, mu0, alb, nstr, nlyr=4, ztot=1000.0):
     atm = {"tempf": torch.full((1, nlyr + 1), 250.0, dtype=torch.float64)}
     flx = band.forward(conc, dz, bc, atm)  # (ncol, nlev, channel); level 0 is the surface
     up, dn = flx[0, :, 0].numpy()[::-1], flx[0, :, 1].numpy()[::-1]  # reorder: index 0 = top
+    if prop_out is not None:
+        # (nwave, ncol, nlyr, nprop) as handed to DISORT; expected optical depth k dz from the inputs
+        prop_out.append((band.buffer("prop").clone(), (tau / ztot) * dz))
     return np.linspace(0, tau, nlyr + 1), up, dn
 
 
@@ -176,6 +185,20 @@ def main():
     nfail += not ok
     print(f"[C5] {'PASS' if ok else 'FAIL'} A = 0: max |R + T - 1| pyharp {rt['pyharp']:.1e}, "
           f"pydisort {rt['pydisort']:.1e} (tol 1e-6)")
+
+    dtau_dev, ssa_ok, seen = 0.0, True, []
+    for tau, ssa in itertools.product([0.1, 10.0], [1.0, 0.5]):
+        props = []
+        pyharp_run(work, tau, ssa, 0.5, 0.5, 0.0, 4, prop_out=props)
+        prop, dtau = props[0]
+        dtau_dev = max(dtau_dev, float((prop[..., 0] / dtau - 1).abs().max()))
+        want = torch.full_like(prop[..., 1], min(ssa, 1.0 - 1e-12))
+        ssa_ok &= bool(torch.equal(prop[..., 1], want))
+        seen.append(f"{ssa:g} -> {prop[..., 1].max().item():.15g}")
+    ok = dtau_dev <= 1e-15 and ssa_ok
+    nfail += not ok
+    print(f"[C6] {'PASS' if ok else 'FAIL'} pyharp prop: max |dtau / (k dz) - 1| {dtau_dev:.1e} (tol 1e-15); "
+          f"omega {'=' if ssa_ok else '!='} min(omega, 1 - 1e-12) bitwise ({', '.join(seen[:2])})")
     sys.exit(nfail)
 
 
