@@ -11,6 +11,11 @@ These checks read or run pyharp, so by STYLE 7 they live here rather than under 
 | `header_diff.sh <env 1.7.1> <env 1.8.13>` | `DisortImpl` data members that differ between the two wheels; newest pydisort on PyPI | `header_diff.out` |
 | `flaky_rerun.sh <pyharp tree> <N>` | the one intermittent spectra test, N reruns | `flaky_rerun.out` |
 | `setup_env.sh <dir> <pydisort version>` | builds an environment from `requirements.lock`, checksummed wheels and pyharp at the pin | `<dir>/ENV.txt` |
+| `invariants.py [--dump f] [--csv f]` | energy closure, conservative and isothermal limits, heating, positivity, zero opacity and its continuity, kernel thresholds, on the full band path | `invariants.out` |
+| `opacity_probe.py [--tree t] [--dump f]` | zero condensate in, zero extinction out; table floors through `interpn`; extrapolation | `opacity_probe.out` |
+| `model_probe/run.sh <env> <scratch>` | the energy of one `RadiationModel` step and its temperature clamp (C++, no binding exists) | `model_probe.out` |
+| `floor_inventory.py <pyharp tree> [<pydisort tree>] [--csv f]` | every floor, clamp, switch, division guard and refusal of the compiled sources, classified | `floor_inventory.out` |
+| `break_tests.py <env> <scratch> [--csv f]` | one-line mutations of a scratch clone: each check red with its term or floor removed; floor effects | `break_tests.out` |
 
 Source pins and builds:
 

@@ -80,15 +80,21 @@ The checks themselves are files of this report, not of pyharp, and are listed in
 | `derivation-checks/ch10/bindings_diff.py` | options vs bindings vs stubs | 0 missing | outline target |
 | `derivation-checks/ch10/header_diff.sh` | `DisortImpl` members between wheels | exact | header text |
 | `derivation-checks/ch10/flaky_rerun.sh` | one timestamp-dependent test, rerun | failure count | sample |
+| `derivation-checks/ch10/invariants.py` | closure, positivity, zero opacity, thresholds | per check | @tbl-ch10-invariants-tests |
+| `derivation-checks/ch10/opacity_probe.py` | zero condensate, table floors | exact, $10^{-12}$ | @tbl-ch10-invariants-tests |
+| `derivation-checks/ch10/model_probe/run.sh` | energy of one `RadiationModel` step, its clamp | $10^{-10}$ | @tbl-ch10-invariants-tests |
+| `derivation-checks/ch10/floor_inventory.py` | every guard of the compiled sources listed | 0 unlisted | inventory |
+| `derivation-checks/ch10/break_tests.py` | each check red with its term or floor removed | red or green | @tbl-ch10-invariants-breaks |
 
 : Executable checks of the report in this tree. {#tbl-ch10-index-checks}
 
 Each check writes its output next to it (`test_inventory.out`, `run_suite.<pairing>.out`, `abi_matrix.out`,
-`bindings_diff.<pydisort>.out`, `header_diff.out`, `flaky_rerun.out`); `test_inventory.py` and `bindings_diff.py` need a pyharp tree at the pin, and the
+`bindings_diff.<pydisort>.out`, `header_diff.out`, `flaky_rerun.out`, `invariants.out`, `opacity_probe.out`,
+`model_probe.out`, `floor_inventory.out`, `break_tests.out`); `test_inventory.py` and `bindings_diff.py` need a pyharp tree at the pin, and the
 latter and `run_suite.sh` a build of it. All of them run and produce the outputs cited in @sec-ch10-test-suite,
-@sec-ch10-packaging and @sec-ch10-bindings[^ch10-index-run].
+@sec-ch10-packaging, @sec-ch10-bindings and @sec-ch10-invariants[^ch10-index-run].
 
-[^ch10-index-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the scripts of `derivation-checks/ch10/`; run: `bash derivation-checks/ch10_run.sh <env 1.7.1> <env 1.8.13> <scratch dir>`, which calls `python3 derivation-checks/ch10/test_inventory.py <pyharp tree>`, `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>`, `python3 derivation-checks/ch10/abi_matrix.py`, `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree>`, `header_diff.sh` and `flaky_rerun.sh`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; environments from `derivation-checks/ch10/setup_env.sh`; outputs in `derivation-checks/ch10/`]
+[^ch10-index-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: the scripts of `derivation-checks/ch10/`; run: `bash derivation-checks/ch10_run.sh <env 1.7.1> <env 1.8.13> <scratch dir>`, which calls `python3 derivation-checks/ch10/test_inventory.py <pyharp tree>`, `bash derivation-checks/ch10/run_suite.sh <pyharp tree> <scratch dir>`, `python3 derivation-checks/ch10/abi_matrix.py`, `python3 derivation-checks/ch10/bindings_diff.py <pyharp tree>`, `header_diff.sh`, `flaky_rerun.sh`, `invariants.py`, `opacity_probe.py`, `model_probe/run.sh`, `floor_inventory.py` and `break_tests.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, pytest 9.1.1; environments from `derivation-checks/ch10/setup_env.sh`; outputs in `derivation-checks/ch10/`]
 
 ### Limits
 

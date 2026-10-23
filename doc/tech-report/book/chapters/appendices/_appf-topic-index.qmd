@@ -16,6 +16,8 @@
 
 **binary compatibility, pydisort**: The pydisort dependency and binary compatibility, @sec-ch10-packaging.
 
+**break tests**: Invariant checks: energy closure, flux positivity, the zero-opacity limit and every floor, @sec-ch10-invariants.
+
 **Buras-Emde intensity correction**: Intensity corrections after delta-M, @sec-ch03-intcorr.
 
 ## C {.unnumbered .unlisted}
@@ -68,6 +70,8 @@
 
 ## F {.unnumbered .unlisted}
 
+**floors and clamps, inventory**: Invariant checks: energy closure, flux positivity, the zero-opacity limit and every floor, @sec-ch10-invariants.
+
 **forward-peak truncation**: Delta scaling of the optical properties, @sec-ch02-delta-scaling; Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$), @sec-ch03-deltam.
 
 ## G {.unnumbered .unlisted}
@@ -89,6 +93,8 @@
 ## I {.unnumbered .unlisted}
 
 **intensity correction, Nakajima-Tanaka**: Intensity corrections after delta-M, @sec-ch03-intcorr.
+
+**invariant checks, energy closure**: Invariant checks: energy closure, flux positivity, the zero-opacity limit and every floor, @sec-ch10-invariants.
 
 ## L {.unnumbered .unlisted}
 

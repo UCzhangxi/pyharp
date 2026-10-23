@@ -55,6 +55,7 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 |---|---|---|---|
 | `fig-ch10-bindings-gaps` | `10-verification/_bindings.qmd` | `pyharp_report/ch10/figures/fig_bindings_gaps.py` | `src/pyharp_report/ch10/data/bindings_gaps.csv` |
 | `fig-ch10-index-flow` | `10-verification/_verification-index.qmd` | `pyharp_report/ch10/figures/fig_index_flow.py` | - |
+| `fig-ch10-invariants-breaks` | `10-verification/_invariants.qmd` | `pyharp_report/ch10/figures/fig_invariants_breaks.py` | `src/pyharp_report/ch10/data/break_tests.csv` |
 | `fig-ch10-map` | `10-verification.qmd` | `pyharp_report/ch10/figures/fig_chapter_map.py` | - |
 | `fig-ch10-packaging-matrix` | `10-verification/_packaging.qmd` | `pyharp_report/ch10/figures/fig_packaging_matrix.py` | `src/pyharp_report/ch10/data/abi_matrix.csv` |
 | `fig-ch10-test-suite-coverage` | `10-verification/_test-suite.qmd` | `pyharp_report/ch10/figures/fig_test_suite_coverage.py` | `src/pyharp_report/ch10/data/test_inventory.csv` |

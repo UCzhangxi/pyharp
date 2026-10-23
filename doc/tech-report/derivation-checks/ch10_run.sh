@@ -29,5 +29,15 @@ done
 bash "$C/header_diff.sh" "$A" "$B" > "$C/header_diff.out"; echo "header_diff: exit $?"
 { for E in "$A" "$B"; do PATH="$E/venv/bin:$PATH" bash "$C/flaky_rerun.sh" "$E/pyharp" 25; done; } > "$C/flaky_rerun.out"
 echo "flaky_rerun: exit $?"
+(cd "$S" && "$A/venv/bin/python" -I "$C/invariants.py" --csv "$R/src/pyharp_report/ch10/data/invariants.csv" > "$C/invariants.out")
+echo "invariants: exit $?"
+(cd "$S" && "$A/venv/bin/python" -I "$C/opacity_probe.py" --tree "$A/pyharp" > "$C/opacity_probe.out"); echo "opacity_probe: exit $?"
+bash "$C/model_probe/run.sh" "$A" "$S/model_probe" > "$C/model_probe.out"; echo "model_probe: exit $?"
+[ -d "$S/pydisort" ] || { git clone -q https://github.com/zoeyzyhu/pydisort "$S/pydisort" &&
+  git -C "$S/pydisort" checkout -q "$(sed -n 's/^pydisort_sha: //p' "$R/code_pin.yml")"; }
+python3 "$C/floor_inventory.py" "$A/pyharp" "$S/pydisort" --csv "$R/src/pyharp_report/ch10/data/floor_inventory.csv" \
+  > "$C/floor_inventory.out"; echo "floor_inventory: exit $?"
+"$A/venv/bin/python" "$C/break_tests.py" "$A" "$S/break" --csv "$R/src/pyharp_report/ch10/data/break_tests.csv" \
+  > "$C/break_tests.out"; echo "break_tests: exit $?"
 (cd "$R" && PYTHONPATH="$R/src" MPLCONFIGDIR=$(mktemp -d) "$A/venv/bin/python" tools/render_figures.py --chapters ch10 > /dev/null)
 echo "figures (tools/render_figures.py --chapters ch10): exit $?"
