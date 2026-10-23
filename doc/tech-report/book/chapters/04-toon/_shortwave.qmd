@@ -138,8 +138,9 @@ $$
 \end{aligned}
 $$
 
-where the second line is the second row multiplied by $\gamma_1 - 1/\mu_0$ and rearranged, and the third line
-substitutes the first. With $\lambda^2 = \gamma_1^2 - \gamma_2^2$, and by the same steps for $c^-$:
+where the second line is the second row multiplied by $\gamma_2$ (check `[C7]` of `shortwave_check.py`), and the
+third line replaces $\gamma_2 c^-$ on its left by the first line, multiplied by $\gamma_1 - 1/\mu_0$.
+With $\lambda^2 = \gamma_1^2 - \gamma_2^2$, and by the same steps for $c^-$:
 
 $$
 \begin{aligned}
@@ -187,7 +188,7 @@ $$ {#eq-ch04-shortwave-bc}
 **What is exact and what is truncated.** For layers of constant $\omega$, $g$, the interface fluxes solve the
 two-stream system exactly; the delta-Eddington scaling and the quadrature closure are the approximation, and their
 error against the full equation belongs to @sec-ch05. The executable check is `shortwave_check.py` (symbolic,
-`[C1]`-`[C6]`) and `toon_pyharp_check.py` (pyharp against a 40-digit solution of @eq-ch04-shortwave-ode,
+`[C1]`-`[C7]`) and `toon_pyharp_check.py` (pyharp against a 40-digit solution of @eq-ch04-shortwave-ode,
 `[C1]`-`[C4]`).
 
 ### Numerical method
@@ -240,10 +241,12 @@ beam, which is exact for an exponential.
 
 **Pure absorption.** When every layer has $\omega \le 10^{-12}$ and $A_s \le 10^{-12}$, the code skips the solve
 and returns the unscaled Beer-Lambert beam $\mu_0 F_0 e^{-\tau/\mu_0}$ in the downward channel and zero upward.
+In a column that does scatter, a layer with $\gamma_2 = 0$ exactly ($\omega = 0$) gets $\gamma_2 = 10^{-10}$ instead
+(`g2` in `toon_mckay89_shortwave`), so that $\Gamma = (\gamma_1 - \lambda)/\gamma_2$ stays finite.
 
 ```{python}
 #| label: fig-ch04-shortwave-thick-layer
-#| fig-cap: "Error of pyharp's shortwave fluxes for a single layer (omega = 0.3, g = 0, mu0 = 0.6, A_s = 0) against a 40-to-150-digit reference, as a function of lambda times the layer thickness. Circles: measured maximum flux error over both levels and channels, normalised by F0 mu0; dashed line: 0.4 exp(lambda dtau) times machine epsilon; dotted line: the cap at 35. Read: the error grows like the unscaled exponential until the cap, then stays at 0.15."
+#| fig-cap: "Error of pyharp's shortwave fluxes for a single layer (omega = 0.3, g = 0, mu0 = 0.6, A_s = 0) against a 150-digit reference, as a function of lambda times the layer thickness. Circles: measured maximum flux error over both levels and channels, normalised by F0 mu0; dashed line: 0.4 exp(lambda dtau) times machine epsilon; dotted line: the cap at 35. Read: the error grows like the unscaled exponential until the cap, then stays at 0.15."
 #| fig-alt: "A semi-log plot. The measured error rises along a straight line from 1e-14 at lambda dtau = 5 to about 0.1 at 35, following a dashed reference line, and is flat at 0.15 for lambda dtau from 35 to 60."
 #| echo: false
 from pyharp_report.ch04.figures.fig_shortwave_thick_layer import make_fig
@@ -304,7 +307,7 @@ level and both channels, the check gives $e_F = 4.0\times10^{-10}$ for single la
 $\omega = 0.3$, $\mu_0 = 0.6$) and $e_F$ below $10^{-12}$ for 7 and 50 sublayers, 216 cases each[^ch04-sw-grid]. At
 the resonance $e_F = 1.9\times10^{-8}$, the size of the guard's shift[^ch04-sw-grid]. The five cases of Toon et al.
 [-@reading02, Table 4] reproduce the printed two-stream fluxes within $3.5\times10^{-4}$, inside the rounding of
-three printed decimals[^ch04-sw-grid]. The symbolic identities `[C1]`-`[C6]` of `shortwave_check.py` all
+three printed decimals[^ch04-sw-grid]. The symbolic identities `[C1]`-`[C7]` of `shortwave_check.py` all
 pass[^ch04-sw-sym].
 
 The pyharp suite has no test of the shortwave solver against an independent solution: `tests/test_toon.py`
@@ -332,7 +335,7 @@ $\omega = 1$ passed directly to `ToonMcKay89` gives wrong fluxes.
 - **$\omega = 1$ (CANDIDATE, conservative scattering).** At $\omega^{\mathrm{s}} = 1$, $\gamma_1 = \gamma_2$, so $\lambda = 0$,
   $\Gamma = 1$ and the interface coefficient $1 - \Gamma^2$ vanishes (check `[C4]` of `shortwave_check.py`); the
   system is singular and `dtridgl` replaces the zero pivot by $10^{-12}$. With $\omega = 1$ exactly,
-  Toon Table 4 case 1 returns $F^+(0) = \pi$ (all incident light reflected) instead of $0.174$, and
+  Toon Table 4 case 1 returns $F^+(0) = 3.1411 \approx \mu_0 F_0$ (all incident light reflected) instead of $0.174$, and
   $e_F = 1.1$; with $\omega = 1 - 10^{-12}$, $e_F = 1.6\times10^{-11}$[^ch04-sw-thick]. The band solver caps
   $\omega$ at $1 - \delta\omega$ before calling the kernel (@sec-ch07), so the defect is reachable only by calling
   `ToonMcKay89` directly.

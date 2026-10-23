@@ -18,6 +18,11 @@ an mpmath quadrature of the Planck function B_nu.
   [C6] Truncation at the switch v = 1.5: the first neglected term of the power series,
        (15/pi^4)(5/66) v^13/(13 * 10!), and the m = 7 term of the exponential series, as fractions of sigma T^4/pi;
        and hc/k in cm K.
+  [C7] The switch edge v = 1.5: band_port_inclusive is band_port with the small-v test written v <= VCUT (the
+       large-v test stays v > VCUT, as in the code), so an edge exactly at the switch is in one series. At T = 300 * 1.438786 / 1.5 (v1 = 1.5 for nu1 = 300 cm-1) and for
+       nu2 = 300 cm-1 (v2 = 1.5), it agrees with the quadrature within 1e-4; band_port (the code's strict v < VCUT /
+       v > VCUT) is printed beside it and is far off (defect P11, chapter 4 Limits). Writing the inclusive test back
+       as v < VCUT turns this check red.
   [C4] The point overload `bbflux_wavenumber(wave, temp, ncol)` uses c1 = 1.19144e-8, c2 = 1.4388: within 3e-4 of
        B_nu at 667 cm-1, 300 K.
 
@@ -77,6 +82,47 @@ def band_port(wn1, wn2, T, C2=1.438786, SIGMA=5.67032e-8):
     return ans * sigdpi * T ** 4
 
 
+def band_port_inclusive(wn1, wn2, T, C2=1.438786, SIGMA=5.67032e-8):
+    """band_port with one change: the small-v test is v <= VCUT (the code has v < VCUT), so that with the large-v test
+    v > VCUT, which is kept as in the code, every v falls in exactly one series"""
+    VCUT = 1.5
+    sigdpi = SIGMA / math.pi
+    conc = 15.0 / math.pi ** 4
+    A1, A2, A3, A4, A5, A6 = 1 / 3, -1 / 8, 1 / 60, -1 / 5040, 1 / 272160, -1 / 13305600
+    v = [C2 * wn1 / T, C2 * wn2 / T]
+    smallv = 0
+    p, d = [0.0, 0.0], [0.0, 0.0]
+    for i in range(2):
+        small = v[i] <= VCUT
+        smallv += 1 if small else 0
+        vsq = v[i] * v[i]
+        p[i] = conc * vsq * v[i] * (A1 + v[i] * (A2 + v[i] * (A3 + vsq * (A4 + vsq * (A5 + vsq * A6)))))
+        p[i] = p[i] if small else 0.0
+        ex = math.exp(-v[i])
+        exm = 1.0
+        d[i] = 0.0
+        for m in range(1, 7):
+            mv = m * v[i]
+            exm *= ex
+            d[i] += exm * (6.0 + mv * (6.0 + mv * (3.0 + mv))) / m ** 4
+        d[i] *= conc
+        d[i] = d[i] if v[i] > VCUT else 0.0
+    ans = p[1] - p[0] if smallv == 2 else (1.0 - p[0] - d[1] if smallv == 1 else d[0] - d[1])
+    return ans * sigdpi * T ** 4
+
+
+def check_C7_switch_edge():
+    T = 300.0 * 1.438786 / 1.5
+    rows, worst = [], 0.0
+    for a, b in [(300, 600), (150, 300)]:
+        ref = float(mp.quad(lambda n: bnu(n, T), [a, b]))
+        fixed = band_port_inclusive(float(a), float(b), T) / ref - 1
+        code = band_port(float(a), float(b), T) / ref - 1
+        worst = max(worst, abs(fixed))
+        rows.append(f"{a}-{b}: inclusive {fixed:+.1e}, code (strict) {code:+.2f}")
+    return report("C7", worst < 1e-4, f"T = {T:.10f} K (v = 1.5 at 300 cm-1), port / int B_nu - 1: " + "; ".join(rows))
+
+
 def check_C1_radiance():
     T = 300.0
     worst = 0.0
@@ -115,7 +161,10 @@ def check_C4_point():
     c1, c2 = 1.19144e-5 * 1e-3, 1.4388
     got = c1 * nu ** 3 / (math.exp(c2 * nu / T) - 1.0)      # `bbflux_wavenumber(wave, temp, ncol)`
     rel = got / float(bnu(nu, T)) - 1
-    return report("C4", abs(rel) < 3e-4, f"point overload / B_nu(667 cm-1, 300 K) - 1 = {rel:.1e}")
+    c1_rel = c1 / (2 * H * C ** 2 * 1e8) - 1
+    c2_rel = c2 / (H * C / KB * 100) - 1
+    return report("C4", abs(rel) < 3e-4, f"point overload / B_nu(667 cm-1, 300 K) - 1 = {rel:.1e}; its c1 is {c1_rel:+.1e} "
+                  f"and c2 {c2_rel:+.1e} relative to 2hc^2 x 1e8 and hc/k")
 
 
 def check_C5_constants():
@@ -142,7 +191,8 @@ def check_C6_truncation():
 
 
 def main():
-    oks = [check_C1_radiance(), check_C2_sigma(), check_C3_equal_edges(), check_C4_point(), check_C5_constants(), check_C6_truncation()]
+    oks = [check_C1_radiance(), check_C2_sigma(), check_C3_equal_edges(), check_C4_point(), check_C5_constants(), check_C6_truncation(),
+           check_C7_switch_edge()]
     print(f"RESULT: {sum(oks)}/{len(oks)} pass")
     return len(oks) - sum(oks)
 

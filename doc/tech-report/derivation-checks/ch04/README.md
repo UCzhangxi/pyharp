@@ -28,7 +28,9 @@ bash derivation-checks/ch04_run.sh /tmp/env171 /tmp/env1813
 git status --short    # the committed outputs are regenerated in place; no change means a byte-identical rerun
 ```
 
-`ch04_run.sh` writes `toon_pyharp_check.pydisort-<version>.out` for each environment, the data file
+`ch04_run.sh` writes `toon_pyharp_check.pydisort-<version>.out` and `defects_pyharp_check.pydisort-<version>.out`
+for each environment, `mutations.out` (from `mutations.sh`: each review fix's check with one line mutated, and its
+unmodified control, with exit codes), the data file
 `src/pyharp_report/ch04/data/shortwave_thick_layer.csv` (read by the figure `fig-ch04-shortwave-thick-layer`), the
 outputs of the three numpy/sympy checks under `src/pyharp_report/ch04/checks/`, and draws the chapter's figures with
 `tools/render_figures.py --chapters ch04`. Inputs: none beyond the pinned sources and the PyPI wheels named in
@@ -37,3 +39,7 @@ outputs of the three numpy/sympy checks under `src/pyharp_report/ch04/checks/`, 
 The exit status of `toon_pyharp_check.py` is the number of failed core checks `[C1]`-`[C6]`; candidate checks
 `[K1]`-`[K6]` print `XFAIL` when the candidate defect is reproduced and never change the exit status. All candidates
 are CANDIDATE until a second independent run agrees; they are named by content, not by register number.
+
+`defects_pyharp_check.py` reproduces the pyharp defects P11 (Planck switch hole at v = 1.5) and P12 (infinite fluxes
+at an exact longwave resonance in a thick layer) of `DEFECTS.md` with fixed inputs. Its checks pass while the pinned
+pyharp shows the defect and fail once pyharp is fixed, which is the signal to update the chapter's Limits.
