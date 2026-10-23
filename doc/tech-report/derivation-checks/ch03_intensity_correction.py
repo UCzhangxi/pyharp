@@ -22,6 +22,16 @@ degrees. Reference: 128 streams, 512 moments, corrected.
   [C5] sympy: with P = f Phat + (1 - f) P* and chi*_l = (chi_l - f)/(1 - f) for l < 2N, chi*_l = 0 above,
        the moments of Phat are 1 for l < 2N and chi_l / f for l >= 2N, so the moments of 2 Phat - Phat^2
        are 1 and (chi_l/f)(2 - chi_l/f), as c_secondary_scat sums them.
+  [C6] TMS, quantitative (eq-ch03-intcorr-tms): for every direction outside the aureole (all azimuths; bottom
+       and top level), the change the correction makes, I(on) - I(off), equals
+       I_1[omega P / (1 - f omega), tau'] - I_1[omega' P*, tau'] from eq-ch03-intcorr-single, evaluated here:
+       f = chi_2N, tau' = (1 - f omega) tau, omega' = omega (1 - f)/(1 - f omega), P from all 512 moments,
+       P* from chi*_l = (chi_l - f)/(1 - f), l < 2N (tol 1e-10 of the largest term; 8, 16, 32 streams).
+  [C7] IMS, quantitative (eq-ch03-intcorr-ims with eq-ch03-intcorr-h): inside the aureole (downward, zenith
+       within 10 degrees of the beam's, below the top), I(on) - I(off) - TMS term equals
+       -(F0 / 4 pi) (f omega)^2 / (1 - f omega) sum_l (2l + 1)(2 chihat_l - chihat_l^2) P_l(cos Theta)
+       h(tau, |mu|, mu0*), mu0* = mu0 / (1 - f omega), h on the unscaled tau, chihat_l from [C5]; one layer,
+       so fbar = f and omegabar = omega (tol 1e-10 of the largest IMS term; 8, 16, 32 streams).
 
 Needs: torch, numpy, sympy, pydisort.
 Run:   python ch03_intensity_correction.py
@@ -34,6 +44,7 @@ import sys
 
 import numpy as np
 import pydisort
+from numpy.polynomial import legendre as L
 import sympy as sp
 import torch
 from pydisort import Disort, DisortOptions, scattering_moments
@@ -62,6 +73,43 @@ def run(nstr, nmom, flags, umu, phi, tau=1.0):
     ds.forward(prop, umu0=torch.tensor([0.5], dtype=torch.float64), phi0=torch.zeros(1, dtype=torch.float64),
                fbeam=torch.tensor([[math.pi]], dtype=torch.float64), albedo=torch.zeros((1, 1), dtype=torch.float64))
     return ds.gather_flx(), ds.gather_rad()  # rad: (nwave, ncol, nphi, ntau, numu)
+
+
+def nt_terms(nstr, nmom, umu, phi, tau=1.0, omega=0.99, mu0=0.5, F0=math.pi):
+    """TMS and IMS terms of eq-ch03-intcorr-tms and eq-ch03-intcorr-ims for the layer of run(), from the
+    formulas: arrays (nphi, 2 levels [top, bottom], numu); the IMS term is 0 outside the aureole"""
+    chi = np.concatenate([[1.0], scattering_moments(nmom, "henyey-greenstein", 0.9).numpy()])
+    l = np.arange(nmom + 1)
+    f = chi[nstr]
+    fw = f * omega
+    taup, wp, mu0s = (1 - fw) * tau, omega * (1 - f) / (1 - fw), mu0 / (1 - fw)
+    chis = np.where(l < nstr, (chi - f) / (1 - f), 0.0)        # delta-M moments, eq-ch03-deltam-moments
+    chih = np.where(l < nstr, 1.0, chi / f)                     # moments of Phat, [C5]
+    dither = 100 * np.finfo(float).eps
+
+    def single(wP, mu, utp):                                    # eq-ch03-intcorr-single on depth tau'
+        if abs(mu + mu0) <= dither:                             # the limit |mu| = mu0
+            return F0 / (4 * math.pi * mu0) * math.exp(-utp / mu0) * wP * utp
+        e1 = math.exp(-((taup - utp) / mu + taup / mu0)) if mu > 0 else math.exp(utp / mu)
+        return F0 / (4 * math.pi * (1 + mu / mu0)) * wP * (math.exp(-utp / mu0) - e1)
+
+    tms = np.zeros((len(phi), 2, len(umu)))
+    ims = np.zeros_like(tms)
+    th0 = math.degrees(math.acos(-mu0))
+    for ip, ph in enumerate(phi):
+        for iu, mu in enumerate(umu):
+            ct = -mu0 * mu + math.sqrt((1 - mu0**2) * (1 - mu**2)) * math.cos(math.radians(ph))
+            P, Ps = L.legval(ct, (2 * l + 1) * chi), L.legval(ct, (2 * l + 1) * chis)
+            for it, ut in enumerate((0.0, tau)):
+                tms[ip, it, iu] = single(omega * P / (1 - fw), mu, (1 - fw) * ut) - single(wp * Ps, mu, (1 - fw) * ut)
+                if mu < 0 and ut > 0 and abs(th0 - math.degrees(math.acos(mu))) <= 10:
+                    m = -mu
+                    x = (mu0s - m) / (m * mu0s)
+                    h = (((ut * x - 1) * math.exp(-ut / mu0s) + math.exp(-ut / m)) / (x * x * m * mu0s) if x != 0
+                         else ut**2 * math.exp(-ut / m) / (2 * m * mu0s))
+                    ims[ip, it, iu] = (-F0 / (4 * math.pi) * fw**2 / (1 - fw)
+                                       * L.legval(ct, (2 * l + 1) * (2 * chih - chih**2)) * h)
+    return tms, ims
 
 
 def check_sympy():
@@ -110,6 +158,7 @@ def main():
     rest = [i for i, t in enumerate(th_of) if abs(t - 60) > 10]
     beam = th_of.index(60)
     ok1 = ok2 = True
+    dev6, dev7 = [], []
     print(f"{'nstr':>4} {'aureole off':>11} {'on':>8} {'outside off':>11} {'on':>8} {'top off':>8} {'on':>8} "
           f"{'I(beam dir) off':>15} {'on':>7} {'ref':>7} {'phi180 off/on':>14}")
     for nstr in (8, 16, 32):
@@ -125,6 +174,11 @@ def main():
         a0, a1 = e0[0, aure].max().item(), e1[0, aure].max().item()
         o0, o1 = e0[:, rest].max().item(), e1[:, rest].max().item()
         ok2 &= a1 < a0 and o1 < o0 and t1 < t0
+        tms, ims = nt_terms(nstr, 512, umu, phi)
+        d = (r1 - r0)[0, 0].numpy()                     # (nphi, ntau, numu): what the correction changed
+        aur = ims != 0.0
+        dev6.append(float(np.abs(d - tms)[~aur].max() / np.abs(tms[~aur]).max()))
+        dev7.append(float(np.abs(d - tms - ims)[aur].max() / np.abs(ims[aur]).max()) if aur.any() else math.inf)
         print(f"{nstr:4d} {a0:11.1e} {a1:8.1e} {o0:11.1e} {o1:8.1e} {t0:8.1e} {t1:8.1e} "
               f"{r0[0, 0, 0, 1, beam].item():15.3f} {r1[0, 0, 0, 1, beam].item():7.3f} {ref[0, beam].item():7.3f} "
               f"{anom[0]:6.1e}/{anom[1]:6.1e}")
@@ -133,7 +187,13 @@ def main():
     print(f"[C2] {'PASS' if ok2 else 'FAIL'} the correction lowers the largest radiance error inside the aureole, "
           "outside it and at the top, at 8/16/32 streams")
     ok3 = check_sympy()
-    sys.exit((not ok1) + (not ok2) + (not ok3))
+    ok6, ok7 = max(dev6) <= 1e-10, max(dev7) <= 1e-10
+    print(f"[C6] {'PASS' if ok6 else 'FAIL'} TMS: I(on) - I(off) outside the aureole = I_1[omega P/(1 - f omega), tau'] "
+          f"- I_1[omega' P*, tau'], rel dev 8/16/32 streams " + "/".join(f"{x:.1e}" for x in dev6) + " (tol 1e-10)")
+    print(f"[C7] {'PASS' if ok7 else 'FAIL'} IMS: in the aureole the rest = -(F0/4 pi) (f omega)^2/(1 - f omega) "
+          f"sum (2l+1)(2 chihat - chihat^2) P_l h(tau, |mu|, mu0*), rel dev 8/16/32 streams "
+          + "/".join(f"{x:.1e}" for x in dev7) + " (tol 1e-10)")
+    sys.exit((not ok1) + (not ok2) + (not ok3) + (not ok6) + (not ok7))
 
 
 if __name__ == "__main__":

@@ -6,3 +6,4 @@ python 3.11.13, numpy 2.4.6, sympy 1.14.0
 [C5] PASS thermal particular solution residual 2.8e-15 of the source (tol 1e-13)
 [C6] PASS homogeneous solutions residual 2.4e-15 (tol 1e-13)
 [C7] PASS 2 pi sum_i w_i mu_i = pi, N = 1..32: max |dev| 8.9e-16 (tol 3e-14)
+[C8] PASS kernel D = (omega/2) azimuthal mean of the truncated phase function, N = 1..16: max |D - D_ref| / max |D_ref| 2.2e-15 (tol 1e-13)

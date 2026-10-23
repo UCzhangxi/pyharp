@@ -92,7 +92,8 @@ returns four channels. Nothing in this hand-over is truncated: the only approxim
 solver, @sec-ch03-ordinates. The checks are `ch03_e3_slab.py` and `ch03_beam_closure.py` (the Tests layer below).
 
 <!-- equation-check: eq-ch03-band-flux ch03_beam_closure.py [C1] -->
-<!-- equation-check: eq-ch03-band-prop ch03_beam_closure.py [C3] -->
+<!-- equation-check: eq-ch03-band-prop ch03_beam_closure.py [C1] -->
+<!-- equation-check: eq-ch03-band-prop ch03_beam_closure.py [C6] -->
 
 ### Numerical method
 
@@ -177,26 +178,31 @@ calls either helper.
 No ctest at the pin runs a DISORT band. The Python test `tests/test_rayleigh.py`
 (`test_radiation_band_regularizes_conservative_ssa_for_disort`) runs one and asserts the albedo margin of
 @eq-ch03-band-prop, but ctest does not register the Python tests, so CI does not run it. The evidence is the
-derivation checks, run through `RadiationBand` and through pydisort directly:
+derivation checks, run through `RadiationBand` and through pydisort directly. The first line of
+@eq-ch03-band-prop is tested through the beam it attenuates ([C1]); the second is read back from the `prop` buffer
+that `RadiationBand` hands to DISORT ([C6]), the same buffer that Python test asserts on:
 
 | test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
 |---|---|---|---|
 | `ch03_beam_closure.py` [C1], [C2] | direct beam is $\mu_0 F_0 e^{-\tau/\mu_0}$, no upward flux | $10^{-12}$ rel. | round-off of one exp |
 | `ch03_beam_closure.py` [C3], [C4] | net flux constant in a conservative slab | $10^{-6}$ of $\mu_0F_0$ | see the footnote |
+| `ch03_beam_closure.py` [C6] | DISORT input $\Delta\tau = k\,\Delta z$, $\omega \leftarrow \min(\omega, 1-\delta\omega)$ | $10^{-15}$ rel.; bitwise | one product; the clamp is exact |
 | `ch03_e3_slab.py` [C1] | grey slab within $2\times10^{-4}$ at 32 streams | $2\times10^{-4}$ rel. | outline acceptance |
 | `ch03_candidates.py` [P1]-[P6] | the CANDIDATE behaviours of the Limits layer below | none | probes |
 
 : Tests of the DISORT band (no ctest exists; all rows are derivation checks). {#tbl-ch03-band-tests}
 
-Beer-Lambert holds exactly: the largest relative deviation of $F^{\downarrow}$ over $\tau$ from 0.01 to 10,
-$\mu_0$ of 1, 0.5 and 0.1 and 4 or 16 streams is 0.0, through `RadiationBand` and through pydisort alike, and no
-upward flux appears.[^ch03-band-run] In a conservative slab ($\omega = 1$, Henyey-Greenstein $g$ up to 0.85,
+Beer-Lambert holds to round-off: the largest relative deviation of $F^{\downarrow}$ over $\tau$ from 0.01 to 10,
+$\mu_0$ of 1, 0.5 and 0.1 and 4 or 16 streams is 0.0 in the runs quoted here (tolerance $10^{-12}$), through `RadiationBand` and through pydisort alike, and no
+upward flux appears.[^ch03-band-run] The optical depth DISORT receives is $k\,\Delta z$ to 0.0 relative, and the
+albedo is $1 - 10^{-12}$ bitwise for $\omega = 1$ and unchanged for $\omega = 0.5$ ([C6]).[^ch03-band-run] In a
+conservative slab ($\omega = 1$, Henyey-Greenstein $g$ up to 0.85,
 $\tau$ up to 100, surface albedo 0, 0.3 or 1, 4 to 32 streams; 432 cases) the net flux is constant over levels
 to $5.1\times10^{-10}\,\mu_0F_0$ through `RadiationBand` and $1.4\times10^{-9}\,\mu_0F_0$ through pydisort with
 $\omega$ exactly 1.[^ch03-band-closure] The same numbers came out with pydisort 1.8.13. All checks ran on CPU;
 none ran on CUDA.
 
-[^ch03-band-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_beam_closure.py` [C1], [C2]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch03_beam_closure.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch03_beam_closure.pydisort-1.8.13.out` holds the same lines.
+[^ch03-band-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_beam_closure.py` [C1], [C2], [C6]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch03_beam_closure.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch03_beam_closure.pydisort-1.8.13.out` holds the same lines.
 
 [^ch03-band-closure]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_beam_closure.py` [C3], [C4], [C5]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1]. The tolerance $10^{-6}\,\mu_0F_0$: the energy the albedo margin can absorb is at most $\delta\omega\,\tau/\mu_0 \le 10^{-9}$ on this grid, and the rest is round-off of the band solve; $10^{-6}$ leaves three orders of magnitude above the largest value measured. For surface albedo 0 the same run gives $|R + T - 1| \le 4.9\times10^{-10}$ through `RadiationBand` and $1.5\times10^{-9}$ through pydisort ([C5]).
 

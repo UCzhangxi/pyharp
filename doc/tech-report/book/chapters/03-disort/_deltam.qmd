@@ -172,7 +172,7 @@ a `RadiationBand`:
 
 [C2] runs each case twice: once with delta-M on, once with delta-M off on inputs scaled by hand with
 @eq-ch03-deltam-moments and @eq-ch03-deltam-scale. The upward and total downward fluxes agree to
-$8.1\times10^{-15}\,\mu_0F_0$ over 12 cases (Henyey-Greenstein $g = 0.9$ and the Garcia-Siewert cloud; $\tau$ 1
+$8.1\times10^{-15}\,\mu_0F_0$ over 12 cases (Henyey-Greenstein $g = 0.9$ and the Garcia-Siewert cloud [@reading25]; $\tau$ 1
 and 8; 4, 8 and 16 streams), so cdisort's scaling is the formula derived above.[^ch03-dm-run] [C3] finds the
 reported direct flux equal to $\mu_0F_0e^{-\tau/\mu_0}$ with the unscaled $\tau$ to 0.0 relative, on and off.
 In [C4], at 4 streams for $g = 0.9$ and $\tau = 1$, the reflected flux is off by $+7.8\times10^{-2}$ with

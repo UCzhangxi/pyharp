@@ -8,7 +8,9 @@ what it gets back (@sec-ch03-band); the discrete-ordinate solution cdisort compu
 delta-M scaling of strongly forward-peaked phase functions, which cdisort switches on by itself
 (@sec-ch03-deltam); and the intensity corrections, which only change radiances and so never reach a pyharp
 output (@sec-ch03-intcorr). The pydisort release the report is pinned to is 1.7.1; every check was also run on
-1.8.13, the release the package requirement resolves to today, and the two agree wherever both were run.
+1.8.13, the release the package requirement resolves to today. Every check gives the same verdict on both. Two
+kinds of printed value differ: the disotest deviations of cases 6b and 9b, because `gather_flx` returns fewer rows
+on 1.7.1 (@sec-ch03-ordinates), and the return codes of the abnormal exits of probe [P2] (@sec-ch03-band).
 
 ```{python}
 #| label: fig-ch03-depmap

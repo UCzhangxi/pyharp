@@ -20,6 +20,14 @@ Labels:
   [C5] the thermal particular solution Y0 + Y1 tau satisfies them for B = b0 + b1 tau (same tolerance).
   [C6] the homogeneous solutions G_j exp(-k_j tau) satisfy them (same tolerance).
   [C7] the flux quadrature: 2 pi sum_i w_i mu_i equals pi to 1e-15 (an isotropic intensity I gives F = pi I).
+  [C8] the kernel D of setup() against an independent reference: the azimuthal mean of the phase function,
+       D_ref(mu, mu') = (omega/2) (1/2 pi) int_0^2pi P(cos Theta) dphi with
+       cos Theta = mu mu' + sqrt(1 - mu^2) sqrt(1 - mu'^2) cos phi, where P is the Henyey-Greenstein series
+       truncated at 2N terms and evaluated at cos Theta directly (no addition theorem); the phi integral is the
+       512-point trapezoid rule, exact for a trigonometric polynomial of degree 2N - 1 < 512. omega = 0.8,
+       g = 0.85, N = 1..16, all 2N x 2N ordinate pairs; tol 1e-13 of max |D_ref|. [C3] sees only the l = 0
+       term (the Gauss rule integrates P_l, 1 <= l <= 2N - 1, to zero), so [C8] is the check of
+       eq-ch03-ordinates-kernel for l >= 1.
 
 Run: python ch03_ordinates_algebra.py
 """
@@ -149,9 +157,27 @@ def check_c7():
     return ok
 
 
+def check_c8():
+    omega, g = 0.8, 0.85
+    phi = np.linspace(0.0, 2.0 * np.pi, 512, endpoint=False)
+    worst = 0.0
+    for n in range(1, 17):
+        _, _, mus, _, _, D, _ = setup(n, omega, g)
+        l = np.arange(2 * n)
+        s = np.sqrt(1.0 - mus**2)
+        cos_t = mus[:, None, None] * mus[None, :, None] + s[:, None, None] * s[None, :, None] * np.cos(phi)
+        d_ref = 0.5 * omega * L.legval(cos_t, (2 * l + 1) * g**l).mean(axis=-1)
+        worst = max(worst, float(np.max(np.abs(D - d_ref)) / np.max(np.abs(d_ref))))
+    ok = worst <= 1e-13
+    print(f"[C8] {'PASS' if ok else 'FAIL'} kernel D = (omega/2) azimuthal mean of the truncated phase function, "
+          f"N = 1..16: max |D - D_ref| / max |D_ref| {worst:.1e} (tol 1e-13)")
+    return ok
+
+
 def main():
     print(f"python {sys.version.split()[0]}, numpy {np.__version__}, sympy {sp.__version__}")
-    nfail = sum(not f() for f in (check_c1, check_c2, check_c3, check_c4_c6, check_c7))
+    nfail = sum(not f() for f in (check_c1, check_c2, check_c3, check_c4_c6, check_c7,
+                                         check_c8))
     sys.exit(nfail)
 
 

@@ -4,7 +4,7 @@
 pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
 zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13 (its
 commit is printed in the check outputs): the correction routines differ only in register/inline/pfree sources:
-Nakajima and Tanaka 1988 (J. Quant. Spectrosc. Radiat. Transfer 40, 51-69); Buras, Dowling and Emde 2011 (J. Quant.
+Nakajima and Tanaka 1988 (J. Quant. Spectrosc. Radiat. Transfer 40, 51-59); Buras, Dowling and Emde 2011 (J. Quant.
 Spectrosc. Radiat. Transfer 112, 2028-2034); pydisort cdisort213/cdisort.c, python/csrc/bind_cdisort.cpp checks:
 derivation-checks/ch03_intensity_correction.py, ch03_candidates.py [P5] status: draft author: Jiheng Hu reviewer:
 -->
@@ -97,7 +97,7 @@ $$ {#eq-ch03-intcorr-ims}
 with $\hat\chi_l$ the moments of $\hat P$. The prefactor is Nakajima and Tanaka's $(1-\bar f\bar\omega)\hat\omega^2$
 with $\hat\omega = \bar f\bar\omega/(1-\bar f\bar\omega)$ [@reading04, p. 56, eq. 19]. The geometry factor is the
 single-scattering factor of the beam $g(s) = s\,e^{-s/\mu_0^{*}}/\mu_0^{*}$, with $s$ the optical depth along the
-beam,, carried down the line of sight:
+beam, carried down the line of sight:
 
 $$
 h = \frac{1}{|\mu|\mu_0^{*}}\int_0^{\tau} s\,e^{-(\tau-s)/|\mu|}\,e^{-s/\mu_0^{*}}\,\mathrm{d}s
@@ -108,8 +108,8 @@ $$ {#eq-ch03-intcorr-h}
 which tends to $\tau^2e^{-\tau/|\mu|}/(2|\mu|\mu_0^{*})$ as $x \to 0$. @eq-ch03-intcorr-ims is computed in
 `c_secondary_scat` ({{< code cdisort213/cdisort.c c_secondary_scat repo=pydisort >}}) and
 @eq-ch03-intcorr-h in `c_xi_func` ({{< code cdisort213/cdisort.c c_xi_func repo=pydisort >}}).
-`c_intensity_correction` adds $\hat I$ only for downward directions within $10^{\circ}$ of the beam, below the
-top level.
+`c_intensity_correction` adds $\hat I$ only for downward directions whose zenith angle is within $10^{\circ}$ of
+the beam's, at every azimuth (it compares the zenith angles only), below the top level.
 
 **The Buras-Emde variant.** Buras, Dowling and Emde [@reading03, p. 2030, eq. 11] replace the moment sum of
 @eq-ch03-intcorr-ims by the same expression evaluated from a tabulated phase function: they integrate the square
@@ -124,8 +124,9 @@ only in the aureole. Neither changes a flux: the correction is added to `uu` aft
 `ch03_intensity_correction.py` (the Tests layer below).
 
 <!-- equation-check: eq-ch03-intcorr-single ch03_intensity_correction.py [C3] -->
-<!-- equation-check: eq-ch03-intcorr-tms ch03_intensity_correction.py [C2] -->
+<!-- equation-check: eq-ch03-intcorr-tms ch03_intensity_correction.py [C6] -->
 <!-- equation-check: eq-ch03-intcorr-ims ch03_intensity_correction.py [C5] -->
+<!-- equation-check: eq-ch03-intcorr-ims ch03_intensity_correction.py [C7] -->
 <!-- equation-check: eq-ch03-intcorr-h ch03_intensity_correction.py [C4] -->
 
 ### Numerical method
@@ -175,6 +176,8 @@ pydisort:
 |---|---|---|---|
 | `ch03_intensity_correction.py` [C1] | fluxes bitwise unchanged | 0 | the correction adds to `uu` only |
 | `ch03_intensity_correction.py` [C2] | radiance errors fall | on $<$ off | qualitative |
+| `ch03_intensity_correction.py` [C6] | the change outside the aureole is @eq-ch03-intcorr-tms | $10^{-10}$ rel. | round-off of 512-term sums |
+| `ch03_intensity_correction.py` [C7] | the rest in the aureole is @eq-ch03-intcorr-ims with @eq-ch03-intcorr-h | $10^{-10}$ rel. | same |
 | `ch03_intensity_correction.py` [C3]-[C5] | @eq-ch03-intcorr-single, @eq-ch03-intcorr-h, $\hat P$ moments | exact | sympy identities |
 
 : Tests of the intensity correction (derivation check; no ctest exists). {#tbl-ch03-intcorr-tests}
@@ -188,7 +191,14 @@ with and without the correction (0.77 and 0.67 at 16 streams). Its cause is not 
 the coincidence $|\mu| = \mu_0$ in the user-angle beam solution. pydisort 1.8.13 gives the same lines. All runs
 were on CPU.
 
-[^ch03-ic-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_intensity_correction.py` [C1]-[C5]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Outputs `derivation-checks/ch03_intensity_correction.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (tag `v1.8.13`, torch 2.10.0+cu126). Flags `usrtau,usrang,lamber,quiet` with and without `intensity_correction,old_intensity_correction`; 512 moments; `accur` 0.
+What the correction adds is the formula, term by term. Outside the aureole the change $I' - I^{*}$ equals
+@eq-ch03-intcorr-tms evaluated from @eq-ch03-intcorr-single with the albedo $\omega/(1-f\omega)$, the full phase
+function and the scaled depth, to $2.0\times10^{-14}$ relative or better at 8, 16 and 32 streams ([C6]). Inside it,
+what remains after the TMS term equals @eq-ch03-intcorr-ims, with the prefactor
+$(\bar f\bar\omega)^2/(1-\bar f\bar\omega)$, $F_0/4\pi$, the minus sign and $h$ taken at $\mu_0^{*}$, to
+$1.1\times10^{-13}$ relative or better ([C7]).[^ch03-ic-run]
+
+[^ch03-ic-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_intensity_correction.py` [C1]-[C7]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67]. Outputs `derivation-checks/ch03_intensity_correction.pydisort-1.7.1.out` and `.pydisort-1.8.13.out` (tag `v1.8.13`, torch 2.10.0+cu126). Flags `usrtau,usrang,lamber,quiet` with and without `intensity_correction,old_intensity_correction`; 512 moments; `accur` 0.
 
 ### Limits
 
