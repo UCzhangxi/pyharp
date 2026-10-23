@@ -6,7 +6,9 @@ assignment is found by its left-hand side (it must occur exactly once), its righ
 by a fixed token map, and the difference to the reference expression is simplified to 0. References: Toon et al.
 (1989, JGR 94, 16287, doi:10.1029/jd094id13p16287) Table 1, eqs. (21)-(24), (27) and Table 3; Wiscombe (1977,
 J. Atmos. Sci. 34, 1408, doi:10.1175/1520-0469(1977)034<1408:tdmrya>2.0.co;2) eqs. (14), (15), (20) with M = 1.
-C24 records the single-scattering-albedo clamp of RadiationBandImpl::forward (src/radiation/radiation_band.cpp).
+C24 locates the single-scattering-albedo clamp lines of RadiationBandImpl::forward (src/radiation/radiation_band.cpp)
+as text; a text match cannot tell a working clamp from a disabled one, so the clamp's effect is measured by
+check_ch02_clamp_pyharp.py.
 
 Mirrors pyharp at the code pin (code_pin.yml). The source tree is $PYHARP_WT if set, else the repository that holds
 this report, whose src/ is the pin's on the tech-report branch. The check does not import or build pyharp.
@@ -109,9 +111,9 @@ def checks():
     src = (ROOT / RB).read_text()
     ok = ("prop.scalar_type() == torch::kFloat64 ? 1.0e-12 : 1.0e-6;" in src
           and "prop.select(-1, disort::ISS).clamp_max_(1.0 - ssa_margin);" in src)
-    kern = (ROOT / SW).read_text() + (ROOT / LW).read_text()
-    r.append(report(24, ok and "clamp" not in kern, "SSA clamp 1e-12 (f64) / 1e-6 (f32) in RadiationBandImpl::forward;"
-                    " none in the Toon kernels", f"band clamp present: {ok}; kernel clamp absent: {'clamp' not in kern}"))
+    r.append(report(24, ok, "SSA clamp lines 1e-12 (f64) / 1e-6 (f32) present in RadiationBandImpl::forward (text only;"
+                    " the effect, and the absence of a cap in the Toon kernels, is measured by check_ch02_clamp_pyharp.py)",
+                    f"band clamp lines present: {ok}"))
     sw_lines = [find(SW, k, parse=False)[0] for k in ("w0[i]", "dtau[i]", "hg[i]")]
     lw_text = [s.strip() for s in (ROOT / LW).read_text().splitlines()]
     r.append(report(25, all(x in lw_text for x in sw_lines), "LW optional delta-Eddington (delta_eddington_lw) uses"

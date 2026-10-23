@@ -125,11 +125,14 @@ def report(n, ok, label, detail):
 
 
 def check_rows():
-    """C1-C10: one claim per printed row (derived minus printed simplifies to 0; eqs. 12-13 symmetric; eq. 8)."""
+    """C1-C10: one claim per printed row (derived minus printed simplifies to 0, including the derived g4 against
+    1 - printed g3 for every row that prints g3; eqs. 12-13 symmetric; eq. 8)."""
     res = []
     for n, (name, src, row) in enumerate(PRINTED, start=1):
         d = DERIVED.setdefault(name, derive(CLOSURES[name]))
         diff = {k: sp.simplify(d[k] - v) for k, v in row.items()}
+        if "g3" in row:  # the table prints g3 only; g4 = 1 - g3 must also hold for the derived g4
+            diff["g4=1-g3"] = sp.simplify(d["g4"] - (1 - row["g3"]))
         ok = all(v == 0 for v in diff.values()) and d["sym"] and d["eq8"]
         res.append(report(n, ok, f"{name} vs {src}", f"derived minus printed {diff}"))
     return res
@@ -233,11 +236,13 @@ def check_C21_conservative_limit():
 
 
 def check_C22_g3_plus_g4():
-    """MW eq. (21): g3 + g4 = 1 for every row with g3 (g4 = 1 - g3 by the table convention, eq. 42 for Liou)."""
-    sums = [sp.simplify(row["g3"] + row.get("g4", 1 - row["g3"])) for _, _, row in PRINTED if "g3" in row]
-    d = DERIVED["quadrature"]
-    ok = all(s == 1 for s in sums) and sp.simplify(d["g3"] + d["g4"]) == 1
-    return report(22, ok, "g3 + g4 = 1", f"{len(sums)} rows; derived quadrature g3+g4 = {sp.simplify(d['g3'] + d['g4'])}")
+    """MW eq. (21): g3 + g4 = 1 for the DERIVED beam coefficients of every closure that has them, and for the one row
+    that prints g4 (quadrature, MW eq. 42). The derived g4 is integrated or read independently of g3 (derive())."""
+    sums = {name: sp.simplify(d["g3"] + d["g4"]) for name, d in DERIVED.items() if "g3" in d}
+    printed = [sp.simplify(row["g3"] + row["g4"]) for _, _, row in PRINTED if "g4" in row]
+    ok = len(sums) == 7 and all(v == 1 for v in sums.values()) and all(v == 1 for v in printed)
+    return report(22, ok, "g3 + g4 = 1", f"derived for {len(sums)} closures: "
+                  + ", ".join(f"{k} {v}" for k, v in sums.items()) + f"; printed g4 rows: {printed}")
 
 
 def main():

@@ -1,12 +1,12 @@
-[C1] PASS Eddington vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C2] PASS Eddington vs Toon89 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C3] PASS modified Eddington vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C4] PASS quadrature vs MW80 Table 1 + eq. 42: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4': 0}
-[C5] PASS quadrature vs Toon89 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C6] PASS modified quadrature vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C7] PASS hemispheric constant vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C8] PASS delta function vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
-[C9] PASS hybrid vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0}
+[C1] PASS Eddington vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C2] PASS Eddington vs Toon89 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C3] PASS modified Eddington vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C4] PASS quadrature vs MW80 Table 1 + eq. 42: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4': 0, 'g4=1-g3': 0}
+[C5] PASS quadrature vs Toon89 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C6] PASS modified quadrature vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C7] PASS hemispheric constant vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C8] PASS delta function vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
+[C9] PASS hybrid vs MW80 Table 1: derived minus printed {'g1': 0, 'g2': 0, 'g3': 0, 'g4=1-g3': 0}
 [C10] PASS hemispheric mean vs Toon89 Table 1: derived minus printed {'g1': 0, 'g2': 0}
 [C11] PASS hemispheric mean = hemispheric constant at beta=(1-g)/2: beta = 1/2 - g/2
 [C12] PASS quadrature = MW eqs. 37-38 at mu1=3^-1/2: beta1 = 1/2 - g/2
@@ -19,5 +19,5 @@
 [C19] PASS S88 eigenvector ratio = Toon Gamma: below 1e-25 at 3 rational points (30 digits)
 [C20] PASS NSTR=2 = MW eqs. 37-38 at mu1=1/2; minus Toon HM: beta1 = 1/2 - 3*g/8; (g1, g2) - HM = (g*omega/4, g*omega/4)
 [C21] PASS g1 - g2 = (1-w)/mu1 for all rows: Eddington (MW80 Table 1): 1/mu1 = 2; Eddington (Toon89 Table 1): 1/mu1 = 2; modified Eddington (MW80 Table 1): 1/mu1 = 2; quadrature (MW80 Table 1 + eq. 42): 1/mu1 = sqrt(3); quadrature (Toon89 Table 1): 1/mu1 = sqrt(3); modified quadrature (MW80 Table 1): 1/mu1 = sqrt(3); hemispheric constant (MW80 Table 1): 1/mu1 = 2; delta function (MW80 Table 1): 1/mu1 = 1/mu0; hybrid (MW80 Table 1): 1/mu1 = (2 - g**2)/(g**2*mu0 - g**2 + 1); hemispheric mean (Toon89 Table 1): 1/mu1 = 2
-[C22] PASS g3 + g4 = 1: 9 rows; derived quadrature g3+g4 = 1
+[C22] PASS g3 + g4 = 1: derived for 7 closures: Eddington 1, modified Eddington 1, quadrature 1, modified quadrature 1, hemispheric constant 1, delta function 1, hybrid 1; printed g4 rows: [1]
 check_ch02_closures: 22 of 22 claims pass

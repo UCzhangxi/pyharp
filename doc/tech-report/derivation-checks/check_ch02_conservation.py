@@ -6,14 +6,24 @@ eqs. 12-13), tau counted downward from the top, F0 the beam flux normal to the b
 Net flux including the direct beam: Fnet = F+ - F- - mu0 F0 exp(-tau/mu0).
 C1-C6: identities, symbolic (sympy). C7-C10: the omega = 1 limit of the closed form (Toon eqs. 19-24) and of the
 tridiagonal matrix the shortwave kernel assembles (toon_mckay89_shortwave in
-src/rtsolver/toon_mckay89_shortwave_impl.h at the code pin, mirrored for two layers and a black surface in C9).
+src/rtsolver/toon_mckay89_shortwave_impl.h at the code pin). C9 transcribes that system for two layers and a
+Lambertian surface, reads the same rows and right-hand side from the kernel source and requires them to be equal entry
+by entry, requires the transcription's solution to equal that of the conditions it encodes (F- at the top, continuity
+of F+ and F- at the interface, surface reflection) at two rational points, and then evaluates the determinant at
+Gamma = 1 (any e^{lambda dtau} and A_s) for both systems. A wrong entry in either the transcription or the kernel fails C9
+(derivation-checks/ch02_mutations.sh).
 C11-C19: a 40-digit mpmath solution of the ODE for one delta-scaled layer with the quadrature closure.
 
-Mirrors pyharp at the code pin (code_pin.yml) only in C9 and C10. Needs numpy and sympy (mpmath ships with sympy).
+Mirrors pyharp at the code pin (code_pin.yml) in C9 and C10. The kernel source is read from $PYHARP_WT if set, else
+from the repository that holds this report, whose src/ is the pin's on the tech-report branch. Needs numpy and sympy
+(mpmath ships with sympy).
 Run: python3 check_ch02_conservation.py   (any directory; exits with the number of failed claims)
 """
 
+import os
+import re
 import sys
+from pathlib import Path
 
 import mpmath as mp
 import numpy as np
@@ -93,23 +103,122 @@ def check_C8_basis():
                   f"det = {det}; the missing solution F+ - F- = c, F+ + F- = 2 gamma c tau + d solves the ODE")
 
 
-def check_C9_tridiagonal():
-    """Rows of the matrix assembled in toon_mckay89_shortwave (top row, interface rows, bottom row, albedo 0)."""
-    G0, Gb, e = sp.symbols("Gamma0 Gamma1 e", positive=True)
+SW_KERNEL = "src/rtsolver/toon_mckay89_shortwave_impl.h"
+ROOT = Path(os.environ.get("PYHARP_WT", Path(__file__).resolve().parents[3]))
+G0, Gb, ea, eb, As, btop, bsurf = sp.symbols("Gamma0 Gamma1 e0 e1 A_s b_top b_surf")
+Cpm1a, Cmm1a, Cpa, Cma, Cpm1b, Cmm1b, Cpb, Cmb = sp.symbols("Cpm1_0 Cmm1_0 Cp_0 Cm_0 Cpm1_1 Cmm1_1 Cp_1 Cm_1")
 
-    def E14(Gx, Ep):
-        return Ep + Gx / Ep, Ep - Gx / Ep, Gx * Ep + 1 / Ep, Gx * Ep - 1 / Ep
-    E1, E2, E3, E4 = E14(G0, e)
-    F1, F2, _, _ = E14(Gb, e)
+
+def e14(Gx, Ep):
+    """E1..E4 of one layer, Ep = e^{lambda dtau} (toon_mckay89_shortwave: E1 = Ep + gam Em, ..., Em = 1/Ep)."""
+    return Ep + Gx / Ep, Ep - Gx / Ep, Gx * Ep + 1 / Ep, Gx * Ep - 1 / Ep
+
+
+def mirror_system():
+    """This check's transcription of the two-layer tridiagonal system (rows top, interface F+, interface F-, bottom)
+    and its right-hand side, as assembled after '// Matrix Setup' in toon_mckay89_shortwave."""
+    E1, E2, E3, E4 = e14(G0, ea)
+    F1, F2, F3, F4 = e14(Gb, eb)
     M = sp.Matrix([[G0 + 1, G0 - 1, 0, 0],
                    [(E1 + E3) * (Gb - 1), (E2 + E4) * (Gb - 1), 2 * (1 - Gb**2), 0],
                    [0, 2 * (1 - G0**2), (E1 - E3) * (1 + Gb), (E1 + E3) * (Gb - 1)],
-                   [0, 0, F1, F2]])
-    det = sp.simplify(M.det())
-    d1 = sp.simplify(det.subs({G0: 1, Gb: 1, e: 1}))
-    dx = sp.simplify(det.subs({G0: sp.Rational(1, 2), Gb: sp.Rational(1, 2), e: 2}))
-    return report(9, d1 == 0 and dx != 0, "2-layer shortwave tridiagonal is singular at Gamma = 1, e^{lambda dtau} = 1",
-                  f"det = {d1} there; {dx} at Gamma = 1/2, e = 2")
+                   [0, 0, F1 - As * F3, F2 - As * F4]])
+    d = sp.Matrix([btop - Cmm1a,
+                   (Gb - 1) * (Cpm1b - Cpa) + (1 - Gb) * (Cma - Cmm1b),
+                   E3 * (Cpm1b - Cpa) + E1 * (Cma - Cmm1b),
+                   bsurf - Cpb + As * Cmb])
+    return M, d
+
+
+def kernel_system():
+    """The same system read from the kernel source: the E1..E4 lines and the Af, Bf, Cf, Df assignments from 'Af[0] ='
+    to 'dtridgl(' (top row, the even and the odd loop, bottom row), for two layers (n_idx = 0). Comments are removed
+    first, so a commented-out line is never read as code."""
+    text = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", (ROOT / SW_KERNEL).read_text(), flags=re.S))
+    stm = [" ".join(x.split()) for x in text.split(";")]
+    ed = {}
+    for x in stm:
+        m = re.search(r"\b(E[1-4])\[i\] = (.*)$", x)
+        if m:
+            ed[m.group(1)] = m.group(2)
+    block = text[text.index("Af[0] ="):text.index("dtridgl(")]
+    rows = [m.groups() for m in (re.search(r"\b([ABCD]f)\[[^]]*\] = (.*)$", " ".join(x.split()))
+                                 for x in block.split(";")) if m]
+    assert [r[0] for r in rows] == ["Af", "Bf", "Cf", "Df"] * 4, [r[0] for r in rows]
+
+    def tr(e, layer):
+        Gx, Ex = (G0, ea) if layer == 0 else (Gb, eb)
+        for k in ("E1", "E2", "E3", "E4"):
+            Ek = re.sub(r"\bEp\[i\]", "Ep", re.sub(r"\bEm\[i\]", "(1/Ep)", re.sub(r"\bgam\[i\]", "Gx", ed[k])))
+            e = re.sub(rf"\b{k}\[nlay - 1\]", f"({Ek})".replace("Gx", "Gb").replace("Ep", "eb"), e)
+            e = re.sub(rf"\b{k}\[n_idx\]", f"({Ek})".replace("Gx", "G0").replace("Ep", "ea"), e)
+        for pat, rep in ((r"\bgam\[0\]", "G0"), (r"\bgam\[n_idx \+ 1\]", "Gb"), (r"\bgam\[n_idx\]", "G0"),
+                         (r"\bCmm1\[0\]", "Cmm1a"), (r"\bCpm1\[n_idx \+ 1\]", "Cpm1b"), (r"\bCmm1\[n_idx \+ 1\]", "Cmm1b"),
+                         (r"\bCp\[n_idx\]", "Cpa"), (r"\bCm\[n_idx\]", "Cma"), (r"\bCp\[nlay - 1\]", "Cpb"),
+                         (r"\bCm\[nlay - 1\]", "Cmb"), (r"\bw_surf_in\b", "As")):
+            e = re.sub(pat, rep, e)
+        loc = dict(G0=G0, Gb=Gb, ea=ea, eb=eb, As=As, btop=btop, bsurf=bsurf, Cmm1a=Cmm1a, Cpm1b=Cpm1b,
+                   Cmm1b=Cmm1b, Cpa=Cpa, Cma=Cma, Cpb=Cpb, Cmb=Cmb)
+        return sp.nsimplify(sp.sympify(e, locals=loc), rational=True)
+    v = [tr(r[1], 0) for r in rows]
+    M = sp.Matrix([[v[1], v[2], 0, 0], [v[4], v[5], v[6], 0], [0, v[8], v[9], v[10]], [0, 0, v[12], v[13]]])
+    return M, sp.Matrix([v[3], v[7], v[11], v[15]]), [v[0], v[14]]
+
+
+def continuity_system():
+    """Independent statement of the two-layer problem in the kernel's unknowns xk = (Y1, Y2, Y3, Y4), with
+    k1 = Y(2n-1) + Y(2n), k2 = Y(2n-1) - Y(2n) per layer and the layer solution F+ = k1 E + Gamma k2 / E + C+,
+    F- = Gamma k1 E + k2 / E + C- (E = 1 at the layer top, e at its bottom): F-(top) = b_top, F+ and F- continuous
+    at the interface, F+(bottom) = A_s F-(bottom) + b_surf."""
+    Y = sp.symbols("Y1:5")
+    def flux(n, at_bottom):
+        G, e = (G0, ea) if n == 0 else (Gb, eb)
+        E = e if at_bottom else 1
+        k1, k2 = Y[2 * n] + Y[2 * n + 1], Y[2 * n] - Y[2 * n + 1]
+        cp = (Cpa if n == 0 else Cpb) if at_bottom else (sp.Symbol("Cpm1_0") if n == 0 else Cpm1b)
+        cm = (Cma if n == 0 else Cmb) if at_bottom else (Cmm1a if n == 0 else Cmm1b)
+        return k1 * E + G * k2 / E + cp, G * k1 * E + k2 / E + cm
+    up0t, dn0t = flux(0, False)
+    up0b, dn0b = flux(0, True)
+    up1t, dn1t = flux(1, False)
+    up1b, dn1b = flux(1, True)
+    eqs = [dn0t - btop, up0b - up1t, dn0b - dn1t, up1b - As * dn1b - bsurf]
+    N, r = sp.linear_eq_to_matrix(eqs, Y)
+    return N, r
+
+
+def check_C9_tridiagonal():
+    """The kernel's two-layer tridiagonal system: read from the source, equal to this check's transcription in all four
+    rows and the right-hand side, and equivalent to the continuity conditions; then singular at Gamma = 1 for every
+    e^{lambda dtau} and surface albedo."""
+    Mm, dm = mirror_system()
+    Mk, dk, zeros = kernel_system()
+    code_diff = sum(1 for a, b in zip(list(Mk) + list(dk), list(Mm) + list(dm)) if sp.simplify(a - b) != 0)
+    code_ok = code_diff == 0 and zeros == [0, 0]
+    N, r = continuity_system()
+    pts = [dict(G0=sp.Rational(1, 3), Gb=sp.Rational(2, 7), ea=sp.Rational(5, 2), eb=sp.Rational(9, 4), As=sp.Rational(3, 10)),
+           dict(G0=sp.Rational(3, 5), Gb=sp.Rational(1, 9), ea=sp.Rational(7, 3), eb=sp.Rational(11, 5), As=sp.Rational(0))]
+    cs = dict(zip((btop, bsurf, Cpm1a, Cmm1a, Cpa, Cma, Cpm1b, Cmm1b, Cpb, Cmb),
+                  (sp.Rational(1, 2), sp.Rational(1, 5), sp.Rational(2, 3), sp.Rational(1, 7), sp.Rational(3, 11),
+                   sp.Rational(5, 13), sp.Rational(4, 9), sp.Rational(2, 17), sp.Rational(6, 19), sp.Rational(1, 23))))
+    cs[sp.Symbol("Cpm1_0")] = cs.pop(Cpm1a)
+    worst, dets = 0, []
+    for p in pts:
+        sub = {G0: p["G0"], Gb: p["Gb"], ea: p["ea"], eb: p["eb"], As: p["As"], **cs}
+        y = N.subs(sub).LUsolve(r.subs(sub))
+        res = (Mm.subs(sub) * y - dm.subs(sub)).applyfunc(sp.nsimplify)
+        worst = max([worst] + [abs(x) for x in res])
+        dets.append(Mm.subs(sub).det())
+    cont_ok = worst == 0 and all(x != 0 for x in dets)
+    one = {G0: 1, Gb: 1}   # e0, e1 and A_s stay symbolic
+    d1, n1 = sp.simplify(Mm.subs(one).det()), sp.simplify(N.subs(one).det())
+    dx = sp.simplify(Mm.subs({G0: sp.Rational(1, 2), Gb: sp.Rational(1, 2), ea: 2, eb: 2, As: 0}).det())
+    ok = code_ok and cont_ok and d1 == 0 and n1 == 0 and dx != 0
+    return report(9, ok, "2-layer shortwave tridiagonal is singular at Gamma = 1",
+                  f"kernel rows and right-hand side read from the source equal this transcription ({code_diff} of 20 "
+                  f"entries differ); its solution equals that of the continuity conditions at 2 rational points "
+                  f"(residual {worst}); at Gamma = 1 for symbolic e0, e1, A_s: det = {d1}, and the continuity system's det = {n1}; "
+                  f"{dx} at Gamma = 1/2, e = 2")
 
 
 def check_C10_float64():
