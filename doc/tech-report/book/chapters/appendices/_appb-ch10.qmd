@@ -7,6 +7,11 @@
 | @sec-ch10-test-suite | none | None: this section states facts about the test harness and has no equations. | code: ; check: none | n/a |
 | @sec-ch10-packaging | none | None: this section states facts about packaging and has no equations. | code: ; check: none | n/a |
 | @sec-ch10-bindings | none | None: this section compares interfaces and has no equations. | code: ; check: none | n/a |
+| @sec-ch10-invariants | @eq-ch10-invariants-absorbed | The energy layer $k$ absorbs is what enters it less what leaves it: | code: {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}; check: none | re-derived |
+| @sec-ch10-invariants | @eq-ch10-invariants-closure | Summed over the column, the interior levels cancel: | code: {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}; check: none | re-derived |
+| @sec-ch10-invariants | @eq-ch10-invariants-residual | The closure residual is then | code: {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}}; check: none | re-derived |
+| @sec-ch10-invariants | @eq-ch10-invariants-heating | With $p_k = \bar p_ke^{x_k/2}$ and $p_{k+1} = \bar p_ke^{-x_k/2}$ their ratio does not depend on the fluxes: | code: {{< code src/radiation/calc_dz_hypsometric.cpp calc_dz_hypsometric repo=pyharp >}}; check: none | re-derived |
+| @sec-ch10-invariants | @eq-ch10-invariants-zero | A column with no opacity, $\Delta\tau_n = 0$ in every layer, attenuates nothing and emits nothing: | code: {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}; check: none | re-derived |
 | @sec-ch10-index | none | None: this section is an index and has no equations. | code: ; check: none | n/a |
 
 : Derivations of @sec-ch10. {#tbl-appb-ch10}

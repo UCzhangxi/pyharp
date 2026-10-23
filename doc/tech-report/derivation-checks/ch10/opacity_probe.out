@@ -1,0 +1,14 @@
+[O0] pyharp 2.7.8, torch 2.10.0+cu128, numpy 2.4.6, Python 3.11.13; CPU, double; 12 wavelengths 0.2-120 um
+[Z4] fu96-98 (temp)      max |extinction| in zero-concentration layers 0.0e+00; min albedo 0, max albedo 0.999999; |g| max 0.97717; finite True
+[Z4] fu96-98 (re)        max |extinction| in zero-concentration layers 0.0e+00; min albedo 0, max albedo 0.999999; |g| max 0.977069; finite True
+[Z4] liquid mie          max |extinction| in zero-concentration layers 0.0e+00; min albedo 0, max albedo 1; |g| max 0.953577; finite True
+[Z4] temperature switch  max |extinction| in zero-concentration layers 0.0e+00; min albedo 0, max albedo 0.999999; |g| max 0.95081; finite True
+[Z4] PASS zero condensate in, zero extinction out (module) and zero optical depth and albedo (band): max 0.0e+00 at temperature switch band, tolerance 0 (exact); non-finite: []
+[Z5] no floor (log 0 = -inf): exp(interp ln sigma) at x = 0, 0.25, 0.5, 1 of [0, 1e-24]: 0, 0, 0, 1e-24; linear interpolation would give 0, 2.5e-25, 5e-25, 1e-24
+[Z5] floor 1e-300 (picaso-ck): 1e-300, 1e-231, 1e-162, 1e-24; max |sigma(floor) - sigma(no floor)| / sigma(1) = 1.0e-138
+[Z5] floor 1e-300 (respq-table): 1e-300, 1e-231, 1e-162, 1e-24; max |sigma(floor) - sigma(no floor)| / sigma(1) = 1.0e-138
+[Z5] floor 1e-300 (NetCDF fill): 1e-300, 1e-231, 1e-162, 1e-24; max |sigma(floor) - sigma(no floor)| / sigma(1) = 1.0e-138
+[Z5] floor 1e-99 (helios): 1e-99, 5.62e-81, 3.16e-62, 1e-24; max |sigma(floor) - sigma(no floor)| / sigma(1) = 3.2e-38
+[Z5] PASS a table floor does not move the interpolated cross section: max |sigma(floor) - sigma(no floor)| / sigma(1) = 3.2e-38 at helios (1e-99), tolerance 1e-12; between a zero and a positive entry the log-space interpolation, not the floor, sets the value (1e-162 against 5e-25 linear at x = 0.5 for the 1e-300 floor)
+[Z6] PASS interpolation outside the table is constant at the end value: values at x = [-5.0, -0.5, 0.0, 1.5, 2.0, 2.5, 10.0] are [1.0, 1.0, 1.0, 3.0, 4.0, 4.0, 4.0], max deviation 0.0e+00, tolerance 0
+[O9] 0 failed

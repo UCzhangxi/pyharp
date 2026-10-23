@@ -90,6 +90,10 @@ sections:
   sec-ch10-bindings:
     - Python bindings
     - type stubs
+  sec-ch10-invariants:
+    - invariant checks, energy closure
+    - floors and clamps, inventory
+    - break tests
   sec-ch10-index:
     - verification index
     - executable checks of the report

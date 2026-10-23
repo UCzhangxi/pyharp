@@ -1,0 +1,76 @@
+[I0] pyharp 2.7.8, pydisort 1.7.1, torch 2.10.0+cu128, numpy 2.4.6, Python 3.11.13; CPU, double; nlyr 20, nwave 3
+[E0] pi B(300 K) over 500-600 cm^-1: pyharp bbflux_wavenumber 47.79630405 W m^-2; Toon band 47.79630405 (relative difference 0); DISORT band 47.79620104 (relative difference 2.2e-06, its own Planck integral)
+[E1] toon_sw   nominal            closure residual 0, top-boundary residual 0
+[E1] toon_sw   w0=0,A=0           closure residual 1.9e-16, top-boundary residual 0
+[E1] toon_sw   w0=0,A=0.3         closure residual 0, top-boundary residual 0
+[E1] toon_sw   w0=1               closure residual 6.1e-13, top-boundary residual 1.4e-13
+[E1] toon_sw   w0=1-1e-6,A=0.99   closure residual 0, top-boundary residual 0
+[E1] toon_sw   A=0                closure residual 0, top-boundary residual 0
+[E1] toon_sw   A=1                closure residual 0, top-boundary residual 0
+[E1] toon_sw   grazing mu0=0.02   closure residual 4.4e-17, top-boundary residual 0
+[E1] toon_sw   grazing mu0=1e-3   closure residual 0, top-boundary residual 0
+[E1] toon_sw   thick tau=400      closure residual 9.5e-17, top-boundary residual 0
+[E1] toon_sw   tau=0              closure residual 0, top-boundary residual 0
+[E1] disort_sw nominal            closure residual 0, top-boundary residual 0
+[E1] disort_sw w0=0,A=0           closure residual 1.9e-16, top-boundary residual 0
+[E1] disort_sw w0=0,A=0.3         closure residual 0, top-boundary residual 0
+[E1] disort_sw w0=1               closure residual 8.8e-12, top-boundary residual 6.4e-12
+[E1] disort_sw w0=1-1e-6,A=0.99   closure residual 1.9e-16, top-boundary residual 0
+[E1] disort_sw A=0                closure residual 0, top-boundary residual 0
+[E1] disort_sw A=1                closure residual 0, top-boundary residual 0
+[E1] disort_sw grazing mu0=0.02   closure residual 0, top-boundary residual 0
+[E1] disort_sw grazing mu0=1e-3   closure residual 5.6e-17, top-boundary residual 1.1e-16
+[E1] disort_sw thick tau=400      closure residual 0, top-boundary residual 0
+[E1] disort_sw tau=0              closure residual 9.5e-17, top-boundary residual 0
+[E1] toon_lw   nominal            closure residual 0, top-boundary residual 0
+[E1] toon_lw   w0=0               closure residual 0, top-boundary residual 0
+[E1] toon_lw   w0=0.99            closure residual 0, top-boundary residual 0
+[E1] toon_lw   A=0                closure residual 0, top-boundary residual 0
+[E1] toon_lw   A=0.99             closure residual 0, top-boundary residual 0
+[E1] toon_lw   thick tau=400      closure residual 0, top-boundary residual 0
+[E1] toon_lw   tau=0              closure residual 0, top-boundary residual 0
+[E1] disort_lw nominal            closure residual 3.7e-16, top-boundary residual 3.7e-16
+[E1] disort_lw w0=0               closure residual 1.5e-16, top-boundary residual 0
+[E1] disort_lw w0=0.99            closure residual 1.8e-15, top-boundary residual 1.6e-15
+[E1] disort_lw A=0                closure residual 3.0e-16, top-boundary residual 2.4e-16
+[E1] disort_lw A=0.99             closure residual 3.0e-16, top-boundary residual 1.3e-17
+[E1] disort_lw thick tau=400      closure residual 1.9e-16, top-boundary residual 2.7e-17
+[E1] disort_lw tau=0              closure residual 0, top-boundary residual 4.6e-17
+[E1] PASS energy closure, sum of layer divergences = TOA net - surface net (both from the boundary data): max |residual| / S = 8.8e-12 at disort_sw/w0=1, tolerance 1e-10
+[E2] toon_sw   w0=1 max layer |divergence| / S 5.9e-12, max |heating| 6.1e-09 K/day; 4 pi J / S <= max 2 (F+ + F-) / S + 1 / mu0 = 4.78
+[E2] disort_sw w0=1 max layer |divergence| / S 1.2e-11, max |heating| 1.8e-08 K/day; 4 pi J / S <= max 2 (F+ + F-) / S + 1 / mu0 = 4.82
+[E2] PASS conservative scattering, every layer divergence = 0: max |dF_k| / S = 1.2e-11 at disort_sw, tolerance 1e-09
+[E3] toon_lw_top isothermal 250 K: max |F_net| / S 2.6e-16, max |F_up - pi B| / S 1.3e-16, max |heating| 1.8e-15 K/day
+[E3] toon_lw_gg_top isothermal 250 K: max |F_net| / S 2.6e-16, max |F_up - pi B| / S 1.3e-16, max |heating| 1.8e-15 K/day
+[E3] disort_lw   isothermal 250 K: max |F_net| / S 5.2e-16, max |F_up - pi B| / S 5.2e-16, max |heating| 1.2e-14 K/day
+[E3] PASS isothermal column, net flux = 0 and F_up = pi B at every level: max / S = 5.2e-16 at disort_lw, tolerance 1e-10
+[E4] PASS heating rate from rho c_p dz (calc_dz_hypsometric) = from c_p dp / g: max |H_z / H_p - 2 sinh(x/2) / x| = 2.3e-14 over 78 layers (x = ln(p_k / p_k+1), up to 0.230), tolerance 1e-10
+[P1] PASS fluxes >= 0 and finite (up, down, both midpoint channels; 22 shortwave, 21 longwave, 3 isothermal band runs): max negative / S = 3.7e-16 at disort_lw/nominal, tolerance 1e-12; non-finite cases: 0
+[P2] PASS shortwave layer absorption >= 0 (heating >= 0): max negative absorption / S = 1.1e-11 at disort_sw/w0=1, tolerance 1e-09 (the conservative-scattering bound: omega = 1 makes the absorption round-off)
+[P4] PASS longwave fluxes <= pi B(T_max) (hard surface): max (F / pi B(T_max) - 1) = 0 at disort_lw/tau=0, tolerance 1e-12
+[P3] disort w0=0              min I / (mu0 F0 / pi) 0.000e+00
+[P3] disort w0=1-1e-12        min I / (mu0 F0 / pi) 0.000e+00
+[P3] disort A=0               min I / (mu0 F0 / pi) -8.343e-19
+[P3] disort A=1               min I / (mu0 F0 / pi) 0.000e+00
+[P3] disort grazing mu0=0.02  min I / (mu0 F0 / pi) 0.000e+00
+[P3] disort tau=0             min I / (mu0 F0 / pi) 0.000e+00
+[P3] PASS DISORT intensities >= 0 at 8 user angles, 6 edge cases: max negative / (mu0 F0 / pi) = 8.3e-19 at A=0, non-finite 0, tolerance 1e-12
+[Z1] toon_sw   tau=0: max |F_dn - mu0 F0|, |F_up - A mu0 F0|, |dF| over S = 0
+[Z1] disort_sw tau=0: max |F_dn - mu0 F0|, |F_up - A mu0 F0|, |dF| over S = 9.5e-17
+[Z1] toon_lw   tau=0: max |F_dn - 0|, |F_up - F_up,sfc|, |dF| over S = 0
+[Z1] toon_lw_gg tau=0: max |F_dn - 0|, |F_up - F_up,sfc|, |dF| over S = 0
+[Z1] disort_lw tau=0: max |F_dn - 0|, |F_up - F_up,sfc|, |dF| over S = 4.6e-17
+[Z1] PASS tau = 0: fluxes pass through unchanged, divergence and heating exactly 0: max deviation / S = 9.5e-17 at disort_sw, tolerance 1e-15; Toon bands 0 (exact)
+[Z2] toon_sw    mu0 |F(tau) - F(0)| / (tau S) at tau = 1e-14: 5.6e-01, 1e-12: 5.8e-01, 1e-10: 5.8e-01, 1e-08: 5.8e-01, 1e-06: 5.8e-01, 1e-04: 5.8e-01, 1e-02: 5.8e-01
+[Z2] disort_sw  mu0 |F(tau) - F(0)| / (tau S) at tau = 1e-14: 5.0e-01, 1e-12: 5.8e-01, 1e-10: 5.8e-01, 1e-08: 5.8e-01, 1e-06: 5.8e-01, 1e-04: 5.8e-01, 1e-02: 5.8e-01
+[Z2] toon_lw    mu0 |F(tau) - F(0)| / (tau S) at tau = 1e-14: 1.2e+00, 1e-12: 1.2e+00, 1e-10: 1.2e+00, 1e-08: 1.2e+00, 1e-06: 1.2e+00, 1e-04: 1.2e+00, 1e-02: 1.2e+00
+[Z2] disort_lw  mu0 |F(tau) - F(0)| / (tau S) at tau = 1e-14: 1.3e+00, 1e-12: 1.3e+00, 1e-10: 1.3e+00, 1e-08: 1.3e+00, 1e-06: 1.3e+00, 1e-04: 1.3e+00, 1e-02: 1.3e+00
+[Z2] PASS tau -> 0 continuity, the flux response is O(tau) down to tau = 1e-14: max mu0 |F(tau) - F(0)| / (tau S) = 1.3e+00 at disort_lw tau=1e-02, bound 100
+[Z3] toon_lw_gg F_up,sfc / (pi B_s) at column tau = 4.8e-06: 1, 4.9e-06: 3.1e+04, 1.0e-05: 1.51e+04, 1.0e-04: 1.51e+03, 1.0e-02: 16.1, 1.0e+00: 1.15, 1.0e+02: 1
+[Z3] CANDIDATE reproduced: without `hard_surface` the upward flux of an optically thin column is unbounded, max F_up / (pi B_s) = 3.1e+04 at column tau = 4.86e-06 (bottom-layer dtau 1.01e-06); it is pi B_s again at bottom-layer dtau <= 1e-6
+[T1] PASS Toon shortwave beam-only switch at omega = 1e-12 is continuous: max |F(omega=2e-12) - F(omega=0.5e-12)| / S = 4.7e-13, bound 2.2e-10
+[T2] CANDIDATE reproduced: the Toon longwave switch at omega = 1e-4 (no scattering source at or below it) is a jump: max |F(omega=1.0001e-4) - F(omega=1e-4)| / S = 8.2e-06 against 1e-07 for a continuous response (d omega = 1e-8)
+[T3] PASS Toon longwave linear-in-tau Planck switch at dtau = 1e-6 is continuous: max |F(dtau=1.01e-6) - F(dtau=0.99e-6)| / S = 1.2e-07, bound 1e-06
+[T4] PASS Toon shortwave resonance lam mu0 = 1 is crossed smoothly: max |R(mu0) - linear| over |d mu0 / mu0| <= 1e-8 = 9.6e-08, bound 1e-06; lam = 0.524132, R = TOA reflectance
+[D1] CANDIDATE reproduced: ds.nphase of a new DisortOptions is never written; built 2000 times on a heap holding 0xAB bytes it reads back nonzero values; a YAML DISORT band (create_disort_config) inherits the value, so cdisort allocates nlyr * nphase phase values, or aborts when that product overflows
+[I9] 0 failed

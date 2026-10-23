@@ -1,0 +1,6 @@
+[M1] RadiationModel step, A = 0.0: atmosphere 3.398049e+02 J m^-2, surface 3.366208e+03 J m^-2, expected from the TOA net minus sigma T_s^4 3.706013e+03 J m^-2; residual / (dt mu0 F0) = 7.579e-17; surface-absorbed share -(F_net,sfc) dt = 5.581198e+03, the step credits the surface with F_dn,sfc dt = 5.581198e+03
+[M1] PASS energy budget of one step closes for a black surface: residual 7.6e-17, tolerance 1e-10
+[M1] RadiationModel step, A = 0.3: atmosphere 4.371132e+02 J m^-2, surface 3.389287e+03 J m^-2, expected from the TOA net minus sigma T_s^4 2.145117e+03 J m^-2; residual / (dt mu0 F0) = 2.802e-01; surface-absorbed share -(F_net,sfc) dt = 3.922994e+03, the step credits the surface with F_dn,sfc dt = 5.604277e+03
+[M1] CANDIDATE reproduced: with surface albedo 0.3 one step adds 0.28 of dt mu0 F0 that no flux delivers; the surface forcing takes F_dn,sfc where the surface absorbs F_dn,sfc - F_up,sfc (the difference, A F_dn,sfc dt, is 1.681283e+03 J m^-2)
+[M2] RadiationModel clamp: atmosphere at 1100 K, dt = 1e-9 s: radiative dT 1.373e-13 K, temperature after the step 1000 K, moved by the clamp 100 K
+[M2] RadiationModel clamp: atmosphere at 10 K, dt = 1e-9 s: radiative dT 1.198e-15 K, temperature after the step 20 K, moved by the clamp 10 K

@@ -4,13 +4,15 @@ This chapter documents how pyharp is verified and what a user can rely on. @sec-
 that exist, those the build registers and those the continuous-integration job runs, with the result of running
 all of them. @sec-ch10-packaging states which pydisort versions pyharp accepts and what happens when the version it
 was built against differs from the one it runs with. @sec-ch10-bindings compares the C++ options with the Python
-bindings and the type stubs. @sec-ch10-index indexes the executable checks of this report. Appendix C
+bindings and the type stubs. @sec-ch10-invariants checks the laws every band flux must obey (energy closure,
+positivity, the zero-opacity limit) and lists every floor and clamp of the code with what it changes.
+@sec-ch10-index indexes the executable checks of this report. Appendix C
 (@sec-appc) lists the registered `ctest` tests at the pin.
 
 ```{python}
 #| label: fig-ch10-map
 #| fig-cap: "Sections of this chapter (green) and the parts of the pyharp tree each examines (grey)."
-#| fig-alt: "Four green boxes in a row, test suite and CI, pydisort dependency, bindings and stubs, verification index, each with an arrow down to a grey box naming the files it examines."
+#| fig-alt: "Five green boxes in a row, test suite and CI, pydisort dependency, bindings and stubs, invariants and floors, verification index, each with an arrow down to a grey box naming the files it examines."
 #| echo: false
 from pyharp_report.ch10.figures.fig_chapter_map import make_fig
 make_fig()
@@ -21,6 +23,7 @@ make_fig()
 | @sec-ch10-test-suite | `BUILD_TESTS` | on | none | `run_suite.sh` |
 | @sec-ch10-packaging | `pydisort>=1.7.1` | newest release | none | `abi_matrix.py` |
 | @sec-ch10-bindings | none | none | none | `bindings_diff.py` |
+| @sec-ch10-invariants | none | none | none | `invariants.py`, `floor_inventory.py` |
 | @sec-ch10-index | none | none | none | the index table |
 
 : Sections of the verification chapter. {#tbl-ch10-sections}
@@ -30,5 +33,7 @@ make_fig()
 {{< include 10-verification/_packaging.qmd >}}
 
 {{< include 10-verification/_bindings.qmd >}}
+
+{{< include 10-verification/_invariants.qmd >}}
 
 {{< include 10-verification/_verification-index.qmd >}}
