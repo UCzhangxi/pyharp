@@ -4,4 +4,5 @@
 [C4] PASS w' = 1: gamma1 = gamma2, lambda = 0, Gamma = 1, interface coefficient 1 - Gamma^2 = 0
 [C5] PASS eps = 2.220e-16: e^x eps = 1 at x = 36.04, = 1e-9 at x = 15.32; e^-35 = 6.31e-16
 [C6] PASS guard shift |dmu0|/mu0 = 1.490e-08 = sqrt(eps) = 1.490e-08
-RESULT: 6/6 pass
+[C7] PASS second displayed line of the elimination = second row x gamma2
+RESULT: 7/7 pass

@@ -29,7 +29,8 @@ for a non-scattering layer whose Planck function is linear in optical depth, up 
 **Activation.** `solver: toon` with `planck` in `flags`; options `hard_surface`, `delta_eddington_lw`,
 `top_emission_flag` (default 0), `btop_factor` (default $e^{-1}$).
 
-**Guarantee / limits.** Isothermal column in equilibrium to round-off with `hard_surface`; see
+**Guarantee / limits.** Isothermal column in equilibrium to round-off with `hard_surface` and
+`top_emission_flag: 1`; see
 the Limits layer of @sec-ch04-longwave.
 
 **Evidence.** The Tests layer of @sec-ch04-longwave.
@@ -79,7 +80,8 @@ $$
 $$ {#eq-ch04-longwave-closure}
 
 The two right-hand forms are the ones the code uses (`lam`, `gam` in `toon_mckay89_longwave`,
-{{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}). They follow from
+{{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}}). This $\Gamma$ is the same
+quantity as $(\gamma_1 - \lambda)/\gamma_2$ of @eq-ch04-shortwave-eigen; the two forms are equal. They follow from
 $\gamma_1 = (1-\omega) + (1-\omega g)$ and $\gamma_2 = (1-\omega g) - (1-\omega)$: then
 $\gamma_1^2 - \gamma_2^2 = 4(1-\omega)(1-\omega g) = 4a^2(1-\omega g)^2$, and with $\eta_1 = \sqrt{1-\omega g}$,
 $\eta_2 = \sqrt{1-\omega}$,
@@ -123,7 +125,8 @@ F_L^+(\Delta\tau_L) &= A_s F_L^-(\Delta\tau_L) + \pi S_s,
 \end{aligned}
 $$ {#eq-ch04-longwave-bc}
 
-where $B_{\mathrm{top}} = s_{\mathrm{top}}\bar B(T_{1/2})$ for $s_{\mathrm{top}} \in \{0, 1\}$ and
+where $B_{\mathrm{top}} = s_{\mathrm{top}}\bar B(T_{1/2})$ for $s_{\mathrm{top}} \ge 0$ (only 0 and 1 are meaningful;
+larger values scale the top source) and
 $B_{\mathrm{top}} = (1 - e^{-b_{\mathrm{top}}\Delta\tau_1/\mu_1})\,\bar B(T_{1/2})$ for $s_{\mathrm{top}} < 0$; and
 $S_s = (1 - A_s)\,\bar B(T_{L+1/2})$ with `hard_surface`, $S_s = \bar B(T_{L+1/2}) + B_{1L}\mu_1$ without it.
 @eq-ch04-longwave-bc is assembled as the first and last rows of `Af`, `Bf`, `Cf`, `Df` in `toon_mckay89_longwave`
@@ -150,7 +153,9 @@ $$
 \end{aligned}
 $$
 
-Inserting the layer solution and collecting the factors of $e^{\lambda \xi}$ uses
+Inserting the layer solution in the code's normalisation, $F_n^+ = \pi\,(k_{1n}e^{\lambda\xi} + \Gamma k_{2n}e^{-\lambda\xi}) + C_n^+$
+and $F_n^- = \pi\,(\Gamma k_{1n}e^{\lambda\xi} + k_{2n}e^{-\lambda\xi}) + C_n^-$ ($k_{1n}$, $k_{2n}$ in units of $F/\pi$), and
+collecting the factors of $e^{\lambda \xi}$ uses
 $(1 + g) + (1 - g)\Gamma = 2(1 + g a)/(1 + a)$ and $(1 + g)\Gamma + (1 - g) = 2(1 - g a)/(1 + a)$, which gives
 
 $$
@@ -186,7 +191,8 @@ $$ {#eq-ch04-longwave-sweep}
 The integrals of the four terms of @eq-ch04-longwave-source are elementary; for example the $G$ term of the upward
 sweep is $G\,(e^{(\lambda - 1/\mu)\Delta\tau_n} - 1)/(\lambda\mu - 1)$. All six closed forms are those of Toon et al.
 [-@reading02, eqs. 55-56], and are evaluated in `toon_mckay89_longwave` ({{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}});
-check `[C7]` of `longwave_check.py` integrates them with sympy and compares. The top value is
+check `[C7]` of `longwave_check.py` integrates them with sympy and compares them with these plain-quotient forms (the
+forms the code uses for $\lambda_n\Delta\tau_n \ge 35$; the `exprel` forms used below 35 are not covered by a check). The top value is
 $I_1^-(0) = 2\pi B_{\mathrm{top}}$, with $\mu_1$ replaced by $\mu$ for $s_{\mathrm{top}} < 0$; the surface value is
 $I_L^+ = 2\pi(1 - A_s)\bar B(T_{L+1/2}) + 2A_s F^-(\tau_L)$ with `hard_surface` (a Lambertian reflector) and
 $2\pi(\bar B(T_{L+1/2}) + B_{1L}\mu)$ without it. The fluxes are
@@ -225,7 +231,8 @@ make_fig()
 **Near-resonant directions.** The closed forms of @eq-ch04-longwave-sweep contain $1/(\lambda\mu - 1)$. For
 $\lambda_n\Delta\tau_n < 35$ the code evaluates them as $x\,\mathrm{exprel}(\delta x)$ with
 $\mathrm{exprel}(y) = (e^y - 1)/y$ (`longwave_exprel`, {{< code src/rtsolver/toon_mckay89_longwave_impl.h longwave_exprel repo=pyharp >}}),
-which is finite and accurate at $\lambda\mu = 1$; above it uses the plain quotient.
+which is finite and accurate at $\lambda\mu = 1$; above it uses the plain quotient, which is singular at
+$\lambda\mu = 1$ (defect P12, Limits layer).
 
 **Where quantities live.** As in the Numerical method layer of @sec-ch04-shortwave, arrays run bottom to top and the kernel reverses them.
 $\bar B$ is evaluated at the levels from the level temperatures `temf`; the surface value is that of the bottom
@@ -292,6 +299,7 @@ without `delta_eddington_lw`, for $A_s = 0$ and $0.3$[^ch04-lw-iso]. The symboli
 
 [^ch04-lw-iso]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, checks [C5] and [K2]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>` (lock `derivation-checks/ch04/requirements.lock`); regenerate the whole chapter with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
 [^ch04-lw-sym]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/longwave_check.py`; run: `python3 src/pyharp_report/ch04/checks/longwave_check.py`, CPU, double; Python 3.11.13, numpy 2.4.6, sympy 1.14.0, mpmath 1.3.0, the environment of `derivation-checks/ch04/setup_env.sh`; regenerated by `bash derivation-checks/ch04_run.sh`; output `src/pyharp_report/ch04/checks/longwave_check.out`]
+[^ch04-defects]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/defects_pyharp_check.py`, check [C2]; run: `python3 derivation-checks/ch04/defects_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; output `derivation-checks/ch04/defects_pyharp_check.pydisort-1.7.1.out`; mutation and control runs in `derivation-checks/ch04/mutations.out`]
 
 ### Limits
 
@@ -305,6 +313,14 @@ albedo at 0.
   undiminished, and the upward sweep starts from $2\pi(\bar B + B_{1L}\mu)$ without the reflected term. For the
   isothermal column of @prp-ch04-longwave-isothermal with $A_s = 0.3$ the fluxes depart from $\pi B$ by up to
   $0.19$ relative[^ch04-lw-iso].
+- **Exact resonance in a thick layer (CANDIDATE, P12).** For $\lambda_n\Delta\tau_n \ge 35$ the sweeps use the plain
+  quotient, which divides by $\lambda\mu_i - 1$. When one of the five directions satisfies $\lambda\mu_i = 1$ exactly in
+  such a layer, the fluxes are infinite: one layer of $\Delta\tau = 20$ ($\lambda\Delta\tau = 35.6$) with
+  $\omega = 1 - 1/(4\mu_3^2)$ gives $F^+(\mathrm{TOA}) = \infty$ and 4 of 8 outputs not finite, while
+  $\omega(1 \mp 10^{-7})$ give a finite $F^+(\mathrm{TOA}) = 673.79\ \mathrm{W\,m^{-2}}$ that agrees to $10^{-8}$
+  relative; the surface and midpoint channels of those neighbours differ by up to $3\times10^{-3}$
+  relative[^ch04-defects]. The input needs exact equality; check `[C2]` of `defects_pyharp_check.py` asserts the
+  infinite value and turns red when the code is fixed.
 - **Thick layers.** The longwave coefficients use the same capped, unscaled exponentials as the shortwave solver
   (Limits layer of @sec-ch04-shortwave); the size of the resulting error in the longwave is not measured.
 - **Surface temperature.** The surface emits the Planck value of the bottom level of `temf`; a separate ground

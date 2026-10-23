@@ -1,7 +1,8 @@
 [C1] PASS 300 K, port / int B_nu - 1: 10-350: +1.5e-05, 500-800: -4.9e-06, 1000-1100: -1.6e-05, 2000-2500: -5.1e-05 (max 5.1e-05); port / (pi int B_nu) = 0.3183 = 1/pi
 [C2] PASS whole spectrum / (sigma T^4/pi) - 1 = -9.60e-06; sigma_code/sigma - 1 = -9.60e-06
 [C3] PASS equal-edges branch / B_nu(667 cm-1, 300 K) = 1.0000e-10; 2hc^2 x 1e8 = 1.19104e-08 W m-2 sr-1 cm4 vs code 1.1911e-18
-[C4] PASS point overload / B_nu(667 cm-1, 300 K) - 1 = 2.8e-04
+[C4] PASS point overload / B_nu(667 cm-1, 300 K) - 1 = 2.8e-04; its c1 is +3.3e-04 and c2 +1.6e-05 relative to 2hc^2 x 1e8 and hc/k
 [C5] PASS exact c2 and sigma, port / int B_nu - 1: +1.0e-05, -6.7e-08, -3.3e-11, -3.3e-11
 [C6] PASS at v = 1.5: next power-series term 4.8e-08, m = 7 exponential term 2.8e-06 (fractions of sigma T^4/pi); hc/k = 1.4387769 cm K
-RESULT: 6/6 pass
+[C7] PASS T = 287.7572000000 K (v = 1.5 at 300 cm-1), port / int B_nu - 1: 300-600: inclusive -3.1e-07, code (strict) -3.04; 150-300: inclusive +4.4e-06, code (strict) +11.52
+RESULT: 7/7 pass

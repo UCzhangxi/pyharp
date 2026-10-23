@@ -37,7 +37,10 @@ code writes them; $\Phi(v)$ the fraction of $\sigma T^4/\pi$ emitted below $v$; 
 
 The routine has no options. Its header documents the result as a flux [$\mathrm{W\,m^{-2}}$]; it is the radiance,
 $1/\pi$ of the hemispheric flux, and the longwave solver uses it as a radiance, so the solver's fluxes are right
-(Limits layer of @sec-ch04-planck). The series are those of DISORT's `PLKAVG` [@reading01].
+(Limits layer of @sec-ch04-planck). The series are those of DISORT's `PLKAVG` [@reading01], with three differences
+from its C port `c_planck_func1` ({{< code cdisort213/cdisort.c c_planck_func1 repo=pydisort >}}): pyharp always sums
+six exponential terms where `c_planck_func1` uses up to seven for $v < 1.9$, it has no Simpson-rule branch for
+narrow bands, and it leaves an edge with $v = 1.5$ exactly in neither series (defect P11, Limits layer).
 
 ### Derivation
 
@@ -69,13 +72,15 @@ $$ {#eq-ch04-planck-large}
 
 @eq-ch04-planck-small and @eq-ch04-planck-large are the coefficients `A1`-`A6` and the loop over `m` in
 `bbflux_wavenumber` ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}}). The code uses the first
-for $v < 1.5$ and the second for $v > 1.5$, and forms $\bar B$ from $\Phi(v_2) - \Phi(v_1)$ when both are small,
+for $v < 1.5$ and the second for $v > 1.5$ (an edge with $v = 1.5$ exactly is in neither, so its $\Phi$ and
+$\Phi_c$ are both 0), and forms $\bar B$ from $\Phi(v_2) - \Phi(v_1)$ when both are small,
 $1 - \Phi(v_1) - \Phi_c(v_2)$ when they straddle 1.5, and $\Phi_c(v_1) - \Phi_c(v_2)$ when both are large (@fig-ch04-planck-series).
 
 **What is exact and what is truncated.** Both series are truncated. At $v = 1.5$ the first neglected term of
 @eq-ch04-planck-small, $(15/\pi^4)(5/66)\,v^{13}/(13\cdot 10!)$, is $5\times10^{-8}$ of $\sigma T^4/\pi$, and the
 $m = 7$ term of @eq-ch04-planck-large is $3\times10^{-6}$ (check `[C6]` of `planck_check.py`); the exponential
-tail therefore sets the truncation error near the switch. The constants are
+tail therefore sets the truncation error near the switch. That $m = 7$ term is dropped because pyharp sums a fixed
+six terms; the PLKAVG port keeps it for $v < 1.9$. The constants are
 also rounded: $c_2 = 1.438786$ cm K against $hc/k = 1.4387769$ cm K, and $\sigma = 5.67032\times10^{-8}$ against
 $5.670374419\times10^{-8}$ $\mathrm{W\,m^{-2}\,K^{-4}}$. The check is `planck_check.py`, a line-for-line numpy port.
 
@@ -110,7 +115,8 @@ $c_1\nu^3 e^{-c_2\nu/T}/(1 - e^{-c_2\nu/T})$ with $c_1 = 1.1911\times10^{-18}$.
 1. The band overloads ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=2 repo=pyharp >}}) refuse
    $\nu_2 < \nu_1$ or $\nu_1 < 0$ and a non-positive temperature with a `TORCH_CHECK` error.
 2. The point overload ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=1 repo=pyharp >}}) uses its own constants,
-   $c_1 = 1.19144\times10^{-8}$ and $c_2 = 1.4388$, and returns a per-wavenumber radiance.
+   $c_1 = 1.19144\times10^{-8}$ and $c_2 = 1.4388$, $3.3\times10^{-4}$ and $1.6\times10^{-5}$ above $2hc^2\times10^8$
+   and $hc/k$ (check `[C4]` of `planck_check.py`), and returns a per-wavenumber radiance.
 3. `ToonMcKay89Impl::forward` ({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}) calls the
    tensor overload with the solver's `wave_lower` and `wave_upper` and the level temperatures.
 
@@ -132,11 +138,15 @@ The tests of `tests/test_bbflux.cpp` (ctest `test_bbflux.release`) assert shapes
 numpy port differs from an mpmath quadrature by $1.5\times10^{-5}$, $-4.9\times10^{-6}$, $-1.6\times10^{-5}$ and
 $-5.1\times10^{-5}$ (10-350, 500-800, 1000-1100, 2000-2500 $\mathrm{cm^{-1}}$)[^ch04-planck-port]. With the exact
 $c_2$ and $\sigma$ the same series gives $1.0\times10^{-5}$ for the first band and below $10^{-7}$ for the others, so
-the rounded constants carry most of the error[^ch04-planck-port]. Through pyharp itself, the 500-800
+for the three bands above the switch the rounded constants carry the error, while for 10-350 $\mathrm{cm^{-1}}$
+($v_2 = 1.68$) two thirds of it is the six-term tail[^ch04-planck-port]. At the switch itself the line-for-line port
+returns $-3.04$ and $+11.5$ times the band radiance for the bands 300-600 and 150-300 $\mathrm{cm^{-1}}$ at
+$T = 287.7572$ K (an edge at $v = 1.5$), and the same port with the small-$v$ test written $v \le 1.5$ agrees with the
+quadrature within $4.4\times10^{-6}$ (check `[C7]`)[^ch04-planck-port]. Through pyharp itself, the 500-800
 $\mathrm{cm^{-1}}$ band at 300 K equals $0.999995\int B_\nu\,\mathrm{d}\nu$, which is $0.3183 = 1/\pi$ of the
 hemispheric flux[^ch04-planck-pyharp].
 
-[^ch04-planck-port]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/planck_check.py`, checks [C1]-[C6]; run: `python3 src/pyharp_report/ch04/checks/planck_check.py`, CPU, double; Python 3.11.13, numpy 2.4.6, sympy 1.14.0, mpmath 1.3.0, the environment of `derivation-checks/ch04/setup_env.sh`; regenerated by `bash derivation-checks/ch04_run.sh`; output `src/pyharp_report/ch04/checks/planck_check.out`]
+[^ch04-planck-port]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `src/pyharp_report/ch04/checks/planck_check.py`, checks [C1]-[C7]; run: `python3 src/pyharp_report/ch04/checks/planck_check.py`, CPU, double; Python 3.11.13, numpy 2.4.6, sympy 1.14.0, mpmath 1.3.0, the environment of `derivation-checks/ch04/setup_env.sh`; regenerated by `bash derivation-checks/ch04_run.sh`; output `src/pyharp_report/ch04/checks/planck_check.out`]
 [^ch04-planck-pyharp]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K3] and [K4]; run: `python3 derivation-checks/ch04/toon_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1, environment built by `derivation-checks/ch04/setup_env.sh <dir> 1.7.1`; regenerate with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; output `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out`]
 
 ### Limits
@@ -146,7 +156,15 @@ Do not give a band equal lower and upper edges with the longwave solver: the equ
 the Planck radiance.
 :::
 
-- **Units (CANDIDATE, documentation).** The header documents the band overloads as a flux in $\mathrm{W\,m^{-2}}$;
+- **Edge at the switch (CANDIDATE, P11).** The small- and large-$v$ tests are strict (`v < VCUT`, `v > VCUT`), so a
+  band edge with $v = c_2\nu/T = 1.5$ exactly contributes to neither series. An isothermal 4-layer column with
+  `hard_surface` and `top_emission_flag: 1` in the band 300-600 $\mathrm{cm^{-1}}$ at $T = 287.7572$ K then gives
+  $F^+(\mathrm{TOA}) = -236\ \mathrm{W\,m^{-2}}$, against $+116\ \mathrm{W\,m^{-2}}$ at $T(1 + 10^{-12})$ and $\pi$ times
+  the quadrature[^ch04-defects-planck]. The input needs exact equality; check `[C1]` of `defects_pyharp_check.py`
+  asserts the defective value and turns red when the code is fixed, and check `[C7]` of `planck_check.py` shows the
+  inclusive test that closes the hole.
+- **Units (CANDIDATE, documentation).** The header documents the band overloads as a flux in $\mathrm{W\,m^{-2}}$,
+  and the point overload as a flux per wavenumber;
   the value is a radiance in $\mathrm{W\,m^{-2}\,sr^{-1}}$, $1/\pi$ of the flux[^ch04-planck-pyharp]. The longwave
   solver multiplies by $\pi$ through its normalisation (@eq-ch04-longwave-particular), so its fluxes are correct; a
   caller who reads the header and multiplies by $\pi$ again would not be.
@@ -158,3 +176,5 @@ the Planck radiance.
   refuses only a lower edge above the upper one.
 - **Constants.** $c_2$ and $\sigma$ are rounded as stated above; the effect is below $6\times10^{-5}$ relative at
   300 K and grows with $v$ (not measured beyond the four bands).
+
+[^ch04-defects-planck]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/defects_pyharp_check.py`, check [C1]; run: `python3 derivation-checks/ch04/defects_pyharp_check.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical output lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; output `derivation-checks/ch04/defects_pyharp_check.pydisort-1.7.1.out`; mutation and control runs in `derivation-checks/ch04/mutations.out`]

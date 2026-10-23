@@ -13,6 +13,9 @@ pin of code_pin.yml (Toon et al. 1989 Table 1 quadrature row, eqs. 21-24; delta-
        (sympy); the tridiagonal system is singular there.
   [C5] the unscaled exponential e^{lambda dtau}, capped at e^{35}: round-off e^{x} eps reaches 1 at
        x = ln(1/eps) = 36.04 and 1e-9 at x = 15.3 (numpy, double).
+  [C7] the step from the second row of the particular-solution system to the second displayed line of the chapter's
+       elimination: that line is the second row multiplied by ROW2_MULTIPLIER = gamma2 (sympy, exact); with the
+       multiplier gamma1 - 1/mu0 the identity fails, so a wrong multiplier in the prose turns this check red.
   [C6] the resonance guard: |lambda mu0 - 1| < sqrt(eps) moves mu0 by at most sqrt(eps) = 1.49e-8 relative.
 
 Run: python3 shortwave_check.py (numpy and sympy only; well under a second). Exit status: number of failures.
@@ -110,9 +113,24 @@ def check_C6_resonance():
     return report("C6", ok, f"guard shift |dmu0|/mu0 = {rel:.3e} = sqrt(eps) = {tol:.3e}")
 
 
+ROW2_MULTIPLIER = "gamma2"   # the multiplier the chapter's prose names for the second line of the elimination
+
+
+def check_C7_elimination_multiplier():
+    g1, g2, g3, g4 = gammas(w, g)
+    cp, cm = sp.symbols("c_p c_m")
+    # second row of the particular-solution system, -c-/mu0 = g2 c+ - g1 c- + g4 w F0, written as lhs - rhs = 0
+    row2 = (g1 - 1 / mu0) * cm - (g2 * cp + g4 * w * F0)
+    # the chapter's second displayed line: (g1 - 1/mu0) g2 c- = g2^2 c+ + g4 g2 w F0
+    line2 = (g1 - 1 / mu0) * g2 * cm - (g2 ** 2 * cp + g4 * g2 * w * F0)
+    mult = {"gamma2": g2, "gamma1 - 1/mu0": g1 - 1 / mu0}[ROW2_MULTIPLIER]
+    ok = sp.simplify(line2 - mult * row2) == 0
+    return report("C7", ok, f"second displayed line of the elimination = second row x {ROW2_MULTIPLIER}")
+
+
 def main():
     oks = [check_C1_eigen(), check_C2_particular(), check_C3_delta(), check_C4_conservative(), check_C5_clamp(),
-           check_C6_resonance()]
+           check_C6_resonance(), check_C7_elimination_multiplier()]
     print(f"RESULT: {sum(oks)}/{len(oks)} pass")
     return len(oks) - sum(oks)
 
