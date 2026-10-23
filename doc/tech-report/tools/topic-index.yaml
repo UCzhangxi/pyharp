@@ -107,6 +107,23 @@ sections:
     - single-scattering albedo of one, Toon
   sec-ch05-cost:
     - solver cost per column
+  sec-ch08-config:
+    - configuration file, radiation
+    - species molar mass
+    - integration block (YAML)
+  sec-ch08-radiation:
+    - Radiation, net flux
+    - surface and top-of-atmosphere flux
+    - net_flux_midpt
+    - actinic flux, not computed
+    - mean intensity, DISORT
+  sec-ch08-spherical:
+    - spherical flux scaling
+    - area and volume of a column
+  sec-ch08-stepper:
+    - RadiationModel, column time stepping
+    - Runge-Kutta, strong-stability preserving
+    - surface energy budget
 unlabeled:
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
@@ -126,3 +143,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch05.qmd
     heading: Solver comparison and accuracy (@sec-ch05)
     covered-by: sec-ch05
+  - file: chapters/appendices/_appb-ch08.qmd
+    heading: Radiation API, configuration, coupling and the column model (@sec-ch08)
+    covered-by: sec-ch08

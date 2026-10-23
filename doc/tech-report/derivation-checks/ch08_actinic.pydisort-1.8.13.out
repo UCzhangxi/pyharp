@@ -1,0 +1,5 @@
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.8.13, pyharp 2.7.8
+pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 74f8d7e995545a686b04d503b6f81135af48d87c
+[C1] PASS band output shape (1, 5, 4) (4 channels); DISORT band solver is pydisort Disort with gather_flx: True
+[C2] PASS gather_flx uavg = F0 exp(-tau/mu0)/(4 pi): max rel dev 0.0e+00; uavgso 0.0e+00; band F_dn = mu0 F0 exp(-tau/mu0) 0.0e+00 (tol 1e-12); actinic flux 4 pi uavg at the surface 51.341712 (F0 exp(-tau/mu0) = 51.341712)
+[C3] PASS Toon band solver ToonMcKay89: gather_flx absent
