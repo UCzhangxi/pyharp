@@ -2,7 +2,11 @@
 
 ## A {.unnumbered .unlisted}
 
+**actinic flux, not computed**: Summing the bands, @sec-ch08-radiation.
+
 **albedo clamp**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
+
+**area and volume of a column**: Spherical flux scaling, @sec-ch08-spherical.
 
 ## B {.unnumbered .unlisted}
 
@@ -19,6 +23,8 @@
 **Buras-Emde intensity correction**: Intensity corrections after delta-M, @sec-ch03-intcorr.
 
 ## C {.unnumbered .unlisted}
+
+**configuration file, radiation**: Reading the configuration file, @sec-ch08-config.
 
 **conservative scattering**: Energy conservation of the two-stream equations and the conservative limit, @sec-ch02-conservation.
 
@@ -88,6 +94,8 @@
 
 ## I {.unnumbered .unlisted}
 
+**integration block (YAML)**: Reading the configuration file, @sec-ch08-config.
+
 **intensity correction, Nakajima-Tanaka**: Intensity corrections after delta-M, @sec-ch03-intcorr.
 
 ## L {.unnumbered .unlisted}
@@ -99,6 +107,12 @@
 ## M {.unnumbered .unlisted}
 
 *Meador-Weaver coefficients*, see **two-stream closure**.
+
+**mean intensity, DISORT**: Summing the bands, @sec-ch08-radiation.
+
+## N {.unnumbered .unlisted}
+
+**net_flux_midpt**: Summing the bands, @sec-ch08-radiation.
 
 ## P {.unnumbered .unlisted}
 
@@ -118,9 +132,15 @@
 
 ## R {.unnumbered .unlisted}
 
+**Radiation, net flux**: Summing the bands, @sec-ch08-radiation.
+
+**RadiationModel, column time stepping**: Column time stepping, @sec-ch08-stepper.
+
 **reference stream count (nstr)**: Converged DISORT as the reference, @sec-ch05-reference.
 
 **report navigation**: [Report navigation](#sec-navigation).
+
+**Runge-Kutta, strong-stability preserving**: Column time stepping, @sec-ch08-stepper.
 
 ## S {.unnumbered .unlisted}
 
@@ -136,7 +156,15 @@
 
 **source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
+**species molar mass**: Reading the configuration file, @sec-ch08-config.
+
+**spherical flux scaling**: Spherical flux scaling, @sec-ch08-spherical.
+
 **support matrix, solver by operation**: DISORT on CUDA by pydisort version, @sec-ch09-disort.
+
+**surface and top-of-atmosphere flux**: Summing the bands, @sec-ch08-radiation.
+
+**surface energy budget**: Column time stepping, @sec-ch08-stepper.
 
 **symbols, coordinates and grids**: [1. Coordinates and grids](#sec-appa-1).
 

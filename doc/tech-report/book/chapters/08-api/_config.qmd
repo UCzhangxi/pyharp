@@ -1,0 +1,178 @@
+## Reading the configuration file (`RadiationOptions.from_yaml`) {#sec-ch08-config}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13
+sources: src/radiation/radiation.cpp, src/radiation/radiation_band.cpp, src/integrator/integrator.cpp,
+src/utils/parse_yaml_input.cpp, src/compound.cpp, src/element.cpp, tests/CMakeLists.txt checks:
+derivation-checks/ch08_config.py status: draft author: Jiheng Hu reviewer: -->
+
+### Summary
+
+One YAML file describes a whole radiation calculation. It lists the species, the size of the column grid, the
+opacity sources, the spectral bands with their solvers, and the time integrator. `RadiationOptions.from_yaml`
+reads it into a tree of options objects, and `IntegratorOptions.from_yaml` reads the integrator's part. Nothing
+runs at this point. The section says which keys are read, what their defaults are, and which mistakes are refused
+with a message. It also lists the keys that are accepted but not read, so that a user does not rely on them.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Turn the YAML file into band and integrator options; species masses by @eq-ch08-config-weight.
+
+**Data.** In: a file path. Out: `RadiationOptions` (one `RadiationBandOptions` per band), `IntegratorOptions`.
+
+**Placement.** Before any `Radiation`, `RadiationBand` or `RadiationModel` is built.
+
+**Activation.** Always; `nstr` 4 and integrator `rk3` by default.
+
+**Guarantee / limits.** No spectral grid is read; the species list is process-wide.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $M_s$ is the molar mass of species $s$ [$\mathrm{kg\,mol^{-1}}$]; $\nu_{s,e}$ the number of atoms of
+element $e$ in one molecule of $s$ [-]; $M_e$ the atomic weight of element $e$ [$\mathrm{g\,mol^{-1}}$]; $L$ the number
+of layers of a column and $N_{\mathrm{col}}$ the number of columns [count].
+<!-- local symbols for the editor's notation table: M_s, nu_{s,e}, M_e, L, N_col -->
+
+### Derivation
+
+The reader computes one number; everything else it copies. Each species is given by its elemental composition,
+and its molar mass is the weighted sum of the atomic weights of a table in the code, converted from grams to
+kilograms:
+
+$$
+M_s = 10^{-3}\sum_{e}\nu_{s,e}\,M_e .
+$$ {#eq-ch08-config-weight}
+
+@eq-ch08-config-weight is computed in `get_compound_weight` ({{< code src/compound.cpp get_compound_weight repo=pyharp >}}),
+with $M_e$ from `get_element_weight` ({{< code src/element.cpp get_element_weight overload=1 repo=pyharp >}}), which accepts an
+element's symbol or its name in lower case and refuses an unknown one. The grid size is read, not computed: a band
+gets $L$ = `nx1` layers and $N_{\mathrm{col}}$ = `nx2` $\times$ `nx3` columns, with `nx2` and `nx3` 1 when absent.
+The band's spectral range is copied unchanged into the lower and upper limit of every one of its `nwave` spectral
+points; DISORT reads these limits as wavenumbers in $\mathrm{cm^{-1}}$ (@sec-ch03-band). Nothing here is approximate.
+The check is `ch08_config.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch08-config-weight ch08_config.py [C1] -->
+
+### Numerical method
+
+There is no numerical method; the reader is a sequence of look-ups, drawn in @fig-ch08-config-tree.
+
+```{python}
+#| label: fig-ch08-config-tree
+#| fig-cap: "The top-level keys of a radiation configuration file (left) and the options objects built from them (right). The band options (green frame) take their grid size from `geometry` and their opacity names from `opacities`. The vermillion line lists what the reader does not take from the file."
+#| fig-alt: "Five YAML keys on the left: species, geometry cells, opacities, bands, integration. Arrows lead to the species registry, to one RadiationBandOptions per band, which points to OpacityOptions, and to IntegratorOptions. A note at the bottom lists the weight or wavenumber grid, units, outdirs and max_redo as not read."
+#| echo: false
+from pyharp_report.ch08.figures.fig_config_tree import make_fig
+make_fig()
+```
+
+1. `RadiationOptionsImpl::from_yaml` ({{< code src/radiation/radiation.cpp RadiationOptionsImpl::from_yaml repo=pyharp >}})
+   returns empty options if the file has no `bands` key. Otherwise it requires `species`, clears the process-wide
+   lists `species_names` and `species_weights`, and fills them in file order with @eq-ch08-config-weight.
+2. For every entry of `bands`, in file order, it calls `RadiationBandOptionsImpl::from_yaml`
+   ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}) with the band's
+   name. That routine reads the file again and finds the first band of that name. It needs `opacities` (each read
+   by its own options reader, described with the opacity assembly), `range` with lower $\le$ upper
+   (`parse_wave_range`, {{< code src/utils/parse_yaml_input.cpp parse_wave_range repo=pyharp >}}), `nwave`,
+   `geometry`, `cells`, `nx1` and `solver`. `nstr` defaults to 4.
+3. `solver: disort` builds the DISORT options of @sec-ch03-band with the band's `flags`, trimmed of blanks, through
+   `create_disort_config` ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}). That sets
+   `nlyr`, `nstr` and `nmom` of the DISORT state but not `nphase` ([P1]).
+   `solver: toon` builds the Toon options of @sec-ch04-shortwave and @sec-ch04-longwave, with `flags` and the
+   optional `toon` block. `twostr` and any other name are refused.
+4. `IntegratorOptionsImpl::from_yaml`
+   ({{< code src/integrator/integrator.cpp IntegratorOptionsImpl::from_yaml overload=1 repo=pyharp >}}) reads the
+   `integration` block: `type`, `cfl`, `tlim`, `nlim` and `ncycle_out`. An unknown `type` is refused when the
+   `Integrator` is built (@sec-ch08-stepper).
+
+**How to use it.** A file has the keys of @tbl-ch08-config-keys. The YAML texts in the checks (`ch08_config.py`,
+`ch08_stepper.py`) are complete examples; their opacity sources are `jit` TorchScript modules, as in @sec-ch03-band.
+
+| file key | where | required | default |
+|---|---|---|---|
+| `species`: `name`, `composition` | top level | yes, when `bands` is present | none |
+| `geometry`: `cells`: `nx1`, `nx2`, `nx3` | top level | `nx1` | `nx2`, `nx3` 1 |
+| `opacities`: one entry per source | top level | yes | none |
+| `bands`: `name`, `range`, `opacities`, `solver`, `nwave` | top level | yes | none |
+| `nstr`, `flags`, `toon`, `verbose` | in a band | no | 4, empty, none, false |
+| `integration`: `type`, `cfl`, `tlim`, `nlim`, `ncycle_out` | top level | no | `rk3`, 0.9, $10^9$, $-1$, 1 |
+
+: Keys of the radiation configuration file at the pin. {#tbl-ch08-config-keys}
+
+From Python, `op = pyharp.RadiationOptions.from_yaml("rad.yaml")` reads such a file. The file gives no spectral grid, so the
+band cannot run yet. `op.bands()[0].weight([1.0])` sets one point of weight 1 (weight mode, as in
+@sec-ch03-band). For a DISORT band, `op.bands()[0].disort().ds().nphase = 4` (the band's `nstr`) sets the field
+the reader leaves unset ([P1]); `pyharp.disort_config` does both this and the stream counts. `pyharp.Radiation(op)`
+then builds. A molecule-line or correlated-k opacity sets the grid
+itself instead (`RadiationBandImpl::reset`,
+{{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| file to options | {{< code src/radiation/radiation.cpp RadiationOptionsImpl::from_yaml repo=pyharp >}} | `RadiationOptionsImpl::from_yaml` | always |
+| one band | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `RadiationBandOptionsImpl::from_yaml` | `bands` |
+| species mass | {{< code src/compound.cpp get_compound_weight repo=pyharp >}} | `get_compound_weight` | `species` |
+| spectral range | {{< code src/utils/parse_yaml_input.cpp parse_wave_range repo=pyharp >}} | `parse_wave_range` | `range` |
+| integrator | {{< code src/integrator/integrator.cpp IntegratorOptionsImpl::from_yaml overload=1 repo=pyharp >}} | `IntegratorOptionsImpl::from_yaml` | `integration` |
+| grid check | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `RadiationBandImpl::reset` | always |
+
+: Code map of the configuration reader. {#tbl-ch08-config-code}
+
+Every refusal is a C++ exception that reaches Python as a `RuntimeError` with these messages:
+
+- `'species' is not defined`, `opacities not found in band`, `missing spectral range`, `invalid spectral range`;
+- `'nwave' not found`, `'nx1' not found in cells`, `'solver' not found`;
+- `twostr solver not implemented`, `unknown solver: <name>`, `element not found`;
+- `Integrator not implemented` (an unknown `type`);
+- `Either 'wavenumber' or 'weight' must be set in band <name>`, when a band with no grid is built.
+
+### Tests
+
+No ctest reads a configuration file: `test_yaml_input` is commented out and `test_read_yaml` is not registered in
+`tests/CMakeLists.txt` ({{< code tests/CMakeLists.txt repo=pyharp >}}). The evidence is the derivation check:
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch08_config.py` [C1] | @eq-ch08-config-weight | $10^{-15}$ rel. | three products and a sum |
+| `ch08_config.py` [C2], [C3] | structure and defaults | exact | copied values |
+| `ch08_config.py` [C4], [C5] | 12 refusals and their messages | message text | the code's own text |
+| `ch08_config.py` [C6], [C7] | `units` not read; species list global | exact | copied values |
+| `ch08_config.py` [P1] | CANDIDATE: `nphase` not set | reproduced | probe |
+
+: Tests of the configuration reader (derivation check; no ctest exists). {#tbl-ch08-config-tests}
+
+The molar masses of $\mathrm{H_2O}$, $\mathrm{CO_2}$ and He come out as 0.018015, 0.044009 and
+$0.004003\,\mathrm{kg\,mol^{-1}}$, equal to @eq-ch08-config-weight below $10^{-15}$ relative
+([C1]).[^ch08-cfg-run] A file with 8, 3 and 2 cells gives $L = 8$ and $N_{\mathrm{col}} = 6$; a band without `nstr`
+gets 4; the range is copied to every spectral point; a file without `bands` gives zero bands ([C2], 13 facts). An
+`integration` block is read except `max_redo`, which stays 5 when the file says 9 ([C3]). Ten broken files and an
+unknown integrator `type` each stop with their message from the list above ([C4]). After `from_yaml` a band has no
+weight and no wavenumber grid, and `RadiationBand` refuses to build until one is set ([C5]). Read six times, the
+DISORT band's `nphase` differs from its `nstr` each time; its value is whatever the memory held ([P1]). All checks ran
+on CPU.
+
+[^ch08-cfg-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_config.py` [C1]-[C7], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_config.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_config.pydisort-1.8.13.out` holds the same lines.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **CANDIDATE: a DISORT band read from the file has no `nphase`.** `create_disort_config` does not set it and
+  pydisort's options do not initialise it, so it holds whatever the memory held ([P1]). When it is at least 1,
+  `c_disort_state_alloc` ({{< code cdisort213/cdisort.c c_disort_state_alloc repo=pydisort >}}) allocates `nlyr`
+  $\times$ `nphase` entries for `ds->phase`. A large value overflows that product and stops the run with
+  `dbl_vector, variable ds->phase`. Whether a run stops depends on the memory contents, so the failure is not
+  reproduced on demand. The checks of this chapter, like the
+  checks of @sec-ch03-band, set `nphase = nstr` as `pyharp.disort_config` does. It is not in the defect register.
+- The file gives no spectral grid: weights or wavenumbers are set from code, or by an opacity table ([C5]).
+- A band's `units` key is accepted and not read. The range is always taken in $\mathrm{cm^{-1}}$; `units: um` with
+  range [100, 300] still gives limits 100 and 300 ([C6]). `parse_unit_with_default`
+  ({{< code src/utils/parse_yaml_input.cpp parse_unit_with_default repo=pyharp >}}) exists but nothing calls it.
+- The species list is process-wide. Reading a second file, even one whose `bands` list is empty, replaces
+  `species_names()` and `species_weights()`, also for options read before ([C7]).
+- `max_redo` and the options' `outdirs` are not read from the file; they are set from code. `cfl` is read and
+  no code at the pin uses it.
+- Not tested: CUDA (the reader runs on the host only), a band name used twice (the reader takes the first).
+:::

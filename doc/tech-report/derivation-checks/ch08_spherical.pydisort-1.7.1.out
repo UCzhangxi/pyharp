@@ -1,0 +1,16 @@
+python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8, sympy 1.14.0
+pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
+[C1] PASS sympy: documented recursion with A constant and V = A dz gives x_i = 1 from x_(i+1) = 1
+[C2] PASS numpy port of the code's recursion = pyharp scaled/plain net flux, plane-parallel and shell: max rel dev 0.0e+00 (tol 1e-13)
+[C3] PASS area with nlyr entries refused: True; area without 'dz' in atm refused: True
+[P1] CANDIDATE reproduced plane-parallel geometry: code factor max |x - 1| 2.62e+05 (x below the top = 19.5914, F there = 19.5914 W m-2), documented recursion max |x - 1| 2.2e-16; layer heating changed by up to 1.60e+07 relative
+level plane-parallel 0 code 2.624000e+05 documented 1.000000e+00
+level plane-parallel 1 code 9.626376e+03 documented 1.000000e+00
+level plane-parallel 2 code 3.889746e+02 documented 1.000000e+00
+level plane-parallel 3 code 1.959144e+01 documented 1.000000e+00
+level plane-parallel 4 code 1.000000e+00 documented 1.000000e+00
+level shell          0 code 2.624779e+05 documented 1.000266e+00
+level shell          1 code 9.628483e+03 documented 1.000184e+00
+level shell          2 code 3.890294e+02 documented 1.000121e+00
+level shell          3 code 1.959269e+01 documented 1.000064e+00
+level shell          4 code 1.000000e+00 documented 1.000000e+00

@@ -1,3 +1,36 @@
 # Radiation API, configuration, coupling and the column model {#sec-ch08}
 
-pending
+The previous chapters solve one band. This chapter is about the layer a user programs against. It covers how one
+configuration file becomes the options of every band (@sec-ch08-config), and how `Radiation` runs the bands and
+adds their fluxes into the net flux a host model needs (@sec-ch08-radiation). A host model on a sphere can ask for an
+optional curvature correction of those fluxes (@sec-ch08-spherical). `RadiationModel` advances the temperatures of
+one column in time with a Runge-Kutta stepper (@sec-ch08-stepper). pyharp computes no actinic flux; the band-summation
+section says where a DISORT band's mean intensity can be read instead. Every claim is checked against pyharp built from
+source at the pin, with pydisort 1.7.1 and with 1.8.13. Every check gives the same verdict and the same printed lines
+on both.
+
+```{python}
+#| label: fig-ch08-depmap
+#| fig-cap: "The four sections of this chapter, and the actinic flux, and how they use each other. A solid arrow means the source builds, needs or optionally calls the target; the dashed vermillion box and arrow mark the actinic flux, which pyharp does not compute and which is readable only from a DISORT band's pydisort module. The band summation (green frame) is the step every caller runs."
+#| fig-alt: "Six boxes. The configuration file builds the band summation, which requires the bands of chapters 3 and 4 and optionally calls the spherical scaling. The column stepper requires the band summation. A dashed arrow from the bands to a dashed actinic-flux box is labelled DISORT only, through pydisort."
+#| echo: false
+from pyharp_report.ch08.figures.fig_depmap import make_fig
+make_fig()
+```
+
+| scheme | YAML key or option | default | order | main test |
+|---|---|---|---|---|
+| @sec-ch08-config | the whole file; `integration` | `nstr` 4, `rk3` | n/a | configuration check |
+| @sec-ch08-radiation | `bands` | always | exact sum | band-sum check |
+| @sec-ch08-spherical | `area` in `atm` | off | n/a | spherical check |
+| @sec-ch08-stepper | `type` of `integration` | `rk3` | 1, 2, 3, 3 | stepper check |
+
+: The schemes of this chapter. {#tbl-ch08-schemes}
+
+{{< include 08-api/_config.qmd >}}
+
+{{< include 08-api/_radiation.qmd >}}
+
+{{< include 08-api/_spherical.qmd >}}
+
+{{< include 08-api/_stepper.qmd >}}

@@ -1,0 +1,274 @@
+## Column time stepping (`RadiationModel`, `Integrator`) {#sec-ch08-stepper}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13
+sources: src/integrator/integrator.hpp, src/integrator/integrator.cpp, src/integrator/radiation_model.hpp,
+src/integrator/radiation_model.cpp, src/radiation/calc_dz_hypsometric.cpp, src/utils/layer2level.cpp,
+python/csrc/pyintegrator.cpp; pydisort src/disort.cpp checks: derivation-checks/ch08_stepper.py status: draft
+author: Jiheng Hu reviewer: -->
+
+### Summary
+
+`RadiationModel` turns the fluxes of @sec-ch08-radiation into a time evolution. It advances the layer temperatures
+of a column and the temperature of the surface below it by one step. The heating comes from radiation and from a
+thermal diffusion between layers, and the step is a strong-stability-preserving Runge-Kutta method. The stage
+weights live in a separate object, `Integrator`, which also offers first-, second- and a four-stage third-order
+variant; the default `rk3` is third order. The section derives the tendency the model integrates and the order of
+each scheme, and lists the fixed assumptions of the model. These include a five-species layout and Mars-like
+default constants, and three CANDIDATE defects. `RadiationModel` has a C++ interface only; `Integrator` is also
+bound to Python.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Advance $T_i$ and $T_s$ with @eq-ch08-stepper-tendency and @eq-ch08-stepper-surface, @eq-ch08-stepper-stage.
+
+**Data.** In: mole fractions, `temp`, `pres` (`ncol`, $L$), `btemp`; out: updated `temp`, `btemp` in place.
+
+**Placement.** One call per stage $s$ of a step; stage 0 saves the state of time level $n$.
+
+**Activation.** C++ `RadiationModel`; the scheme by `type` of `integration`, default `rk3`.
+
+**Guarantee / limits.** Order 1, 2, 3, 3 in time; temperatures clamped to [20, 1000] K after every stage.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $T_i$ is the temperature of layer $i$ and $T_s$ that of the surface [K]; $p_i$ the layer pressure
+[Pa]; $\rho_i$ the density [$\mathrm{kg\,m^{-3}}$]; $\Delta z_i$ the layer thickness [m]; $c_p$ the specific heat
+[$\mathrm{J\,kg^{-1}\,K^{-1}}$]; $M$ the mean molar mass [$\mathrm{kg\,mol^{-1}}$]; $g$ the gravity
+[$\mathrm{m\,s^{-2}}$]; $R$ the gas constant [$\mathrm{J\,mol^{-1}\,K^{-1}}$]; $K$ the thermal diffusivity
+[$\mathrm{m^2\,s^{-1}}$]; $C_s$ the heat capacity of the surface per unit area [$\mathrm{J\,m^{-2}\,K^{-1}}$]; $\sigma$
+the Stefan-Boltzmann constant; $F_q$ the net radiative flux $F^{\mathrm{net}}_q$ of @eq-ch08-radiation-net and $F^{d}_q$
+the diffusive heat flux at level $q$, both positive upward [$\mathrm{W\,m^{-2}}$]; $\Delta t$ the step [s]; $u$ the state
+($T_i$ and $T_s$) and $G(u)$ its time derivative; $w_0, w_1, w_2$ the stage weights [-]; $z = \lambda\Delta t$ [-].
+<!-- local symbols for the editor's notation table: T_i, T_s, p_i, rho_i, Delta z_i, c_p, M, g, R, K, C_s, sigma,
+F^d_q, Delta t, u, G, w_0, w_1, w_2, z -->
+
+### Derivation
+
+**Energy of a layer.** Layer $i$ lies between levels $i$ and $i+1$ and holds $\rho_i c_p\Delta z_i$ joules per kelvin
+per unit area. It gains energy at the rate of the upward flux entering at its bottom minus the one leaving at its
+top. With the radiative and the diffusive flux,
+
+$$
+\rho_i c_p\,\Delta z_i\,\frac{\mathrm{d}T_i}{\mathrm{d}t} = -\left[(F_{i+1} + F^{d}_{i+1}) - (F_i + F^{d}_i)\right].
+$$
+
+One explicit step of length $\Delta t$ of this equation is the increment the model computes:
+
+$$
+\Delta T_i = -\frac{\Delta t}{\rho_i c_p\,\Delta z_i}\left[(F_{i+1} + F^{d}_{i+1}) - (F_i + F^{d}_i)\right].
+$$ {#eq-ch08-stepper-tendency}
+
+@eq-ch08-stepper-tendency is computed in `RadiationModelImpl::forward`
+({{< code src/integrator/radiation_model.cpp RadiationModelImpl::forward repo=pyharp >}}). Summed over the column,
+the brackets telescope, and with $F^{d}_0 = F^{d}_L = 0$ (below)
+
+$$
+\sum_{i=0}^{L-1}\rho_i c_p\,\Delta z_i\,\Delta T_i = -\Delta t\,(F_L - F_0):
+$$
+
+the column gains what enters at its two ends, to round-off.
+
+**Density and thickness.** The gas is ideal with one mean molar mass, $\rho_i = p_i M/(R\,T_i)$. The thickness follows
+from hydrostatic balance in the layer:
+
+$$
+\Delta z_i = \frac{R\,T_i}{M g}\,\ln\frac{p_{i-1/2}}{p_{i+1/2}},
+$$ {#eq-ch08-stepper-dz}
+
+with the level pressures $p_{i\mp1/2}$ at the bottom and top of the layer. @eq-ch08-stepper-dz is computed in
+`calc_dz_hypsometric` ({{< code src/radiation/calc_dz_hypsometric.cpp calc_dz_hypsometric repo=pyharp >}}). With layer
+pressures as input, as here, the level value of $\ln p$ is the mean of the two adjacent layers, and at the two ends it
+is extrapolated linearly, $(3v_0 - v_1)/2$ (`layer2level`,
+{{< code src/utils/layer2level.cpp layer2level overload=1 repo=pyharp >}}). Density and thickness are recomputed at
+every stage, from the current temperatures.
+
+**Thermal diffusion.** On every interior level, $i = 1, \dots, L-1$, between layers $i-1$ and $i$, the model conducts
+heat down the temperature gradient,
+
+$$
+F^{d}_i = -K\,\rho_{i-1/2}\,c_p\,\frac{2\,(T_i - T_{i-1})}{\Delta z_i + \Delta z_{i-1}},
+$$ {#eq-ch08-stepper-diffusion}
+
+and $F^{d}_0 = F^{d}_L = 0$. The level density $\rho_{i-1/2}$ comes from $\ln\rho$ on the layers, reconstructed to the
+levels by the thickness-weighted second-order `layer2level`
+({{< code src/utils/layer2level.cpp layer2level overload=2 repo=pyharp >}}). @eq-ch08-stepper-diffusion is computed in
+`RadiationModelImpl::forward`.
+
+**Surface.** The surface absorbs the total downward flux at level 0 and emits as a black body:
+
+$$
+\Delta T_s = \frac{\Delta t}{C_s}\left(F^{\downarrow}_{\mathrm{sfc}} - \sigma T_s^4\right),
+$$ {#eq-ch08-stepper-surface}
+
+with $F^{\downarrow}_{\mathrm{sfc}}$ of @eq-ch08-radiation-boundary. @eq-ch08-stepper-surface is computed in
+`RadiationModelImpl::forward`. It has no albedo term and no diffusive flux (the Limits layer below).
+
+**Stages.** Let $G(u)$ be the right-hand sides above, so $\Delta t\,G(u)$ is the increment of
+@eq-ch08-stepper-tendency and @eq-ch08-stepper-surface. Stage $s$ of a step forms
+
+$$
+u^{(s)} = w_0\,u^{n} + w_1\,u^{(s-1)} + w_2\,\Delta t\,G\!\left(u^{(s-1)}\right),
+$$ {#eq-ch08-stepper-stage}
+
+with $u^{(-1)} = u^{n}$ and the weights of @tbl-ch08-stepper-weights; the last stage is $u^{n+1}$. @eq-ch08-stepper-stage
+is computed in `IntegratorImpl::forward` ({{< code src/integrator/integrator.cpp IntegratorImpl::forward repo=pyharp >}})
+with the weights of the constructor `IntegratorImpl::IntegratorImpl`
+({{< code src/integrator/integrator.cpp IntegratorImpl::IntegratorImpl repo=pyharp >}}).
+
+| `type` | stages | weights $(w_0, w_1, w_2)$ per stage | order |
+|---|---|---|---|
+| `rk1`, `euler` | 1 | (0, 1, 1) | 1 |
+| `rk2` | 2 | (0, 1, 1), (1/2, 1/2, 1/2) | 2 |
+| `rk3` | 3 | (0, 1, 1), (3/4, 1/4, 1/4), (1/3, 2/3, 2/3) | 3 |
+| `rk3s4` | 4 | (1/2, 1/2, 1/2), (0, 1, 1/2), (2/3, 1/3, 1/6), (0, 1, 1/2) | 3 |
+
+: Stage weights of `Integrator` at the pin. {#tbl-ch08-stepper-weights}
+
+**Order.** For $\mathrm{d}u/\mathrm{d}t = \lambda u$ each stage multiplies by a polynomial in $z = \lambda\Delta t$. With
+`rk3`, $u^{(0)} = (1 + z)u^n$, $u^{(1)} = \tfrac34 u^n + \tfrac14(1+z)u^{(0)}$ and
+$u^{(2)} = \tfrac13 u^n + \tfrac23(1+z)u^{(1)}$, so
+
+$$
+u^{n+1} = \left(1 + z + \tfrac12 z^2 + \tfrac16 z^3\right)u^n ,
+$$
+
+which matches $e^{z}$ through $z^3$: third order. In every stage $w_0 + w_1 = 1$ and all weights are non-negative.
+Each stage is then a convex combination of forward-Euler steps, which is what makes these schemes
+strong-stability preserving. The time error is $O(\Delta t^p)$ with $p$ the order of @tbl-ch08-stepper-weights. In the
+vertical, @eq-ch08-stepper-tendency conserves the column energy to round-off, and @eq-ch08-stepper-diffusion is a
+two-point gradient over the distance between the two layer centres. The check is `ch08_stepper.py` (the Tests layer
+below).
+
+<!-- equation-check: eq-ch08-stepper-tendency ch08_stepper.py [C3] -->
+<!-- equation-check: eq-ch08-stepper-dz ch08_stepper.py [C9] -->
+<!-- equation-check: eq-ch08-stepper-diffusion ch08_stepper.py [C4] -->
+<!-- equation-check: eq-ch08-stepper-surface ch08_stepper.py [C5] -->
+<!-- equation-check: eq-ch08-stepper-stage ch08_stepper.py [C1] -->
+
+### Numerical method
+
+The stepper is explicit. All quantities are layer values except the fluxes, which live on the levels. One call of
+`RadiationModelImpl::forward` is one stage (@fig-ch08-stepper-stages):
+
+1. At stage 0 it copies `temp` and `btemp` into the stage registers `atemp0`, `atemp1`, `btemp0` and `btemp1`.
+2. It computes $\Delta z_i$ by @eq-ch08-stepper-dz, with $Mg/R$ built as a single-precision tensor ([P3]).
+3. It converts mole fractions to concentrations: species 0 to 2 times $p/(RT)$, species 3 and 4 times
+   `aero_scale` $\cdot\,p/(RT)$ [$\mathrm{mol\,m^{-3}}$]. Other species keep their mole fractions.
+4. It calls `Radiation.forward` with `bc` and with the atmosphere map as `atm`, and stores the net flux in
+   `results["netflux"]`.
+5. It forms @eq-ch08-stepper-diffusion, @eq-ch08-stepper-surface and @eq-ch08-stepper-tendency and stores
+   `thermal_diffusion_flux`, `dT_surf` and `dT_atm`.
+6. It applies @eq-ch08-stepper-stage to the layer temperatures and to the surface temperature, clamps both to
+   [20, 1000] K and copies them into `atemp1` and `btemp1`.
+
+The caller loops over the stages of `Integrator.stages` and over the steps. The model itself stops nothing: `stop`
+of `Integrator` tests `nlim` and `tlim` for a driver that wants it, and `cfl`, `ncycle_out` and `max_redo` are read
+by nothing in the model. @fig-ch08-stepper-convergence shows the measured order on a grey longwave column.
+
+```{python}
+#| label: fig-ch08-stepper-stages
+#| fig-cap: "One `rk3` step of the column model. Each green stage combines the state at the start of the step, the previous stage and one tendency evaluation with the weights shown; each tendency evaluation recomputes the layer thicknesses, runs the radiation and the diffusion, and clamps the temperatures."
+#| fig-alt: "Four boxes in a row: the stage registers holding T at step n, then stages 0, 1 and 2 with weights (0, 1, 1), (3/4, 1/4, 1/4) and (1/3, 2/3, 2/3), then an arrow to T at step n+1. Below each stage: radiation, dz, diffusion, clamp."
+#| echo: false
+from pyharp_report.ch08.figures.fig_stepper_stages import make_fig
+make_fig()
+```
+
+```{python}
+#| label: fig-ch08-stepper-convergence
+#| fig-cap: "Largest layer-temperature error of the column model after $2\\times10^5$ s, against the step, for `rk1` (orange circles, solid) and `rk3` (green squares, dashed); the reference is 256 `rk3` steps. Dotted lines show slopes 1 and 3."
+#| fig-alt: "Log-log plot of error against step from 1.25e4 to 1e5 s. The rk1 error falls from 0.5 to 0.04 K, roughly along the slope-1 line; the rk3 error falls from 0.034 to 5e-5 K, along the slope-3 line."
+#| echo: false
+from pyharp_report.ch08.figures.fig_stepper_convergence import make_fig
+make_fig()
+```
+
+**How to use it.** `RadiationModel` is built from options in C++; there is no reader of its own options in the file:
+
+```cpp
+auto op = harp::RadiationModelOptionsImpl::create();
+op->ncol(1).nlyr(8).grav(3.711).mean_mol_weight(0.044);
+op->cp(844.).kappa(2.e-5).cSurf(2.e5);
+op->rad(harp::RadiationOptionsImpl::from_yaml("rad.yaml"));  // + weights
+op->intg(harp::IntegratorOptionsImpl::from_yaml("rad.yaml"));
+harp::RadiationModel model(op);
+int nstage = model->pintg->stages.size();
+for (int s = 0; s < nstage; ++s)    // atm: temp, pres; bc: btemp, ttemp
+  model->forward(xfrac, atm, bc, dt, s);
+```
+
+`xfrac` has five species at least (`ncol`, $L$, `nspecies`). `bc` must hold `btemp` (`ncol`), and `ttemp` (`ncol`) when a
+band is a DISORT band ([P2]).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| one stage of the model | {{< code src/integrator/radiation_model.cpp RadiationModelImpl::forward repo=pyharp >}} | `RadiationModelImpl::forward` | stage $s$ |
+| registers, submodules | {{< code src/integrator/radiation_model.cpp RadiationModelImpl::reset repo=pyharp >}} | `RadiationModelImpl::reset` | always |
+| stage combination | {{< code src/integrator/integrator.cpp IntegratorImpl::forward repo=pyharp >}} | `IntegratorImpl::forward` | `type` |
+| weights, refusal | {{< code src/integrator/integrator.cpp IntegratorImpl::IntegratorImpl repo=pyharp >}} | `IntegratorImpl::IntegratorImpl` | `type` |
+| layer thickness | {{< code src/radiation/calc_dz_hypsometric.cpp calc_dz_hypsometric repo=pyharp >}} | `calc_dz_hypsometric` | always |
+| Python binding | {{< code python/csrc/pyintegrator.cpp bind_integrator repo=pyharp >}} | `bind_integrator` | `Integrator` only |
+
+: Code map of the column stepper. {#tbl-ch08-stepper-code}
+
+`IntegratorImpl::forward` refuses a stage outside [0, number of stages). The constructor refuses an unknown `type`.
+`RadiationModelImpl::forward` returns 0 and reports nothing; a too-small `xfrac` fails in a tensor slice. The defaults of
+`RadiationModelOptionsImpl` ({{< code src/integrator/radiation_model.hpp RadiationModelOptionsImpl repo=pyharp >}}) are
+`grav` 3.711, `mean_mol_weight` 0.044, `cp` 844, `kappa` $2\times10^{-5}$, `cSurf` $2\times10^{5}$ and `aero_scale` 1.
+
+### Tests
+
+No ctest, Python test or example at the pin builds a `RadiationModel` or an `Integrator`. `RadiationModel` has no
+Python binding, so the derivation check compiles a ten-line wrapper against the installed pyharp library. The wrapper
+builds the model from a YAML file, sets weight 1 on every band and calls `forward` for every stage. It runs the
+model's own code and re-implements none of it. The column has 8 layers from $10^5$ to $10^3$ Pa of one grey absorber
+with a longwave DISORT band, and the defaults of the table above.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch08_stepper.py` [C1], [C2] | @tbl-ch08-stepper-weights: orders 1, 2, 3, 3 | exact; slope $\pm0.15$ | sympy; four step sizes |
+| `ch08_stepper.py` [C3], [C4] | @eq-ch08-stepper-tendency, @eq-ch08-stepper-diffusion | $10^{-12}$ rel. | telescoping sum of 8 terms |
+| `ch08_stepper.py` [C5], [C9] | @eq-ch08-stepper-surface, @eq-ch08-stepper-dz | $10^{-12}$, $10^{-14}$ rel. | a few products |
+| `ch08_stepper.py` [C6] | model order 1 (`rk1`), 3 (`rk3`) | slope $\pm0.3$ | four step sizes |
+| `ch08_stepper.py` [C7], [C8], [P1]-[P3] | clamp, species layout, CANDIDATEs | exact; probes | the code's values |
+
+: Tests of the column stepper (derivation check; no ctest exists). {#tbl-ch08-stepper-tests}
+
+sympy finds the stability polynomial of every scheme equal to $e^z$ through order 1, 2, 3 and 3, and every stage
+convex ([C1]).[^ch08-step-run] On $\mathrm{d}u/\mathrm{d}t = -u^2$ with 8 to 64 steps, `Integrator` itself gives fitted
+slopes of 1.03, 2.04, 3.06 and 3.04 ([C2]). One `rk1` step of $2\times10^4$ s changes the column energy by
+$-9.214960\times10^4\,\mathrm{J\,m^{-2}}$. This equals $-\Delta t(F_L - F_0)$ within $10^{-12}$ relative, and the
+temperatures after the step equal those before it plus @eq-ch08-stepper-tendency, bitwise ([C3]). The diffusive flux
+is zero at both ends and has $\rho_{i-1/2}$ between the adjacent layer densities on all 7 interior levels ([C4]). The
+surface temperature changes by @eq-ch08-stepper-surface within $10^{-12}$ ([C5]). The layer thicknesses, 6030 to 7705 m, equal
+@eq-ch08-stepper-dz with the level pressures described above within $10^{-14}$ ([C9]). Over $2\times10^5$ s, with 2 to
+16 steps against 256, the model converges with fitted slope 1.24 for `rk1` and 3.12 for `rk3`
+(@fig-ch08-stepper-convergence, [C6]). A layer set to 1500 K
+returns at 1000 K after one step and one at 10 K at 20 K ([C7]). Fewer than five species are refused ([C8]). All checks
+ran on CPU.
+
+[^ch08-step-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_stepper.py` [C1]-[C9], [P1]-[P3]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, wrapper compiled with g++ 12 and ninja through torch.utils.cpp_extension]. Output `derivation-checks/ch08_stepper.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_stepper.pydisort-1.8.13.out` holds the same lines.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **CANDIDATE: the surface budget has no albedo.** @eq-ch08-stepper-surface heats the surface with the total downward
+  flux whatever its albedo. Over a non-scattering shortwave column the surface warms by the same 0.969 K in one step
+  for albedo 0, 0.5 and 1. With albedo $A$ the column and the surface together gain $A F^{\downarrow}_{\mathrm{sfc}}$
+  per unit area more than enters at the top: 98.9 and $197.8\,\mathrm{W\,m^{-2}}$ for $A$ 0.5 and 1 ([P1]).
+- **CANDIDATE: a DISORT band without `ttemp` stops the model at its second stage.** pydisort writes a default
+  `ttemp` of shape (1, `ncol`) into the boundary map it is given, and the model hands the same map to the next
+  stage, where pydisort refuses it (`bc->ttemp.dim() != 1`, [P2]). pydisort 1.7.1 and 1.8.13 behave the same.
+- **CANDIDATE: $Mg/R$ in single precision.** The model builds $Mg/R$ with `torch::tensor`, which takes the default
+  float32. Every $\Delta z_i$ is then off by $3.0\times10^{-8}$ relative ([P3]).
+- Five species are assumed: 0 to 2 are gases, 3 and 4 aerosols scaled by `aero_scale` ([C8]). The default constants
+  are Mars-like. The temperatures are clamped to [20, 1000] K after every stage, silently ([C7]).
+- `RadiationModel` has no Python binding, no options reader and no test at the pin. `cfl`, `ncycle_out` and
+  `max_redo` are read by nothing in it.
+- None of the three CANDIDATEs is in the defect register. Not tested: more than one column, CUDA, `rk2` and `rk3s4`
+  inside the model (tested on their own in [C1], [C2]).
+:::

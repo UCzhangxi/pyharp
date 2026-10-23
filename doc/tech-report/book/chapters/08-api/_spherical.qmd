@@ -1,0 +1,177 @@
+## Spherical flux scaling (`area`, `vol` and `dz` in `atm`) {#sec-ch08-spherical}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13
+sources: src/radiation/radiation.hpp, src/radiation/radiation.cpp, src/radiation/flux_utils.hpp,
+src/radiation/flux_utils.cpp checks: derivation-checks/ch08_spherical.py status: draft author: Jiheng Hu reviewer: -->
+
+### Summary
+
+The band solvers treat the atmosphere as a stack of flat slabs. On a sphere, a level higher up has a larger area,
+so a column of a host model is a cone, not a box. The same plane-parallel fluxes then deposit a different amount of
+energy in each layer of the cone than in the box. When the host model passes the level areas, `Radiation` is meant
+to correct this. It multiplies the level fluxes by factors chosen so that every layer of the cone is heated as the
+plane-parallel solution heats the flat layer. The correction is off unless `atm` holds `area`. At the pin the code
+does not compute the factors its own documentation defines. Even in the flat limit, where they should all be 1, they
+grow by orders of magnitude (the Limits layer below).
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Scale level fluxes so a spherical layer gains the plane-parallel heating, @eq-ch08-spherical-doc.
+
+**Data.** In: net flux, and `area` (`ncol`, $L+1$), `vol` and `dz` (`ncol`, $L$) from `atm`. Out: scaled fluxes.
+
+**Placement.** Inside `Radiation.forward`, after the band sum, before the outputs are taken.
+
+**Activation.** The key `area` in `atm`; off by default.
+
+**Guarantee / limits.** CANDIDATE defect: the code's factor is not 1 in the plane-parallel limit.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $A_q$ is the area of level $q$ of the column [$\mathrm{m^2}$]; $V_i$ the volume of layer $i$, between
+levels $i$ and $i+1$ [$\mathrm{m^3}$]; $\Delta z_i$ its thickness [m]; $F_q$ the net upward flux $F^{\mathrm{net}}_q$ of
+@eq-ch08-radiation-net [$\mathrm{W\,m^{-2}}$]; $H_i$ the energy layer $i$ loses per unit time in the plane-parallel
+solution, scaled to its volume [W]; $\xi_q$ the scaling factor of level $q$ [-].
+<!-- local symbols for the editor's notation table: A_q, V_i, Delta z_i, H_i, xi_q (F_q is F^net_q) -->
+
+### Derivation
+
+The derivation follows the documentation of `spherical_flux_scaling`
+({{< code src/radiation/flux_utils.hpp spherical_flux_scaling repo=pyharp >}}), which states four formulas, labels the
+method "xiz 2022 flux scaling" and cites no paper or note in the code tree.
+
+**Step 1.** In the plane-parallel solution, layer $i$ loses $(F_{i+1} - F_i)$ per unit area per unit time. Over the
+layer's volume this is
+
+$$
+H_i = \frac{F_{i+1} - F_i}{\Delta z_i}\,V_i .
+$$
+
+**Step 2.** In the spherical column the scaled fluxes $\xi_q F_q$ cross the areas $A_q$. Layer $i$ then loses
+$\xi_{i+1}F_{i+1}A_{i+1} - \xi_i F_i A_i$, and the requirement is that this equals $H_i$.
+
+**Step 3.** Solve for the lower factor, layer by layer from the top, $i = L-1, \dots, 0$, starting from
+$\xi_L = 1$ at the top, where the documentation keeps the plane-parallel flux:
+
+$$
+\begin{aligned}
+\xi_L &= 1, \\
+\xi_i &= \frac{\xi_{i+1}F_{i+1}A_{i+1} - H_i}{F_i\,A_i} .
+\end{aligned}
+$$ {#eq-ch08-spherical-doc}
+
+**Step 4.** In a flat column, $A_q = A$ for all $q$ and $V_i = A\,\Delta z_i$, so $H_i = (F_{i+1} - F_i)A$. With
+$\xi_{i+1} = 1$, step 3 gives
+
+$$
+\xi_i = \frac{F_{i+1}A - (F_{i+1} - F_i)A}{F_i A} = 1,
+$$
+
+and by induction every factor is 1. The correction then changes nothing, as it should.
+
+**What the code computes.** `spherical_flux_scaling`
+({{< code src/radiation/flux_utils.cpp spherical_flux_scaling repo=pyharp >}}) runs the same top-down sweep,
+$i = L-1, \dots, 0$, without the factor $F_i$ in the denominator:
+
+$$
+\begin{aligned}
+\xi_L &= 1, \\
+\xi_i &= \frac{\xi_{i+1}F_{i+1}A_{i+1} - H_i}{A_i} .
+\end{aligned}
+$$ {#eq-ch08-spherical-code}
+
+@eq-ch08-spherical-code is computed in `spherical_flux_scaling`, called from `RadiationImpl::forward`
+({{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}), which then multiplies every channel of
+the summed band fluxes and the net flux by $\xi_q$. @eq-ch08-spherical-code is not @eq-ch08-spherical-doc. In the flat
+column its first step gives $\xi_{L-1} = F_L - (F_L - F_{L-1}) = F_{L-1}$, a flux in $\mathrm{W\,m^{-2}}$ where step 4
+gives 1. The code differs from the derivation; the Limits layer records it as a CANDIDATE defect. The check is
+`ch08_spherical.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch08-spherical-doc ch08_spherical.py [C1] -->
+<!-- equation-check: eq-ch08-spherical-code ch08_spherical.py [C2] -->
+
+### Numerical method
+
+The factors come from one sweep from the top level down, each from the one above (@eq-ch08-spherical-code). It needs
+the net flux on all $L+1$ levels, the areas on all levels and the volumes and thicknesses of the $L$ layers. The
+thicknesses are read from `atm["dz"]`, not from the `dz` argument of `forward`. @fig-ch08-spherical-factor shows the
+factors on the check's column, in a flat and in a spherical geometry.
+
+```{python}
+#| label: fig-ch08-spherical-factor
+#| fig-cap: "Scaling factor on each level of a four-layer column, as the code computes it (vermillion squares, solid) and as its documentation defines it (blue circles, dashed). (a) Plane-parallel geometry (equal areas), where the documented factor is 1 on every level; (b) a spherical shell of radius 6400 km. The code's factor grows by a factor of about 20 to 30 per level downward in both."
+#| fig-alt: "Two log-scale panels against level 0 to 4. In both, the documented factor stays at 1 (in the shell it is 1.0003 at the surface), while the code's factor rises from 1 at the top level to about 2.6e5 at the surface."
+#| echo: false
+from pyharp_report.ch08.figures.fig_spherical_factor import make_fig
+make_fig()
+```
+
+**How to use it.** The correction is requested through `atm`, not through the configuration file:
+
+```python
+atm["area"] = area      # (ncol, L + 1) [m^2], level 0 = surface
+atm["vol"] = vol        # (ncol, L) [m^3]
+atm["dz"] = dz2d        # (ncol, L) [m], the same thicknesses as the dz argument
+net, f_sfc, f_top = rad.forward(conc, dz, bc, atm)
+```
+
+Because of the CANDIDATE defect in the Limits layer, these outputs are not the plane-parallel heating rescaled.
+Until it is resolved, the correction cannot be used as documented.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| switch and application | {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}} | `RadiationImpl::forward` | `area` in `atm` |
+| factors | {{< code src/radiation/flux_utils.cpp spherical_flux_scaling repo=pyharp >}} | `spherical_flux_scaling` | same |
+| documented intent | {{< code src/radiation/flux_utils.hpp spherical_flux_scaling repo=pyharp >}} | `spherical_flux_scaling` | same |
+
+: Code map of the spherical flux scaling. {#tbl-ch08-spherical-code}
+
+1. `RadiationImpl::forward` checks only for the key `area`. It then reads `dz`, `area` and `vol` from `atm` and fails
+   if `dz` is missing.
+2. `spherical_flux_scaling` indexes `area` up to $L$, so `area` needs $L+1$ entries per column. The declaration in
+   `radiation.hpp` documents it as (`ncol`), the one in `flux_utils.hpp` as (..., `nlayer`).
+3. The net flux, and all four channels of the band sum, are multiplied by $\xi_q$; the surface and top outputs are
+   taken from the scaled sum.
+
+### Tests
+
+No ctest calls `spherical_flux_scaling`. The derivation check runs the two-band column of @sec-ch08-radiation with
+and without `area`, in a flat geometry (equal areas, $V_i = A\,\Delta z_i$) and in a spherical shell
+($A_q = r_q^2$ per steradian, $r_0 = 6.4\times10^6\,\mathrm{m}$).
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `ch08_spherical.py` [C1] | @eq-ch08-spherical-doc gives 1 in a flat column | exact | sympy identity |
+| `ch08_spherical.py` [C2] | the code computes @eq-ch08-spherical-code | $10^{-13}$ rel. | five operations per level, four levels |
+| `ch08_spherical.py` [C3] | shapes: `area` needs $L+1$; `dz` in `atm` | refusal | the code's indexing |
+| `ch08_spherical.py` [P1] | CANDIDATE: code factor in a flat column | reproduced | probe |
+
+: Tests of the spherical flux scaling (derivation check; no ctest exists). {#tbl-ch08-spherical-tests}
+
+sympy confirms step 4 ([C1]). A line-for-line numpy port of @eq-ch08-spherical-code reproduces the ratio of scaled
+to plain net flux that pyharp returns, below $10^{-13}$ relative in both geometries ([C2]).[^ch08-sph-run] An `area`
+with $L$ entries, or `area` without `dz` in `atm`, is refused ([C3]). In the flat column the code's factor is
+19.5914 one level below the top, equal to the net flux there in $\mathrm{W\,m^{-2}}$. It reaches $2.62\times10^5$ at
+the surface, so the layer heating changes by up to $1.6\times10^7$ relative. The documented recursion, ported, stays
+at 1 within $10^{-15}$ ([P1], @fig-ch08-spherical-factor). All checks ran on CPU.
+
+[^ch08-sph-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_spherical.py` [C1]-[C3], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_spherical.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_spherical.pydisort-1.8.13.out` holds the same lines.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **CANDIDATE: the scaling factor misses the division by $F_i$.** `spherical_flux_scaling` computes
+  @eq-ch08-spherical-code where its documentation defines @eq-ch08-spherical-doc. In a flat column the factors are
+  1, 19.6, 389, $9.6\times10^3$ and $2.6\times10^5$ from the top down instead of 1, and the scaled fluxes no longer
+  heat the layers as the plain ones do ([P1]). It is not in the defect register.
+- The documented recursion divides by $F_i A_i$ and is undefined where the net flux is zero at a level (derived from
+  @eq-ch08-spherical-doc; not measured).
+- `net_flux_midpt` is not scaled (@sec-ch08-radiation).
+- A Toon longwave band has its own spherical input, `area_scale`, which weights the Planck source by area
+  (@sec-ch04-longwave). It is a separate mechanism, set per band in `bc`.
+- Not tested: more than one column, CUDA.
+:::

@@ -40,6 +40,17 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch05-reference-convergence` | `05-comparison/_reference.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_reference_convergence.py` | `src/pyharp_report/ch05/data/convergence.json`<br>`src/pyharp_report/ch05/data/gs85.json` |
 | `fig-ch05-toon-accuracy-split` | `05-comparison/_toon-accuracy.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_toon_error_split.py` | `src/pyharp_report/ch05/data/toon_vs_disort.json` |
 
+## ch08
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch08-config-tree` | `08-api/_config.qmd` | `pyharp_report/ch08/figures/_boxes.py`<br>`pyharp_report/ch08/figures/fig_config_tree.py` | - |
+| `fig-ch08-depmap` | `08-api.qmd` | `pyharp_report/ch08/figures/_boxes.py`<br>`pyharp_report/ch08/figures/fig_depmap.py` | - |
+| `fig-ch08-radiation-levels` | `08-api/_radiation.qmd` | `pyharp_report/ch08/figures/fig_radiation_levels.py` | - |
+| `fig-ch08-spherical-factor` | `08-api/_spherical.qmd` | `pyharp_report/ch08/figures/fig_spherical_factor.py`<br>`pyharp_report/ch08/data.py` | `derivation-checks/ch08_spherical.pydisort-1.7.1.out` |
+| `fig-ch08-stepper-convergence` | `08-api/_stepper.qmd` | `pyharp_report/ch08/figures/fig_stepper_convergence.py`<br>`pyharp_report/ch08/data.py` | `derivation-checks/ch08_stepper.pydisort-1.7.1.out` |
+| `fig-ch08-stepper-stages` | `08-api/_stepper.qmd` | `pyharp_report/ch08/figures/_boxes.py`<br>`pyharp_report/ch08/figures/fig_stepper_stages.py` | - |
+
 ## ch09
 
 | figure | section file | code | data (written by) |
