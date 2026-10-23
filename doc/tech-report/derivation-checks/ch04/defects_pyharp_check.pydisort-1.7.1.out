@@ -3,4 +3,14 @@ pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f
 device: CPU, precision: float64, threads: 1
 [C1] PASS P11 reproduced: T = 287.75719999999995 K, band 300-600 cm-1: F+(TOA) = -2.359880e+02 W m-2 (defective value -2.35988e+02); at T(1+1e-12): 1.159503e+02; pi * quadrature: 1.159503e+02
 [C2] PASS P12 reproduced: dtau = 20.0, lambda dtau = 35.6, lambda u - 1 = 0.0e+00: 4 of 8 outputs not finite, F+(TOA) = inf; neighbours w(1 -+ 1e-7): F+(TOA) = 6.737918e+02, 6.737918e+02 (relative difference 5.5e-09; largest over all nonzero channels 3.4e-03)
-RESULT: 2/2 defects reproduced
+     w/W_RES = 0.99000, dtau = 40 (lambda dtau = 71.3): single 6605.73, reference 4018.84, relative error +6.44e-01
+     w/W_RES = 1.01000, dtau = 40 (lambda dtau = 71.1): single -351.969, reference 4018.84, relative error -1.09e+00
+     w/W_RES = 0.99999, dtau = 40 (lambda dtau = 71.2): single 1.74056e+06, reference 4018.84, relative error +4.32e+02
+     w/W_RES = 1.00001, dtau = 40 (lambda dtau = 71.2): single -2.60083e+06, reference 4018.84, relative error -6.48e+02
+     w/W_RES = 0.50000, dtau = 30 (lambda dtau = 56.8): single 4057.13, reference 4057.11, relative error +3.21e-06
+     w/W_RES = 0.50000, dtau = 40 (lambda dtau = 75.7): single 4038.11, reference 4018.84, relative error +4.80e-03
+     w/W_RES = 0.50000, dtau = 60 (lambda dtau = 113.6): single 4019.11, reference 3980.56, relative error +9.68e-03
+     w/W_RES = 0.50000, dtau = 80 (lambda dtau = 151.4): single 3999.97, reference 3961.43, relative error +9.73e-03
+     w/W_RES = 0.50000, dtau = 1 (lambda dtau = 1.9): single 5856.14, reference 5856.14, relative error +2.22e-16
+[C3] PASS P12 scope "near-resonance and thick layers": midpoint F+ of one layer against 16 sublayers with B linear in tau, albedo 0.2, temf (600, 300) K; near-resonance |error| >= 0.64, thick layers away from it 4.8e-03 to 9.7e-03, thin layer 2.2e-16
+RESULT: 3/3 defects reproduced

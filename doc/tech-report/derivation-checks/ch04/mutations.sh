@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mutation and control runs for the chapter 4 checks of the review fixes (B1, B2, B3; defects P11, P12).
+# Mutation and control runs for the chapter 4 checks of the review fixes (B1, B2, B3, N1; defects P11, P12 and its scope).
 # usage: mutations.sh ENV   (a directory made by setup_env.sh; its python runs every check)
 # Each mutation copies one check to a fresh temporary directory, changes one line with sed, runs it and records the
 # exit status and the labels that FAIL; the control runs the same copy unchanged. A mutation must exit non-zero and
@@ -27,3 +27,5 @@ run K2 "B1 control: planck_check unchanged" "$PL" ''
 run M3 "P11 mutation: defects check off the switch, T(1 + 1e-12)" "$DF" 's|^T_SWITCH = 300.0 \* 1.438786 / 1.5 |T_SWITCH = 300.0 * 1.438786 / 1.5 * (1 + 1e-12) |'
 run M4 "P12 mutation: defects check off the resonance, w(1 - 1e-7)" "$DF" 's|^W_RES = 1.0 - 1.0 / (4.0 \* U_RES \* U_RES)|W_RES = (1.0 - 1.0 / (4.0 * U_RES * U_RES)) * (1 - 1e-7)|'
 run K3 "P11/P12 control: defects check unchanged" "$DF" ''
+run M5 "N1 mutation: planck_check quotes the relative errors as ratios, STRICT_RATIOS = (-3.04, 11.5)" "$PL" 's|^STRICT_RATIOS = (-2.04, 12.5)|STRICT_RATIOS = (-3.04, 11.5)|'
+run M6 "P12 scope mutation: defects check with the earlier claim, SCOPE = exact equality only" "$DF" 's|^SCOPE = "near-resonance and thick layers"|SCOPE = "exact equality only"|'

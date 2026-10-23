@@ -21,8 +21,9 @@ an mpmath quadrature of the Planck function B_nu.
   [C7] The switch edge v = 1.5: band_port_inclusive is band_port with the small-v test written v <= VCUT (the
        large-v test stays v > VCUT, as in the code), so an edge exactly at the switch is in one series. At T = 300 * 1.438786 / 1.5 (v1 = 1.5 for nu1 = 300 cm-1) and for
        nu2 = 300 cm-1 (v2 = 1.5), it agrees with the quadrature within 1e-4; band_port (the code's strict v < VCUT /
-       v > VCUT) is printed beside it and is far off (defect P11, chapter 4 Limits). Writing the inclusive test back
-       as v < VCUT turns this check red.
+       v > VCUT) is printed beside it as a ratio to the quadrature and as a relative error; the ratios must match
+       STRICT_RATIOS, the values the chapter quotes (defect P11, chapter 4 Limits). Writing the inclusive test back
+       as v < VCUT, or quoting the relative errors as ratios, turns this check red.
   [C4] The point overload `bbflux_wavenumber(wave, temp, ncol)` uses c1 = 1.19144e-8, c2 = 1.4388: within 3e-4 of
        B_nu at 667 cm-1, 300 K.
 
@@ -111,16 +112,22 @@ def band_port_inclusive(wn1, wn2, T, C2=1.438786, SIGMA=5.67032e-8):
     return ans * sigdpi * T ** 4
 
 
+STRICT_RATIOS = (-2.04, 12.5)   # band_port / int B_nu at the switch edge, quoted in the chapter (to 3 digits)
+
+
 def check_C7_switch_edge():
     T = 300.0 * 1.438786 / 1.5
-    rows, worst = [], 0.0
+    rows, worst, ratios = [], 0.0, []
     for a, b in [(300, 600), (150, 300)]:
         ref = float(mp.quad(lambda n: bnu(n, T), [a, b]))
         fixed = band_port_inclusive(float(a), float(b), T) / ref - 1
-        code = band_port(float(a), float(b), T) / ref - 1
+        ratio = band_port(float(a), float(b), T) / ref
+        ratios.append(ratio)
         worst = max(worst, abs(fixed))
-        rows.append(f"{a}-{b}: inclusive {fixed:+.1e}, code (strict) {code:+.2f}")
-    return report("C7", worst < 1e-4, f"T = {T:.10f} K (v = 1.5 at 300 cm-1), port / int B_nu - 1: " + "; ".join(rows))
+        rows.append(f"{a}-{b}: inclusive, relative error {fixed:+.1e}; code (strict) ratio {ratio:+.3f}, relative error {ratio - 1:+.3f}")
+    pinned = all(abs(r - q) < 0.01 * max(1.0, abs(q)) for r, q in zip(ratios, STRICT_RATIOS))
+    return report("C7", worst < 1e-4 and pinned, f"T = {T:.10f} K (v = 1.5 at 300 cm-1), port / int B_nu: " +
+                  "; ".join(rows) + f"; chapter quotes ratios {STRICT_RATIOS}")
 
 
 def check_C1_radiance():
