@@ -1,0 +1,191 @@
+## Summing the bands (`Radiation`) {#sec-ch08-radiation}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (written on UCzhangxi/pyharp tech-report) pydisort:
+zoeyzyhu/pydisort v1.7.1, commit 8af15242a265a60ea6fb51c29d48e6688a63ab67 (code_pin.yml); compared with v1.8.13
+sources: src/radiation/radiation.hpp, src/radiation/radiation.cpp, src/radiation/flux_utils.cpp,
+src/rtsolver/toon_mckay89.cpp, python/csrc/pyradiation.cpp, tests/test_flux_utils.cpp; pydisort src/disort.cpp,
+src/disort_impl.h, cdisort213/cdisort.c checks: derivation-checks/ch08_radiation.py, ch08_actinic.py status: draft
+author: Jiheng Hu reviewer: -->
+
+### Summary
+
+`Radiation` is the object a host model calls. It runs every band of the configuration on the same column state and
+adds the band fluxes. It returns three things: the net upward flux at every level, the downward flux at the surface
+and the upward flux at the top. A host model needs exactly these: the net flux for the heating of each layer, and
+the two boundary fluxes for the surface budget and for the energy that leaves the planet. The section states the
+input and output contract (shapes, units, level order) and the two extra buffers the object keeps.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Run all bands and add them: @eq-ch08-radiation-net and @eq-ch08-radiation-boundary.
+
+**Data.** In: concentrations, layer thickness, boundary data, atmosphere. Out: net, surface and top fluxes.
+
+**Placement.** The host model's radiation call; `RadiationModel` calls it once per stage.
+
+**Activation.** Always; every band listed under `bands` runs, in file order.
+
+**Guarantee / limits.** The sum is exact; bands do not interact. Level 0 is the surface.
+
+**Evidence.** The Tests layer below.
+:::
+
+*Local symbols.* $b$ indexes the bands; $q = 0, \dots, L$ the levels, $q = 0$ at the surface; $F^{\uparrow}_{b,q}$ and
+$F^{\downarrow}_{b,q}$ are the upward and total (diffuse plus direct) downward fluxes of band $b$ at level $q$
+[$\mathrm{W\,m^{-2}}$], already summed over the band's spectral points; $F^{\mathrm{net}}_q$ is the net upward flux.
+<!-- local symbols for the editor's notation table: b, q, F^up_{b,q}, F^dn_{b,q}, F^net_q -->
+
+### Derivation
+
+Each band returns its level fluxes, summed over its spectral points with the band weights (@sec-ch03-band for
+DISORT, @sec-ch04-shortwave and @sec-ch04-longwave for Toon). Fluxes from different spectral intervals add. So the
+net upward flux of the whole spectrum at every level $q = 0, \dots, L$ is
+
+$$
+F^{\mathrm{net}}_q = \sum_b F^{\uparrow}_{b,q} - \sum_b F^{\downarrow}_{b,q}.
+$$ {#eq-ch08-radiation-net}
+
+A positive $F^{\mathrm{net}}_q$ carries energy upward. A layer between levels $q$ and $q+1$ gains energy at the rate
+$F^{\mathrm{net}}_q - F^{\mathrm{net}}_{q+1}$ per unit area, which is how @sec-ch08-stepper uses it. The two boundary
+outputs are
+
+$$
+\begin{aligned}
+F^{\downarrow}_{\mathrm{sfc}} &= \sum_b F^{\downarrow}_{b,0}, \\
+F^{\uparrow}_{\mathrm{top}} &= \sum_b F^{\uparrow}_{b,L}.
+\end{aligned}
+$$ {#eq-ch08-radiation-boundary}
+
+@eq-ch08-radiation-net is computed in `RadiationImpl::forward`
+({{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}), which adds the band tensors in file
+order, and `cal_net_flux` ({{< code src/radiation/flux_utils.cpp cal_net_flux repo=pyharp >}}), which subtracts the
+downward channel from the upward one. @eq-ch08-radiation-boundary is computed in `cal_surface_flux`
+({{< code src/radiation/flux_utils.cpp cal_surface_flux repo=pyharp >}}) and `cal_toa_flux`
+({{< code src/radiation/flux_utils.cpp cal_toa_flux repo=pyharp >}}). Nothing is approximated here: the sum is exact
+up to the round-off of adding the bands. The check is `ch08_radiation.py` (the Tests layer below).
+
+<!-- equation-check: eq-ch08-radiation-net ch08_radiation.py [C1] -->
+<!-- equation-check: eq-ch08-radiation-boundary ch08_radiation.py [C2] -->
+
+### Numerical method
+
+There is no solver here; @fig-ch08-radiation-levels shows where each output lives on the column. One call runs
+these steps:
+
+1. Each band's `forward` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}})
+   returns a tensor (`ncol`, $L+1$, 4). Channels 0 and 1 are $F^{\uparrow}$ and $F^{\downarrow}$ at the levels.
+2. The band tensors are stacked into the buffer `spectra` (`nband`, `ncol`, $L+1$, 4) and added in file order.
+3. `cal_net_flux` forms @eq-ch08-radiation-net. `cal_net_flux_midpt`
+   ({{< code src/radiation/flux_utils.cpp cal_net_flux_midpt repo=pyharp >}}) forms channel 2 minus channel 3 into
+   the buffer `net_flux_midpt`.
+4. If `atm` holds `area`, the fluxes are scaled (@sec-ch08-spherical).
+5. `cal_surface_flux` and `cal_toa_flux` take @eq-ch08-radiation-boundary from the summed tensor.
+
+```{python}
+#| label: fig-ch08-radiation-levels
+#| fig-cap: "Where the outputs of `Radiation` live on a column of four layers. Levels (orange triangles, q = 0 at the surface) carry channels 0 and 1 of every band; sky-blue circles mark the layer midpoints, where a Toon longwave band puts channels 2 and 3. A DISORT band copies its level values into channels 2 and 3 instead."
+#| fig-alt: "A stack of four layers with five level lines numbered 0 at the bottom to 4 at the top, an orange triangle on each level and a blue circle beside each layer. Text gives the net flux as the band sum of up minus down at each level, the surface and top outputs, and how net_flux_midpt mixes DISORT level values and Toon midpoint values."
+#| echo: false
+from pyharp_report.ch08.figures.fig_radiation_levels import make_fig
+make_fig()
+```
+
+Channels 2 and 3 mean different things for the two solvers. A DISORT band copies its two level channels into them
+(@sec-ch03-band). A Toon longwave band puts the fluxes at layer midpoints there, with slot $q$ holding the midpoint of
+layer $q-1$ and slot 0 empty (`ToonMcKay89Impl::forward`,
+{{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}). `net_flux_midpt` adds both kinds.
+pyharp does not read it; the comment beside its declaration names a solver outside the package as its reader.
+
+**What the outputs do not include: the actinic flux.** The actinic flux is the radiation arriving at a point from
+all directions, $F_{\mathrm{act}} = \int_{4\pi} I\,\mathrm{d}\Omega = 4\pi\bar u$, with $\bar u$ the mean intensity
+[$\mathrm{W\,m^{-2}\,sr^{-1}}$]; photolysis rates need it. pyharp computes neither at the pin. A band returns four flux
+channels per level and nothing else. For a DISORT band, pydisort copies only cdisort's upward, diffuse downward and
+direct fluxes into them (`disort_impl`, {{< code src/disort_impl.h disort_impl repo=pydisort >}}), and a Toon band
+fills fluxes only. For a DISORT band the mean intensity exists one level down. A `RadiationBand` keeps its solver as
+the child module `solver`, and after the band's `forward`, `solver.gather_flx()` returns cdisort's eight flux outputs
+per spectral point, column and level, bottom level first (`DisortImpl::gather_flx`,
+{{< code src/disort.cpp DisortImpl::gather_flx repo=pydisort >}}). Its column `pydisort.kIUAVG` is the mean intensity
+of `c_fluxes` ({{< code cdisort213/cdisort.c c_fluxes repo=pydisort >}}), direct beam included, and `kIUAVGSO` its
+direct part. The band's actinic flux is $4\pi$ times that column, summed over the spectral points with the band
+weights by the caller. A Toon band has no such output.
+
+**How to use it.** With the options of @sec-ch08-config, one call returns the three outputs:
+
+```python
+rad = pyharp.Radiation(op)
+bc = {"lw/albedo": torch.zeros(1, 1),
+      "btemp": torch.tensor([280.0]), "ttemp": torch.tensor([0.0])}
+atm = {"tempf": tempf}             # (ncol, L + 1) [K], for a Planck band
+net, f_sfc, f_top = rad.forward(conc, dz, bc, atm)
+spectra = rad.buffer("spectra")    # (nband, ncol, L + 1, 4)
+```
+
+`conc` is the concentration (`ncol`, $L$, `nspecies`) [$\mathrm{mol\,m^{-3}}$], in the species order of the file;
+`dz` is the layer thickness ($L$) or (`ncol`, $L$) [m], bottom layer first. A shortwave band reads
+`<band>/fbeam` (`nwave`, `ncol`) [$\mathrm{W\,m^{-2}}$], `<band>/umu0` (`ncol`) and `<band>/albedo` (`nwave`, `ncol`);
+a Planck band reads `btemp` and `ttemp` (`ncol`) [K]. `atm` also carries what the opacities read, for example
+`temp` and `pres` (`ncol`, $L$).
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| band loop and sum | {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}} | `RadiationImpl::forward` | always |
+| construction | {{< code src/radiation/radiation.cpp RadiationImpl::reset repo=pyharp >}} | `RadiationImpl::reset` | `outdirs` |
+| net flux | {{< code src/radiation/flux_utils.cpp cal_net_flux repo=pyharp >}} | `cal_net_flux` | always |
+| boundary fluxes | {{< code src/radiation/flux_utils.cpp cal_surface_flux repo=pyharp >}} | `cal_surface_flux` | always |
+| midpoint net flux | {{< code src/radiation/flux_utils.cpp cal_net_flux_midpt repo=pyharp >}} | `cal_net_flux_midpt` | always |
+| Python binding | {{< code python/csrc/pyradiation.cpp bind_radiation repo=pyharp >}} | `bind_radiation` | always |
+
+: Code map of the band summation. {#tbl-ch08-radiation-code}
+
+`RadiationImpl::reset` registers one `RadiationBand` per band options in file order under the band's name. When the
+options carry `outdirs`, it first copies them into every band. `cal_net_flux`, `cal_surface_flux` and `cal_toa_flux`
+refuse a tensor whose last dimension is below 2; `cal_net_flux_midpt` refuses one below 4.
+
+### Tests
+
+The ctest `test_flux_utils` (`FluxUtilsTest.*`, in `tests/test_flux_utils.cpp`,
+{{< code tests/test_flux_utils.cpp repo=pyharp >}}) checks the output shapes of the four flux helpers and their
+refusals. It asserts no value. The values are checked by the derivation check, on three bands of one grey species
+over four layers: a scattering shortwave DISORT band, an absorbing longwave DISORT band and the same longwave band
+solved by Toon.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `test_flux_utils` (`FluxUtilsTest.*`) | shapes and refusals | exact | sizes |
+| `ch08_radiation.py` [C1], [C2] | @eq-ch08-radiation-net, @eq-ch08-radiation-boundary | bitwise | same additions, same order |
+| `ch08_radiation.py` [C3], [C4] | bands independent; `dz` as ($L$) or (`ncol`, $L$) | bitwise | same operations |
+| `ch08_radiation.py` [C5], [C6] | `net_flux_midpt`; `outdirs` copied | bitwise | same operations |
+| `ch08_actinic.py` [C1]-[C3] | where a mean intensity can be read | $10^{-12}$ rel. | one exp |
+
+: Tests of the band summation. {#tbl-ch08-radiation-tests}
+
+The net flux equals the band sum of @eq-ch08-radiation-net bitwise; it runs from $114.4126\,\mathrm{W\,m^{-2}}$ at
+the surface to 101.3549 at the top ([C1]).[^ch08-rad-run] The surface downward flux 91.1656 and the top upward flux
+161.3549 equal @eq-ch08-radiation-boundary bitwise ([C2]). Every band row of `spectra` equals the band run on its own
+([C3]), and the two shapes of `dz` give the same outputs ([C4]). With the two DISORT bands only, `net_flux_midpt` is the
+level net flux. With the Toon band added it differs from it by up to $87.6\,\mathrm{W\,m^{-2}}$, and its entry 0,
+26.8353, is the DISORT level-0 net flux alone ([C5]).
+
+`ch08_actinic.py` reads the mean intensity of a purely absorbing column, where it is the direct beam's alone,
+$\bar u(\tau) = F_0 e^{-\tau/\mu_0}/(4\pi)$. The band's output has four channels and its `solver` has `gather_flx`
+([C1]). Columns `kIUAVG` and `kIUAVGSO` equal $\bar u$ at every level within $10^{-12}$ relative. At the surface
+($\tau = 0.4$, $\mu_0 = 0.6$, $F_0 = 100$) $4\pi\bar u$ is 51.341712, the closed form $F_0 e^{-\tau/\mu_0}$ ([C2]).
+A Toon band's solver has no `gather_flx` ([C3]).[^ch08-act-run] All checks ran on CPU.
+
+[^ch08-rad-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_radiation.py` [C1]-[C6]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_radiation.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_radiation.pydisort-1.8.13.out` holds the same lines. Bands in weight mode, one spectral point of weight 1 each.
+
+[^ch08-act-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_actinic.py` [C1]-[C3]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_actinic.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_actinic.pydisort-1.8.13.out` holds the same lines.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- `net_flux_midpt` adds DISORT level fluxes and Toon midpoint fluxes when both solvers are configured, and its
+  entry 0 then holds no Toon term ([C5]). It is a midpoint net flux only when every band is a Toon longwave band.
+- `net_flux_midpt` is set before the spherical scaling and is not scaled by it (`RadiationImpl::forward`; not
+  measured).
+- No actinic flux or mean intensity is returned. For a DISORT band it can be read from the band's `solver` as
+  above ([C2]); for a Toon band it is not provided: the solver computes fluxes only ([C3]).
+- Not tested: CUDA, single precision, more than one column, spectral grids other than weight mode.
+:::

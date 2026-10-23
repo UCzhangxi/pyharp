@@ -1,0 +1,12 @@
+{
+ "eq-ch08-config-weight": "Species molar mass from the elemental composition and the atomic-weight table, in kg/mol.",
+ "eq-ch08-radiation-net": "Net upward flux at each level: the band sum of upward minus total downward flux.",
+ "eq-ch08-radiation-boundary": "Surface downward and top upward flux outputs: band sums at the first and last level.",
+ "eq-ch08-spherical-doc": "Documented spherical flux factor: each layer of the curved column gains the plane-parallel heating.",
+ "eq-ch08-spherical-code": "Spherical flux factor as the code computes it, without the division by the level flux.",
+ "eq-ch08-stepper-tendency": "Layer temperature increment from the radiative and diffusive flux divergence.",
+ "eq-ch08-stepper-dz": "Hypsometric layer thickness from the layer temperature and the level pressures.",
+ "eq-ch08-stepper-diffusion": "Diffusive heat flux on the interior levels, zero at the surface and the top.",
+ "eq-ch08-stepper-surface": "Surface temperature increment: absorbed downward flux minus black-body emission.",
+ "eq-ch08-stepper-stage": "One Runge-Kutta stage as a weighted sum of the step start, the last stage and its tendency."
+}
