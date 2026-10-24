@@ -91,7 +91,8 @@ make_fig()
 ```
 
 Channels 2 and 3 mean different things for the two solvers. A DISORT band copies its two level channels into them
-(@sec-ch03-band). A Toon longwave band puts the fluxes at layer midpoints there, with slot $q$ holding the midpoint of
+(@sec-ch03-band). A Toon band, longwave or shortwave, puts the fluxes at layer midpoints there,
+with slot $q$ holding the midpoint of
 layer $q-1$ and slot 0 empty (`ToonMcKay89Impl::forward`,
 {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}). `net_flux_midpt` adds both kinds.
 pyharp does not read it; the comment beside its declaration names a solver outside the package as its reader.
@@ -115,7 +116,7 @@ weights by the caller. A Toon band has no such output.
 rad = pyharp.Radiation(op)
 bc = {"lw/albedo": torch.zeros(1, 1),
       "btemp": torch.tensor([280.0]), "ttemp": torch.tensor([0.0])}
-atm = {"tempf": tempf}             # (ncol, L + 1) [K], for a Planck band
+atm = {"tempf": tempf}             # (ncol, L + 1) [K]; see below
 net, f_sfc, f_top = rad.forward(conc, dz, bc, atm)
 spectra = rad.buffer("spectra")    # (nband, ncol, L + 1, 4)
 ```
@@ -123,7 +124,9 @@ spectra = rad.buffer("spectra")    # (nband, ncol, L + 1, 4)
 `conc` is the concentration (`ncol`, $L$, `nspecies`) [$\mathrm{mol\,m^{-3}}$], in the species order of the file;
 `dz` is the layer thickness ($L$) or (`ncol`, $L$) [m], bottom layer first. A shortwave band reads
 `<band>/fbeam` (`nwave`, `ncol`) [$\mathrm{W\,m^{-2}}$], `<band>/umu0` (`ncol`) and `<band>/albedo` (`nwave`, `ncol`);
-a Planck band reads `btemp` and `ttemp` (`ncol`) [K]. `atm` also carries what the opacities read, for example
+a Planck band reads `btemp` and `ttemp` (`ncol`) [K], and the level temperatures `tempf` from `atm` when present,
+else it interpolates `temp`. A caller that steps the temperatures must refresh `tempf` itself: `RadiationModel` does
+not, so with it `tempf` should be left out (@sec-ch08-stepper, [P4]). `atm` also carries what the opacities read, for example
 `temp` and `pres` (`ncol`, $L$).
 
 ### Code
@@ -157,6 +160,7 @@ solved by Toon.
 | `ch08_radiation.py` [C1], [C2] | @eq-ch08-radiation-net, @eq-ch08-radiation-boundary | bitwise | same additions, same order |
 | `ch08_radiation.py` [C3], [C4] | bands independent; `dz` as ($L$) or (`ncol`, $L$) | bitwise | same operations |
 | `ch08_radiation.py` [C5], [C6] | `net_flux_midpt`; `outdirs` copied | bitwise | same operations |
+| `ch08_radiation.py` [C7] | Toon shortwave midpoint slots | bitwise | same operations |
 | `ch08_actinic.py` [C1]-[C3] | where a mean intensity can be read | $10^{-12}$ rel. | one exp |
 
 : Tests of the band summation. {#tbl-ch08-radiation-tests}
@@ -166,7 +170,8 @@ the surface to 101.3549 at the top ([C1]).[^ch08-rad-run] The surface downward f
 161.3549 equal @eq-ch08-radiation-boundary bitwise ([C2]). Every band row of `spectra` equals the band run on its own
 ([C3]), and the two shapes of `dz` give the same outputs ([C4]). With the two DISORT bands only, `net_flux_midpt` is the
 level net flux. With the Toon band added it differs from it by up to $87.6\,\mathrm{W\,m^{-2}}$, and its entry 0,
-26.8353, is the DISORT level-0 net flux alone ([C5]).
+26.8353, is the DISORT level-0 net flux alone ([C5]). A Toon shortwave band fills slots 1 to 4 with midpoint values and
+keeps its level values in slot 0, bitwise; there its midpoint net flux is $-15.3500\,\mathrm{W\,m^{-2}}$ ([C7]).
 
 `ch08_actinic.py` reads the mean intensity of a purely absorbing column, where it is the direct beam's alone,
 $\bar u(\tau) = F_0 e^{-\tau/\mu_0}/(4\pi)$. The band's output has four channels and its `solver` has `gather_flx`
@@ -174,15 +179,17 @@ $\bar u(\tau) = F_0 e^{-\tau/\mu_0}/(4\pi)$. The band's output has four channels
 ($\tau = 0.4$, $\mu_0 = 0.6$, $F_0 = 100$) $4\pi\bar u$ is 51.341712, the closed form $F_0 e^{-\tau/\mu_0}$ ([C2]).
 A Toon band's solver has no `gather_flx` ([C3]).[^ch08-act-run] All checks ran on CPU.
 
-[^ch08-rad-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_radiation.py` [C1]-[C6]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_radiation.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_radiation.pydisort-1.8.13.out` holds the same lines. Bands in weight mode, one spectral point of weight 1 each.
+[^ch08-rad-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_radiation.py` [C1]-[C7]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, environment of `derivation-checks/ch05_setup.sh <root> 1.7.1 cuda`]. Output `derivation-checks/ch08_radiation.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, `ch05_setup.sh <root> 1.8.13 cuda`) `ch08_radiation.pydisort-1.8.13.out` holds the same lines. Bands in weight mode, one spectral point of weight 1 each.
 
-[^ch08-act-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_actinic.py` [C1]-[C3]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_actinic.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_actinic.pydisort-1.8.13.out` holds the same lines.
+[^ch08-act-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_actinic.py` [C1]-[C3]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, environment of `derivation-checks/ch05_setup.sh <root> 1.7.1 cuda`]. Output `derivation-checks/ch08_actinic.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, `ch05_setup.sh <root> 1.8.13 cuda`) `ch08_actinic.pydisort-1.8.13.out` holds the same lines.
 
 ### Limits
 
 ::: {.callout-warning title="Limits"}
 - `net_flux_midpt` adds DISORT level fluxes and Toon midpoint fluxes when both solvers are configured, and its
-  entry 0 then holds no Toon term ([C5]). It is a midpoint net flux only when every band is a Toon longwave band.
+  entry 0 then holds no Toon longwave term ([C5]). A Toon shortwave band keeps its level values in slot 0, so
+  entry 0 does hold a Toon shortwave level term ([C7]). It is a midpoint net flux at every entry only when every band
+  is a Toon longwave band.
 - `net_flux_midpt` is set before the spherical scaling and is not scaled by it (`RadiationImpl::forward`; not
   measured).
 - No actinic flux or mean intensity is returned. For a DISORT band it can be read from the band's `solver` as

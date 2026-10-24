@@ -1,4 +1,4 @@
-python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8
 pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
 [C1] PASS spectra shape (3, 1, 5, 4); net flux = sum_b (up - down), bitwise; net [W m-2] surface to top: 114.4126, 114.3955, 111.6125, 106.7655, 101.3549
 [C2] PASS surface downward 91.1656 = sum_b F^dn at level 0, top upward 161.3549 = sum_b F^up at level nlyr, bitwise
@@ -6,3 +6,4 @@ pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242
 [C4] PASS dz as (nlyr) and as (ncol, nlyr): identical outputs
 [C5] PASS net_flux_midpt = sum_b (ch2 - ch3), bitwise; DISORT channels 2, 3 copy 0, 1: True; DISORT bands only: midpoint = level net flux, bitwise; with the Toon band: max |midpoint - level net| 87.5773 W m-2, Toon channels 2, 3 at level 0: 0.0, entry 0 = 26.8353 = DISORT level-0 net 26.8353
 [C6] PASS options.outdirs copied into every band at construction: ['(0, 0), (30, 0)', '(0, 0), (30, 0)']
+[C7] PASS Toon shortwave band: level 0 channels 2, 3 = channels 0, 1 bitwise: True; levels 1-4 hold midpoint values different from the level values: True; midpoint net at entry 0 -15.3500 W m-2

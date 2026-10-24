@@ -7,4 +7,5 @@ pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 74f8d7e9
 [C5] PASS weight and wavenumber grid after from_yaml: 0 and 0 entries; RadiationBand(options) refused until one is set: True
 [C6] PASS 'units: um' on a band with range [100, 300]: wave_lower 100.0, wave_upper 300.0 (the numbers of 'range', used as cm^-1); the key is accepted and not read
 [P1] CANDIDATE reproduced nphase of a DISORT band after from_yaml differs from nstr in at least one of 6 reads: True (pyharp.disort_config sets nphase = nstr; create_disort_config does not set it)
+[C8] PASS nphase = 2^29 on an 8-layer DISORT band: process stopped: True, with 'dbl_vector, variable ds->phase': True; nphase = nstr = 4: runs: True
 [C7] PASS species registry is global: ['H2O', 'CO2', 'He'] -> after a second file ['H2O', 'CO2'] (the first options object still holds 2 bands); a file with an empty 'bands' list sets it too: ['N2']

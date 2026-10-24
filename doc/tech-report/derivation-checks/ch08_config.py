@@ -18,6 +18,10 @@ Every case writes a small YAML file into the work directory and reads it with th
        which pydisort's options leave uninitialised; cdisort allocates the phase array with it. Read 6 times, the
        nphase of the file's DISORT band is compared with nstr (the value pyharp.disort_config sets); only whether a
        read differs is printed, since the value itself is whatever the memory held.
+  [C8] what a large nphase does: in a child process, nphase = 2^29 on the file's DISORT band (nlyr = 8, so the
+       product nlyr * nphase overflows a 32-bit int) makes cdisort's c_disort_state_alloc stop the process with
+       "dbl_vector, variable ds->phase" on the band's first forward; nphase = nstr runs. This is the failure an unset
+       nphase can cause; whether a given read holds such a value depends on the memory contents.
   [C7] the species list is process-wide: reading a second file replaces species_names() and species_weights(), also
        for an options object built before; a file with a `bands` key, even an empty list, sets it.
 
@@ -26,6 +30,7 @@ Run:   python ch08_config.py [--work DIR]   (default: a fresh temporary director
 """
 import argparse
 import os
+import subprocess
 import sys
 import tempfile
 
@@ -174,6 +179,30 @@ def main():
     print(f"[P1] CANDIDATE {'reproduced' if differ else 'not reproduced'} nphase of a DISORT band after from_yaml "
           f"differs from nstr in at least one of 6 reads: {differ > 0} (pyharp.disort_config sets nphase = nstr; "
           f"create_disort_config does not set it)")
+
+    child = """import sys, torch, pyharp
+op = pyharp.RadiationOptions.from_yaml(sys.argv[1])
+b = op.bands()[0]
+b.weight([1.0] * b.nwave())
+b.disort().ds().nphase = int(sys.argv[2])
+rb = pyharp.RadiationBand(b)
+nl = op.nlyr()
+rb.forward(torch.ones((1, nl, 3), dtype=torch.float64), torch.full((nl,), 100.0, dtype=torch.float64),
+           {"btemp": torch.tensor([280.0], dtype=torch.float64), "ttemp": torch.tensor([0.0], dtype=torch.float64),
+            "first/albedo": torch.zeros((3, 1), dtype=torch.float64)},
+           {"tempf": torch.full((1, nl + 1), 250.0, dtype=torch.float64)})
+print("ran")
+"""
+    one_col = write(work, "one_col.yaml", base.replace("    nx2: 3\n    nx3: 2\n", ""))
+    runs = {}
+    for nph in (1 << 29, 4):
+        r = subprocess.run([sys.executable, "-c", child, one_col, str(nph)], capture_output=True, text=True)
+        runs[nph] = (r.returncode, "dbl_vector, variable ds->phase" in r.stderr, "ran" in r.stdout)
+    big, small = runs[1 << 29], runs[4]
+    ok = big[0] != 0 and big[1] and not big[2] and small[0] == 0 and small[2]
+    nfail += not ok
+    print(f"[C8] {'PASS' if ok else 'FAIL'} nphase = 2^29 on an 8-layer DISORT band: process stopped: {big[0] != 0}, "
+          f"with 'dbl_vector, variable ds->phase': {big[1]}; nphase = nstr = 4: runs: {small[2]}")
 
     before = (list(pyharp.species_names()), list(pyharp.species_weights()))
     load(work, "other.yaml", "species:\n  - name: N2\n    composition: {N: 2}\nbands: []\n")

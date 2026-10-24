@@ -1,22 +1,23 @@
-python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8, sympy 1.14.0
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8, sympy 1.14.0
 pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
 [C1] PASS sympy: R(z) = exp(z) + O(z^(p+1)) with p = rk1 1, rk2 2, rk3 3, rk3s4 3; every stage convex: True
 [C2] PASS du/dt = -u^2, 8-64 steps: fitted slopes rk1 1.03, rk2 2.04, rk3 3.06, rk3s4 3.04 (want 1, 2, 3, 3 within 0.15)
-[C3] PASS column energy, one rk1 step of 2e+04 s: sum rho c_p dz dT = -9.214960e+04 J m-2, -dt (F_top - F_sfc) = -9.214960e+04 J m-2, rel dev 3.8e-15 (tol 1e-12); T_new = T + dT_atm bitwise: True
-[C4] PASS diffusive flux 0 at the surface and the top; between them -kappa rho_h c_p dT/dz with rho_h inside the adjacent layer densities at all 7 levels; largest |F_d| 2.66e-05 W m-2
-[C5] PASS surface: dT_s = -1.675878e+01 K, dt/C_s (F_dn - sigma T_s^4) = -1.675878e+01 K (F_dn 20.5416 W m-2), rel dev 0.0e+00 (tol 1e-12)
-[C6] PASS model convergence to t = 2e+05 s (2, 4, 8, 16 steps vs 256 rk3): rk1 slope 1.24, errors 5.25e-01, 1.80e-01, 8.14e-02, 3.90e-02 K; rk3 slope 3.12, errors 3.43e-02, 4.08e-03, 4.56e-04, 5.27e-05 K; temperature change 1.0 K
-conv rk1 2 1.000000e+05 5.252326e-01
-conv rk1 4 5.000000e+04 1.804859e-01
-conv rk1 8 2.500000e+04 8.135095e-02
-conv rk1 16 1.250000e+04 3.901942e-02
-conv rk3 2 1.000000e+05 3.428554e-02
-conv rk3 4 5.000000e+04 4.080940e-03
-conv rk3 8 2.500000e+04 4.557316e-04
-conv rk3 16 1.250000e+04 5.265923e-05
+[C3] PASS column energy, one rk1 step of 2e+04 s: sum rho c_p dz dT = -9.491945e+04 J m-2, -dt (F_top - F_sfc) = -9.491945e+04 J m-2, rel dev 3.9e-15 (tol 1e-12); T_new = T + dT_atm bitwise: True
+[C4] PASS diffusive flux, kappa = 100 m^2/s: 0 at the surface and the top; on the 7 interior levels -kappa rho_h c_p dT/dz with rho_h from the quadratic reconstruction of ln rho: max rel dev 1.2e-15 (tol 1e-10); |F_d| up to 133.04 W m-2; column energy rel dev 4.2e-15 (tol 1e-12)
+[C5] PASS surface: dT_s = -1.674929e+01 K, dt/C_s (F_dn - sigma T_s^4) = -1.674929e+01 K (F_dn 20.6365 W m-2), rel dev 0.0e+00 (tol 1e-12)
+[C6] PASS model convergence to t = 2e+05 s (8, 16, 32, 64 steps vs 512 rk3): rk1 slope 1.04, errors 7.16e-02, 3.42e-02, 1.67e-02, 8.29e-03 K; rk3 slope 3.07, errors 4.27e-04, 4.94e-05, 5.90e-06, 7.20e-07 K; temperature change 0.8 K
+conv rk1 8 2.500000e+04 7.156013e-02
+conv rk1 16 1.250000e+04 3.419879e-02
+conv rk1 32 6.250000e+03 1.674381e-02
+conv rk1 64 3.125000e+03 8.287016e-03
+conv rk3 8 2.500000e+04 4.274315e-04
+conv rk3 16 1.250000e+04 4.936996e-05
+conv rk3 32 6.250000e+03 5.904151e-06
+conv rk3 64 3.125000e+03 7.200325e-07
 [C7] PASS clamp after one 1 s step: 1500 K -> 1000.0 K, 10 K -> 20.0 K
 [C8] PASS xfrac with 3 species refused: True
 [C9] PASS hypsometric dz = R T ln(p_lo / p_hi) / (M g), level ln p from the layer means: max rel dev 0.0e+00 (tol 1e-14); dz from 6029.9 to 7704.9 m
 [P1] CANDIDATE reproduced surface warming in one rk1 step with albedo 0: 9.685048e-01 K, 0.5: 9.685048e-01 K, 1: 9.685048e-01 K; energy gained beyond the top input, per unit time [W m-2]: A 0: 0.0000 (A F_dn = 0.0000), A 0.5: 98.9072 (A F_dn = 98.9072), A 1: 197.8145 (A F_dn = 197.8145)
 [P2] CANDIDATE reproduced rk3 step with no 'ttemp' in bc: DisortImpl::forward: bc->ttemp.dim() != 1
-[P3] CANDIDATE reproduced g/R as built by the model: 1.963855326e-02 (float32) against 1.963855268e-02; dz off by 3.0e-08 relative
+[P3] CANDIDATE reproduced M g/R as built by the model: 1.963855326e-02 (float32) against 1.963855268e-02; dz off by 3.0e-08 relative
+[P4] CANDIDATE reproduced rk3, 64 steps to t = 2e6 s: tempf in atm tensor unchanged after the run: True; max |T(with tempf) - T(without)| = 6.352 K; largest temperature change with tempf 22.16 K, without 15.81 K

@@ -6,3 +6,4 @@ pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 74f8d7e9
 [C4] PASS dz as (nlyr) and as (ncol, nlyr): identical outputs
 [C5] PASS net_flux_midpt = sum_b (ch2 - ch3), bitwise; DISORT channels 2, 3 copy 0, 1: True; DISORT bands only: midpoint = level net flux, bitwise; with the Toon band: max |midpoint - level net| 87.5773 W m-2, Toon channels 2, 3 at level 0: 0.0, entry 0 = 26.8353 = DISORT level-0 net 26.8353
 [C6] PASS options.outdirs copied into every band at construction: ['(0, 0), (30, 0)', '(0, 0), (30, 0)']
+[C7] PASS Toon shortwave band: level 0 channels 2, 3 = channels 0, 1 bitwise: True; levels 1-4 hold midpoint values different from the level values: True; midpoint net at entry 0 -15.3500 W m-2

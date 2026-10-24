@@ -2,10 +2,11 @@
 # Run every ch08 check against one pydisort version and write the outputs next to the scripts.
 # usage: ch08_run.sh PYTHON PYDISORT_SRC PYHARP_WT
 #   PYTHON        interpreter whose environment holds torch, numpy, sympy, ninja, the pydisort under test and a
-#                 pyharp built from source against it
+#                 pyharp built from source against it: the venv-<version>/bin/python that ch05_setup.sh ROOT <version>
+#                 builds (the recorded outputs: ch05_setup.sh ... cuda, torch 2.10.0+cu126, run on CPU)
 #   PYDISORT_SRC  pydisort source tree at the installed version (for the record)
 #   PYHARP_WT     the pyharp source tree that pyharp was built from, with its build/ directory (for the record, and
-#                 for the yaml-cpp and fmt headers the stepper check compiles against)
+#                 for the yaml-cpp and fmt headers the stepper check compiles against): ROOT/pyharp-<version>
 # Outputs: ch08_<check>.pydisort-<version>.out. Runs on CPU (CUDA_VISIBLE_DEVICES is emptied), each check from a fresh
 # temporary directory, as DERIVATION_SPEC.md asks. The stepper check needs a C++17 compiler on PATH; the directory of
 # PYTHON is put first on PATH for ninja.

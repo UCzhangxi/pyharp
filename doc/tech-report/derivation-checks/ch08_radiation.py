@@ -16,6 +16,9 @@ Weight mode, one spectral point of weight 1 per band; level temperatures 280 K a
        and 3 are copies of channels 0 and 1, so with DISORT bands only it equals the level net flux; with the Toon
        band in the set it adds DISORT level values to Toon midpoint values, and its entry 0 holds no Toon term.
   [C6] Radiation.options.outdirs, when set, is copied into every band at construction.
+  [C7] a Toon shortwave band (same scattering opacity and beam as the DISORT shortwave band) also fills channels 2
+       and 3 with layer-midpoint fluxes at levels 1 to nlyr, and at level 0 keeps the level values (channels 2, 3
+       equal channels 0, 1 bitwise there), so with it `net_flux_midpt` entry 0 does hold a Toon term.
 
 Needs: torch, numpy, pydisort and a pyharp built against that pydisort.
 Run:   python ch08_radiation.py [--work DIR]   (default: a fresh temporary directory)
@@ -29,6 +32,13 @@ import pyharp
 import torch
 
 from ch08_common import F64, header, set_unit_weights, two_band_inputs, two_band_yaml, write
+
+TOON_SW = """  - name: ts
+    range: [10000.0, 20000.0]
+    opacities: [osw]
+    solver: toon
+    nwave: 1
+"""
 
 TOON = """  - name: tl
     range: [500.0, 700.0]
@@ -111,6 +121,20 @@ def main():
     ok6 = got == ["(0, 0), (30, 0)"] * 2
     nfail += not ok6
     print(f"[C6] {'PASS' if ok6 else 'FAIL'} options.outdirs copied into every band at construction: {got}")
+    path4 = write(work, "toon_sw.yaml", open(path).read() + TOON_SW)
+    op4 = set_unit_weights(pyharp.RadiationOptions.from_yaml(path4))
+    rb = pyharp.RadiationBand(op4.bands()[2])
+    bc4 = {k: v.clone() for k, v in bc.items()}
+    bc4.update({"ts/umu0": torch.tensor([0.6], dtype=F64), "ts/fbeam": torch.tensor([[100.0]], dtype=F64),
+                "ts/albedo": torch.tensor([[0.3]], dtype=F64)})
+    fts = rb.forward(conc, dz, bc4, {k: v.clone() for k, v in atm.items()})[0]
+    keep0 = torch.equal(fts[0, 2:], fts[0, :2])
+    moved = bool((fts[1:, 2:] != fts[1:, :2]).any(dim=-1).all())
+    ok7 = keep0 and moved
+    nfail += not ok7
+    print(f"[C7] {'PASS' if ok7 else 'FAIL'} Toon shortwave band: level 0 channels 2, 3 = channels 0, 1 bitwise: "
+          f"{keep0}; levels 1-{fts.shape[0] - 1} hold midpoint values different from the level values: {moved}; "
+          f"midpoint net at entry 0 {(fts[0, 2] - fts[0, 3]).item():.4f} W m-2")
     sys.exit(nfail)
 
 
