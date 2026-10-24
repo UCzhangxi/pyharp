@@ -1,14 +1,15 @@
-[M17] row 1 (top): Gamma0 - 1 written Gamma0 + 1: exit 1; failing: [C9] 
-[M17b] row 2 (interface F+), column 1: (E1 + E3) written (E1 - E3): exit 1; failing: [C9] 
-[M17c] row 3 (interface F-), column 2: Gamma of the upper layer written as the lower one's: exit 1; failing: [C9] 
-[M17d] row 3 (interface F-), column 3: (E1 - E3) written (E1 + E3): exit 1; failing: [C9] 
-[M17e] row 4 (bottom): columns 3 and 4 swapped: exit 1; failing: [C9] 
-[M17k] kernel copy: Bf of the odd rows with (E1 + E3) for (E1 - E3): exit 1; failing: [C9] 
-[M17k2] kernel copy: the same wrong Bf line, followed by the correct one in a comment: exit 1; failing: [C9] 
-[M14] control break outside [C9]: closed form's surface row (1 - As Gm) written (1 + As Gm): exit 1; failing: [C19] 
-[K17] control: check and kernel copy unchanged: exit 0; failing: none
-[M7] closures: Eddington g4 integrates p(mu0, -mu) instead of p(mu0, mu): exit 3; failing: [C1] [C2] [C22] 
-[M7b] closures: full-phase-function rows with g4 = b0 instead of 1 - b0: exit 6; failing: [C3] [C6] [C7] [C8] [C9] [C22] 
-[M7c] closures: quadrature g4 = p(qnode, -mu0)/(2w) instead of p(qnode, mu0)/(2w): exit 3; failing: [C4] [C5] [C22] 
-[M2] control break: printed Eddington g3 with 2 g mu0 for 3 g mu0: exit 3; failing: [C1] [C2] [C15] 
-[K7] control: closures check unchanged: exit 0; failing: none
+[M17] row 1 (top): Gamma0 - 1 written Gamma0 + 1: exit 1; failing: [C9]; expected: [C9]; OK
+[M17b] row 2 (interface F+), column 1: (E1 + E3) written (E1 - E3): exit 1; failing: [C9]; expected: [C9]; OK
+[M17c] row 3 (interface F-), column 2: Gamma of the upper layer written as the lower one's: exit 1; failing: [C9]; expected: [C9]; OK
+[M17d] row 3 (interface F-), column 3: (E1 - E3) written (E1 + E3): exit 1; failing: [C9]; expected: [C9]; OK
+[M17e] row 4 (bottom): columns 3 and 4 swapped: exit 1; failing: [C9]; expected: [C9]; OK
+[M17k] kernel copy: Bf of the odd rows with (E1 + E3) for (E1 - E3): exit 1; failing: [C9]; expected: [C9]; OK
+[M17k2] kernel copy: the same wrong Bf line, followed by the correct one in a comment: exit 1; failing: [C9]; expected: [C9]; OK
+[M14] control break outside [C9]: closed form's surface row (1 - As Gm) written (1 + As Gm): exit 1; failing: [C19]; expected: [C19]; OK
+[K17] control: check and kernel copy unchanged: exit 0; failing: none; expected: none; OK
+[M7] closures: Eddington g4 integrates p(mu0, -mu) instead of p(mu0, mu): exit 3; failing: [C1] [C2] [C22]; expected: [C1] [C2] [C22]; OK
+[M7b] closures: full-phase-function rows with g4 = b0 instead of 1 - b0: exit 6; failing: [C3] [C6] [C7] [C8] [C9] [C22]; expected: [C3] [C6] [C7] [C8] [C9] [C22]; OK
+[M7c] closures: quadrature g4 = p(qnode, -mu0)/(2w) instead of p(qnode, mu0)/(2w): exit 3; failing: [C4] [C5] [C22]; expected: [C4] [C5] [C22]; OK
+[M2] control break: printed Eddington g3 with 2 g mu0 for 3 g mu0: exit 3; failing: [C1] [C2] [C15]; expected: [C1] [C2] [C15]; OK
+[K7] control: closures check unchanged: exit 0; failing: none; expected: none; OK
+ch02_mutations: 0 run(s) not as expected

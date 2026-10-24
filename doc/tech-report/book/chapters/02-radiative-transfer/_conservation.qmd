@@ -43,6 +43,7 @@ module skips it. Toon et al. prescribe the same remedy, with $1 - \omega$ ten ti
 precision.[^ch02-conservation-tn]
 
 ### Derivation
+<!-- equation-check: eq-ch02-conservation-divergence check_ch02_closures.py [C22] -->
 
 **Step 1: divergence of the net flux.** Let $F_{\mathrm{net}} = F^{+} - F^{-} - \mu_0F_0e^{-\tau/\mu_0}$, where the
 last term is the direct beam, positive downward. Subtracting the two lines of @eq-ch02-closures-ode and adding
@@ -55,9 +56,9 @@ $$ {#eq-ch02-conservation-divergence}
 <!-- equation-check: eq-ch02-conservation-divergence check_ch02_conservation.py [C1] -->
 
 **Step 2: the conservative layer.** At $\omega = 1$ every closure has $\gamma_1 = \gamma_2$ (Meador-Weaver eq. 23),
-and $\gamma_3 + \gamma_4 = 1$ (their eq. 21; check `[C22]` of `check_ch02_closures.py` sums the derived $\gamma_3$ and
-$\gamma_4$ of each closure). Both terms of @eq-ch02-conservation-divergence vanish: $F_{\mathrm{net}}$ is constant
-through a conservative layer.
+and $\gamma_3 + \gamma_4 = 1$ (their eq. 21; `check_ch02_closures.py` sums the derived $\gamma_3$ and $\gamma_4$ of
+each closure, as tagged for Appendix B). Both terms of @eq-ch02-conservation-divergence vanish: $F_{\mathrm{net}}$ is
+constant through a conservative layer.
 
 **Step 3: absorption.** Every closure of @sec-ch02-closures has $\gamma_1 - \gamma_2 = (1-\omega)/\mu_1$ with $\mu_1$
 independent of $\omega$: $\mu_1 = \tfrac12$ for Eddington and the hemispheric mean, $3^{-1/2}$ for quadrature and
@@ -183,7 +184,7 @@ scheme is not provided: its module is not written yet.
 | check (`check_ch02_conservation.py`) | 40-digit ODE solution: constant $F_{\mathrm{net}}$ at $\omega = 1$ (`[C11]`, `[C15]`); @eq-ch02-conservation-r1 (`[C12]`); flux jump equals absorption (`[C16]`, `[C18]`); closed form equals ODE (`[C17]`, `[C19]`) | $10^{-30}$ | 40-digit working precision |
 | check (`check_ch02_conservation.py`) | closed form tends to @eq-ch02-conservation-r1 (`[C13]`); 53-bit optimum at $10^{-12}$ (`[C14]`) | $10^{-23}$; minimum | truncation $\propto 1-\omega$ |
 | check (`check_ch02_conservation.py`) | the kernel's two-layer rows equal the transcription and the continuity conditions; singular at $\Gamma = 1$ (`[C9]`) | exact | rational arithmetic |
-| check (`check_ch02_clamp_pyharp.py`) | `RadiationBand` hands the solver $1 - 10^{-12}$ for $\omega = 1$ and its fluxes equal the Toon module's at that albedo (`[C1]`); $\mathrm{float32}(1 - 10^{-6})$ in single precision (`[C2]`); the Toon kernels respond to $\omega$ above $1 - 10^{-4}$, so they hold no cap (`[C3]`) | bitwise; $10^{-15}$ | one product; the same kernel call |
+| check (`check_ch02_clamp_pyharp.py`) | `RadiationBand` hands the solver $1 - 10^{-12}$ for $\omega = 1$ and its fluxes equal the Toon module's at that albedo (`[C1]`); $\mathrm{float32}(1 - 10^{-6})$ in single precision (`[C2]`); the Toon kernels give different outputs at $\omega = 1$ and at the largest double below 1, so they hold no cap of any size, and respond to $\omega$ between $1 - 10^{-2}$ and $1 - 10^{-12}$ (`[C3]`) | bitwise; $10^{-15}$; $10^{-7}$ | one product; the same kernel call; $100\times$ round-off |
 | check (`check_ch02_toon_coefficients.py`) | the clamp lines are in `RadiationBandImpl::forward` (`[C24]`) | text match | the source at the pin |
 
 : Tests of the conservation identities. {#tbl-ch02-conservation-tests}
@@ -196,10 +197,13 @@ pyharp test runs a Toon solve at or near $\omega = 1$; the clamp check runs the 
 
 - CANDIDATE, from checks `[C9]` and `[C10]` and measured by `[C3]` of `check_ch02_clamp_pyharp.py`: a direct call of
   the Toon module, which skips the clamp, with $\omega$ exactly 1 in a layer, solves a singular system, so its fluxes
-  are set by round-off. For one layer of $\Delta\tau = 1$, $g = 0.5$, albedo 0.2, the shortwave $F^{+}$ at the top
-  is $0.5000$ at $\omega = 1$ against $0.2184$ at $1 - 10^{-12}$ ($\mu_0 = 0.5$, $F_0 = 1$), and the longwave one
-  $433.8$ against $275.5\ \mathrm{W\,m^{-2}}$ (level temperatures 300 and 250 K)[^ch02-clamp-run]. A solver
-  comparison that calls the Toon module directly at $\omega = 1$ sees these wrong fluxes.
+  are set by round-off: their values depend on the order of floating-point operations and are not quoted here.
+  The check asserts only that they differ, by more than $10^{-6}\ \mathrm{W\,m^{-2}}$ in the band and at all in
+  the bare kernels, from the fluxes at the nearest albedos below 1. For one layer of $\Delta\tau = 1$, $g = 0.5$,
+  albedo 0.2, the shortwave $F^{+}$ at the top is $0.2183742$ at $\omega = 1 - 10^{-12}$ ($\mu_0 = 0.5$,
+  $F_0 = 1$) and the longwave one $275.5325\ \mathrm{W\,m^{-2}}$ (level temperatures 300 and 250 K); at
+  $\omega = 1$ the same layer gives other values[^ch02-clamp-run]. A solver comparison that calls the Toon module
+  directly at $\omega = 1$ gets fluxes of no physical meaning.
 - The single-precision margin $10^{-6}$ was not compared with the closed form here.
 - The clamp changes only $\omega$; a conservative layer then absorbs a fraction of order $\delta\omega\,\Delta\tau$,
   which is not measured.
@@ -223,5 +227,6 @@ pyharp test runs a Toon solve at or near $\omega = 1$; the clamp check runs the 
     separately, 1.8.13, with identical claim lines, environments built by `derivation-checks/ch04/setup_env.sh <dir>
     <pydisort version>`; regenerate with `bash derivation-checks/ch02_run.sh <env 1.7.1> <env 1.8.13>`; outputs
     `derivation-checks/check_ch02_clamp_pyharp_pydisort171.out` and `_pydisort1813.out`; source-break runs (clamp
-    line commented out, its guard disabled, a cap inside the longwave kernel; a margin of $10^{-10}$ as control) in
+    line commented out, its guard disabled, caps at $1 - 10^{-12}$ and $1 - 10^{-13}$ inside the longwave kernel; a
+    margin of $10^{-10}$ as control) in
     `derivation-checks/ch02_clamp_breaks.out`]

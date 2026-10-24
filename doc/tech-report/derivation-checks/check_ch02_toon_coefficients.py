@@ -23,7 +23,18 @@ from pathlib import Path
 
 import sympy as sp
 
-ROOT = Path(os.environ.get("PYHARP_WT", Path(__file__).resolve().parents[3]))
+def pyharp_root():
+    """The pyharp source tree: $PYHARP_WT if set; else the repository that holds this report (this file sits at
+    doc/tech-report/derivation-checks/, three levels below it). A copy elsewhere must set PYHARP_WT."""
+    if os.environ.get("PYHARP_WT"):
+        return Path(os.environ["PYHARP_WT"])
+    up = Path(__file__).resolve().parents
+    if len(up) < 4 or not (up[3] / "src" / "rtsolver").is_dir():
+        sys.exit(f"{Path(__file__).name}: no pyharp tree found three levels above this file; set PYHARP_WT")
+    return up[3]
+
+
+ROOT = pyharp_root()
 SW = "src/rtsolver/toon_mckay89_shortwave_impl.h"
 LW = "src/rtsolver/toon_mckay89_longwave_impl.h"
 RB = "src/radiation/radiation_band.cpp"

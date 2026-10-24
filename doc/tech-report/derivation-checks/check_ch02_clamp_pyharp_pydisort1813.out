@@ -1,7 +1,7 @@
 versions: pyharp 2.7.8, torch 2.10.0+cu128, Python 3.11.13, pydisort 1.8.13
 pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f
 device: CPU, threads: 1
-[C1] PASS double: prop omega for omega = 1 is 0.999999999999 (want 0.999999999999: True); for 0.5 unchanged: True; band fluxes minus Toon at 1 - 1e-12: 0.0e+00, minus Toon at 1: 4.0e-01
+[C1] PASS double: prop omega for omega = 1 is 0.999999999999 (want 0.999999999999: True); for 0.5 unchanged: True; band fluxes minus Toon at 1 - 1e-12: below 1e-15; differ from Toon at omega = 1 (round-off values, not printed) by more than 1e-6: True
 [C2] PASS single: prop dtype torch.float32, omega for omega = 1 is 0.9999989867210388 (want float32(1 - 1e-6) = 0.9999989867210388)
-[C3] PASS Toon kernels respond to omega above 1 - 1e-4: shortwave F+(TOA) 5.000463834288904e-01, 2.183742025803097e-01, 2.183742025340766e-01, 2.183741971952205e-01, 2.183736632227830e-01, 2.183202730494938e-01 (smallest pairwise gap 4.6e-11); longwave F+(TOA) 4.338366304891692e+02, 2.755325315312146e+02, 2.755325315564515e+02, 2.755325337938074e+02, 2.755327574329043e+02, 2.755551171569423e+02 (smallest pairwise gap 2.5e-08)
+[C3] PASS no cap in the Toon kernels: shortwave: outputs at 1 and 1 - 2^-53 differ: True; F+(TOA) at 1 - 1e-12, 1 - 1e-6, 1 - 1e-4, 1 - 1e-2: 0.2183742, 0.2183737, 0.2183203, 0.2130511 (relative gaps above 1e-7: True); longwave: outputs at 1 and 1 - 2^-53 differ: True; F+(TOA) at 1 - 1e-12, 1 - 1e-6, 1 - 1e-4, 1 - 1e-2: 275.5325, 275.5328, 275.5551, 277.7498 (relative gaps above 1e-7: True)
 check_ch02_clamp_pyharp: 3 of 3 claims pass
