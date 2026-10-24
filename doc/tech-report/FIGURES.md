@@ -9,6 +9,14 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 `python3 tools/render_figures.py --chapters ch05`. The book itself draws them in the render
 (`quarto render book/`), from the same cells.
 
+## ch01
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch01-map` | `01-overview.qmd` | `pyharp_report/ch01/figures/fig_chapter_map.py` | - |
+| `fig-ch01-pipeline-shapes` | `01-overview/_pipeline.qmd` | `pyharp_report/ch01/figures/fig_pipeline_shapes.py` | - |
+| `fig-ch01-quickstart-fluxes` | `01-overview/_quickstart.qmd` | `pyharp_report/ch01/figures/fig_quickstart_fluxes.py` | `src/pyharp_report/ch01/data/quickstart_fluxes.csv` |
+
 ## ch03
 
 | figure | section file | code | data (written by) |

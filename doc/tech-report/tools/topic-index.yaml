@@ -27,6 +27,16 @@ sections:
     - symbols, diagnostics and errors
   sec-appa-10:
     - symbols, reserved letters (do not reuse)
+  sec-ch01-pipeline:
+    - pipeline, from concentrations to fluxes
+    - optical properties of a band, mixing of opacities
+    - spectral integration, weights and wavenumbers
+    - net flux, surface and top-of-atmosphere outputs
+    - pydisort, kintera and snapy, relation to pyharp
+  sec-ch01-quickstart:
+    - quick start
+    - installation from source at the pins
+    - grey opacity, TorchScript (jit)
   sec-ch02-closures:
     - two-stream closure: [Meador-Weaver coefficients, gamma coefficients]
     - quadrature closure
@@ -112,6 +122,9 @@ sections:
   sec-ch05-cost:
     - solver cost per column
 unlabeled:
+  - file: chapters/appendices/_appb-ch01.qmd
+    heading: Overview and quick start (@sec-ch01)
+    covered-by: sec-ch01
   - file: chapters/appendices/_appb-ch02.qmd
     heading: The radiative-transfer problem and its approximations (@sec-ch02)
     covered-by: sec-ch02

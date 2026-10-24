@@ -7,7 +7,8 @@ longwave solver for thermal emission (hemispheric-mean closure with the source-f
 @sec-ch04-longwave), which needs the band-integrated Planck function of @sec-ch04-planck. Both build one
 tridiagonal system per column. The option `zenith_correction` is accepted but has no effect (@sec-ch04-zenith).
 Notation follows @sec-ch02; the accuracy of the closures against the full radiative transfer equation is the
-subject of @sec-ch05.
+subject of @sec-ch05. Where the solver sits in a flux calculation, between the solver input of a band and the sum
+over its spectral points, is described in @sec-ch01-pipeline.
 
 ```{python}
 #| label: fig-ch04-map
