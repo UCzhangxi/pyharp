@@ -1,0 +1,219 @@
+## Quick start: build at the pins and compute the fluxes of a grey column (`Radiation`) {#sec-ch01-quickstart}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/radiation/radiation.cpp, src/radiation/radiation_band.cpp, src/radiation/flux_utils.cpp,
+  src/opacity/jit_opacity.cpp, python/compile.py
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+This section builds pyharp from public sources and runs one short script: a column of four layers of a grey gas
+with a scattering haze, lit by a beam from above and emitting in the thermal infrared, solved by the Toon solver in
+one shortwave and one longwave band. The script prints the net flux at the five levels, the downward flux at the
+surface and the upward flux at the top. The output printed below is the output of exactly this code, checked on
+both pydisort pins.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** A runnable instance of @eq-ch01-pipeline-prop, @eq-ch01-pipeline-band and @eq-ch01-pipeline-net.
+
+**Data.** Concentration [$\mathrm{mol\,m^{-3}}$], layer thickness [m], level temperatures [K]; fluxes in $\mathrm{W\,m^{-2}}$.
+
+**Placement.** A user script; one call of `Radiation.forward`.
+
+**Activation.** A YAML file, plus the spectral weights set in Python (no default).
+
+**Guarantee / limits.** CPU, double precision, one column; the same output on pydisort 1.7.1 and 1.8.13.
+
+**Evidence.** See the Tests layer.
+:::
+
+The script defines its opacities in Python and compiles them to TorchScript, so it needs no data file. The
+spectral grid of a band is set in Python because the YAML reader does not fill it; a band without one is refused.
+
+### Derivation
+
+The script evaluates the equations of @sec-ch01-pipeline; it adds one relation, the optical depth of a layer of a
+grey absorber. An opacity with a molar cross section $\sigma$ [$\mathrm{m^2\,mol^{-1}}$] in a gas of concentration
+$n$ [$\mathrm{mol\,m^{-3}}$] has the extinction coefficient $k = \sigma n$ [$\mathrm{m^{-1}}$], which is what the
+opacity module of the script returns. `RadiationBandImpl::forward` multiplies the summed extinction by the layer
+thickness $\Delta z$ [m] ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), so
+a layer has the optical depth
+
+$$
+\Delta\tau = \Delta z \sum_a \sigma_a n .
+$$
+
+With $n = 40\ \mathrm{mol\,m^{-3}}$ and $\Delta z = 250$ m, the shortwave band (gas and haze, each
+$\sigma = 0.5\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) has $\Delta\tau = 1$ per layer, and the longwave band (gas,
+$\sigma = 2\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) has $\Delta\tau = 2$ per layer. In the shortwave the gas absorbs
+($\omega = 0$) and the haze only scatters ($\omega = 1$, asymmetry factor $0.6$); by @eq-ch01-pipeline-prop the
+layer has $\omega = 0.5$ and asymmetry factor $0.6$.
+
+### Numerical method
+
+**Build.** pyharp at the pin is built from source; pydisort comes from its PyPI wheel. The committed script
+`derivation-checks/ch04/setup_env.sh` does both from public sources only: it makes a Python 3.11 virtual
+environment from a locked package list, downloads the torch 2.10.0 and pydisort wheels and checks their sha256,
+clones `chengcli/pyharp` at the pin of `code_pin.yml`, and builds and installs it with CMake (NetCDF on, CPU only).
+It needs a Linux x86_64 host with `python3.11`, `git`, a C++ compiler and the NetCDF C library, and takes about 15
+minutes, most of it the build. From `doc/tech-report`:
+
+```bash
+bash derivation-checks/ch04/setup_env.sh "$HOME/pyharp-env" 1.7.1
+source "$HOME/pyharp-env/venv/bin/activate"
+```
+
+**The script.** The first block defines a grey opacity: a TorchScript module whose `forward` takes the
+concentrations (columns, layers, species) and returns, for each spectral point, column and layer, the extinction
+coefficient, the single-scattering albedo and the asymmetry factor, the layout `JITOpacityImpl::forward` passes on
+({{< code src/opacity/jit_opacity.cpp JITOpacityImpl::forward repo=pyharp >}}).
+
+<!-- quickstart-code -->
+```python
+import torch
+import pyharp
+torch.set_default_dtype(torch.float64)
+class Grey(torch.nn.Module):
+    """Extinction [1/m], albedo and asymmetry factor of a grey opacity."""
+    def __init__(self, cross_section: float, albedo: float, g: float):
+        super().__init__()  # cross_section [m^2/mol]
+        self.cross_section, self.albedo, self.g = cross_section, albedo, g
+    def forward(self, conc: torch.Tensor) -> torch.Tensor:  # conc [mol/m^3]
+        out = torch.zeros((1,) + conc.shape[:2] + (3,), dtype=conc.dtype)
+        out[..., 0] = self.cross_section * conc[..., 0]
+        out[..., 1].fill_(self.albedo)
+        out[..., 2].fill_(self.g)
+        return out
+```
+
+The second block compiles three such modules to files with `pyharp.compile`
+({{< code python/compile.py compile repo=pyharp >}}) and writes the configuration: one species, four layers, and
+two bands that both use the Toon solver (@sec-ch04). The `planck` flag makes the second band a thermal one, and
+`hard_surface` makes its surface emit $\pi B$ at the temperature of the bottom level (@sec-ch04-longwave).
+
+<!-- quickstart-code -->
+```python
+pyharp.compile(Grey(0.5e-4, 0.0, 0.0), "gas_sw.pt")   # gas, shortwave
+pyharp.compile(Grey(0.5e-4, 1.0, 0.6), "haze_sw.pt")  # haze, shortwave
+pyharp.compile(Grey(2.0e-4, 0.0, 0.0), "gas_lw.pt")   # gas, longwave
+open("qs.yaml", "w").write("""species: [{name: gas, composition: {H: 2}}]
+geometry: {cells: {nx1: 4}}
+opacities:
+  gas-sw: {type: jit, species: [gas], nmom: 1, data: [gas_sw.pt]}
+  haze-sw: {type: jit, species: [gas], nmom: 1, data: [haze_sw.pt]}
+  gas-lw: {type: jit, species: [gas], nmom: 1, data: [gas_lw.pt]}
+bands:
+  - {name: sw, range: [10000., 20000.], opacities: [gas-sw, haze-sw],
+     solver: toon, nwave: 1}
+  - {name: lw, range: [1., 3000.], opacities: [gas-lw], solver: toon,
+     nwave: 1, flags: "planck,hard_surface"}
+""")
+```
+
+The third block reads the configuration, gives each band one spectral point of weight 1, and runs the column. The beam
+enters at $\mu_0 = 0.5$ with $F_0 = 1000\ \mathrm{W\,m^{-2}}$ normal to the beam; the surface reflects 0.2 of the
+shortwave and is black in the longwave; the level temperatures `tempf` fall linearly from 300 K at the surface to 250
+K at the top.
+
+<!-- quickstart-code -->
+```python
+options = pyharp.RadiationOptions.from_yaml("qs.yaml")
+for band in options.bands():
+    band.weight([1.0])                   # one spectral point of weight 1
+rad = pyharp.Radiation(options)
+conc = torch.full((1, 4, 1), 40.0)       # (ncol, nlyr, nspecies) [mol/m^3]
+dz = torch.full((4,), 250.0)             # layer thickness [m]
+bc = {"sw/umu0": torch.tensor([0.5]), "sw/fbeam": torch.tensor([[1000.0]]),
+      "sw/albedo": torch.tensor([[0.2]]), "lw/albedo": torch.tensor([[0.0]])}
+tempf = torch.linspace(300.0, 250.0, 5).view(1, 5)  # level temperatures [K]
+net, down_surface, up_toa = rad.forward(conc, dz, bc, {"tempf": tempf})
+print("net flux, surface to top [W/m^2]:", *[f"{x:.3f}" for x in net[0]])
+print(f"downward flux at the surface [W/m^2]: {down_surface[0].item():.3f}")
+print(f"upward flux at the top [W/m^2]: {up_toa[0].item():.3f}")
+```
+
+It prints:
+
+<!-- quickstart-output -->
+```text
+net flux, surface to top [W/m^2]: 18.755 27.232 -6.499 -95.239 -215.167
+downward flux at the surface [W/m^2]: 441.633
+upward flux at the top [W/m^2]: 284.833
+```
+
+The net flux is upward minus downward (@eq-ch01-pipeline-net), so the negative value at the top says the column and
+its surface gain energy from the beam, and the positive value at the surface says the surface loses energy upward.
+@fig-ch01-quickstart-fluxes shows the band fluxes behind these numbers.
+
+```{python}
+#| label: fig-ch01-quickstart-fluxes
+#| fig-cap: "Band fluxes of the quick-start column at its five levels, level 0 being the surface. (a) Shortwave band: upward (orange triangles) and downward, direct beam included (blue circles). (b) Longwave band, same markers. The net flux the script prints is the sum over both panels of upward minus downward."
+#| fig-alt: "Two panels of flux against level number 0 to 4. Left, shortwave: downward flux falls from 500 watts per square metre at the top to about 6 at the surface; upward flux falls from about 47 at the top to about 1 at the surface. Right, longwave: upward flux falls from about 459 at the surface to about 238 at the top; downward flux falls from about 435 at the surface to 0 at the top."
+#| echo: false
+from pyharp_report.ch01.figures.fig_quickstart_fluxes import make_fig
+make_fig()
+```
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| configuration file | {{< code src/radiation/radiation.cpp RadiationOptionsImpl::from_yaml repo=pyharp >}} | `bands` | YAML |
+| spectral grid required | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `weight`, `wavenumber` | set in Python |
+| user opacity | {{< code src/opacity/jit_opacity.cpp JITOpacityImpl::forward repo=pyharp >}} | `type: jit` | YAML |
+| compile to TorchScript | {{< code python/compile.py compile repo=pyharp >}} | `pyharp.compile` | always |
+| column fluxes | {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}} | `spectra` | always |
+
+: Code map of the quick start. {#tbl-ch01-quickstart-code}
+
+1. `RadiationOptionsImpl::from_yaml` reads each band of `bands`
+   ({{< code src/radiation/radiation.cpp RadiationOptionsImpl::from_yaml repo=pyharp >}}), and
+   `RadiationBandOptionsImpl::from_yaml` its opacities, its `nwave` spectral points and its `range`, which sets the
+   Planck integration limits of a Toon band
+   ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
+2. `RadiationBandImpl::reset` creates the opacity modules and the solver and refuses a band whose `weight` and
+   `wavenumber` are both empty ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}).
+3. `RadiationImpl::forward` calls each band and returns the three tensors the script prints
+   ({{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}).
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch01_quickstart.py` `[C1]` | the code above runs and prints the output above | exact text | printed to 3 decimals |
+| `check_ch01_quickstart.py` `[C2]` | the shortwave layer: $\Delta\tau = 1$, $\omega = 0.5$, $g = 0.6$ | $10^{-15}$ relative | two products and a quotient |
+| `check_ch01_quickstart.py` `[C6]` | a band without a spectral grid is refused | message | `RadiationBandImpl::reset` |
+| `check_ch01_quickstart.py` `[C7]` | top: shortwave down $\mu_0F_0$, longwave down 0; surface: longwave up $\pi B$ | $10^{-14}$ relative | one series and a product |
+
+: Tests of the quick start. {#tbl-ch01-quickstart-tests}
+
+The check reads the three code blocks of this section from the chapter file, joins them, runs them in a fresh
+directory, and compares the printed lines with the output block above (`[C1]`); a change to the code or to a
+printed digit fails it. `[C7]` checks the boundary values a reader can work out by hand: the shortwave downward
+flux at the top is $\mu_0F_0 = 500\ \mathrm{W\,m^{-2}}$, nothing enters the longwave band from above, and the black
+surface emits $\pi B = 459.148600\ \mathrm{W\,m^{-2}}$, the band Planck function of 300 K between 1 and
+$3000\ \mathrm{cm^{-1}}$ (@sec-ch04-planck). The run was made on both pydisort pins with the same
+lines[^ch01-quickstart-run]. No
+pyharp test runs this script; the solver and band tests are cited in @sec-ch01-pipeline.
+
+[^ch01-quickstart-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/check_ch01_quickstart.py`,
+    checks [C1], [C2], [C6] and [C7] (the quick-start column built in code); run: `python3 derivation-checks/check_ch01_quickstart.py`,
+    CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, pyharp 2.7.8 built from source at the pin against
+    pydisort 1.7.1 and, separately, 1.8.13, with identical claim lines, environments built by
+    `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with
+    `bash derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
+    `derivation-checks/check_ch01_quickstart_pydisort171.out` and `_pydisort1813.out`, data
+    `src/pyharp_report/ch01/data/quickstart_fluxes.csv`]
+
+### Limits
+
+- **One column, CPU, double precision.** Many columns and CUDA: answered at @sec-ch09-toon.
+- **Toon bands only.** A DISORT band needs its stream count and boundary keys: answered at @sec-ch03-band.
+- **Grey opacities.** Real gas and particle opacities read data files: not provided: the opacity chapter is not
+  written at this pin.
+- **The spectral grid is set in Python.** The YAML reader reads no weights or wavenumbers; the band options must be
+  given them before `Radiation` is built, as in the third block.

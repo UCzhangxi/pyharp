@@ -1,0 +1,205 @@
+## From a column to fluxes: what pyharp computes (`Radiation`, `RadiationBand`) {#sec-ch01-pipeline}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (main)
+sources: src/radiation/radiation.cpp, src/radiation/radiation_band.cpp, src/radiation/flux_utils.cpp, pyproject.toml,
+  examples/run_sub_neptune_rt.py
+status: draft
+author: chapter owner
+reviewer:
+-->
+
+### Summary
+
+pyharp computes the radiative fluxes of a column of atmosphere: the upward and downward energy per unit area and
+time that sunlight and thermal emission carry through each level. The caller gives the species concentrations and
+the layer thicknesses of one or many columns, and the level temperatures where the column emits. For each spectral
+band of its configuration, pyharp asks the band's opacity modules for optical properties, combines them into the
+optical depth, single-scattering albedo and phase-function moments of each layer, hands these to a radiative-transfer
+solver, and sums the solver's fluxes over the spectral points of the band; it then sums the bands and returns the net
+flux at every level, the downward flux at the surface and the upward flux at the top.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Column fluxes from concentrations: @eq-ch01-pipeline-prop, @eq-ch01-pipeline-band, @eq-ch01-pipeline-net.
+
+**Data.** Concentration [$\mathrm{mol\,m^{-3}}$] (columns, layers, species), $\Delta z$ [m], level temperatures [K].
+
+**Placement.** `Radiation.forward`, which runs `RadiationBand.forward` for each band in turn.
+
+**Activation.** A YAML file read by `RadiationOptions.from_yaml`; spectral weights or wavenumbers set in Python.
+
+**Guarantee / limits.** The sums are exact; the accuracy is that of the opacities and the solver.
+
+**Evidence.** See the Tests layer.
+:::
+
+Local symbols: $a$, index of an opacity module of a band; $k_a$, extinction coefficient it returns
+[$\mathrm{m^{-1}}$]; $\omega_a$, its single-scattering albedo [-]; $\chi_{a,n}$, its phase-function moment $n$ [-];
+$\Delta z$, layer thickness [m]; $j$, index of a spectral point of a band; $w_j$, its weight [-]; $\nu_j$, its
+wavenumber [$\mathrm{cm^{-1}}$]; $b$, index of a band; $F^{\uparrow}$, $F^{\downarrow}$, upward and downward flux at
+a level as the solvers return them, the downward one including the direct beam [$\mathrm{W\,m^{-2}}$];
+$F_{\mathrm{net}} = F^{\uparrow} - F^{\downarrow}$ [$\mathrm{W\,m^{-2}}$].
+
+Of the packages pyharp is used with, it depends on one: pydisort, which provides the DISORT solver
+(`pydisort>=1.7.1` in {{< code pyproject.toml repo=pyharp >}}); the Toon solver is part of pyharp. kintera and
+snapy are not dependencies. The example `run_sub_neptune_rt.py` shows how the three meet: snapy holds the
+atmosphere's state on its mesh, kintera turns temperature, pressure and mole fractions into the concentrations pyharp
+needs, and pyharp's net flux becomes a heating rate that the example adds to snapy's energy equation
+(`_compute_rt_heating`, {{< code examples/run_sub_neptune_rt.py _compute_rt_heating repo=pyharp >}}).
+
+### Derivation
+
+**Step 1: the solver input of a band.** Each opacity module $a$ of a band returns, for each spectral point, column
+and layer, an extinction coefficient $k_a$, a single-scattering albedo $\omega_a$ and phase-function moments
+$\chi_{a,n}$ (@sec-ch02-delta-scaling defines the moments). Extinction adds; the albedo is the scattering-weighted
+mean, and each moment is the mean over the scattered light:
+
+$$
+\begin{aligned}
+\Delta\tau &= \Delta z \sum_a k_a , \\
+\omega &= \frac{\sum_a \omega_a k_a}{\sum_a k_a} , \\
+\chi_n &= \frac{\sum_a \chi_{a,n}\,\omega_a k_a}{\sum_a \omega_a k_a} .
+\end{aligned}
+$$ {#eq-ch01-pipeline-prop}
+<!-- equation-check: eq-ch01-pipeline-prop check_ch01_quickstart.py [C2] -->
+
+@eq-ch01-pipeline-prop is computed in `RadiationBandImpl::forward`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), which sums
+$\omega_a k_a$ and $\chi_{a,n}\omega_a k_a$ first and divides through `divide_where_positive`, so a layer with no
+extinction gets $\omega = 0$ and a layer with no scattering gets $\chi_n = 0$. When the band carries an albedo, the
+same function then caps $\omega$ at $1 - \delta\omega$ (@sec-ch02-conservation).
+
+**Step 2: the flux of a band.** The solver returns $F^{\uparrow}_j$ and $F^{\downarrow}_j$ at every level for each
+spectral point $j$. A band either has weights $w_j$ (for example the weights of a correlated-k quadrature) or a
+wavenumber grid $\nu_j$, and its flux is the weighted sum or the trapezoid rule:
+
+$$
+\begin{aligned}
+F_b &= \sum_j w_j F_j , \\
+F_b &= \sum_j \tfrac12\left(\nu_{j+1} - \nu_j\right)\left(F_j + F_{j+1}\right) ,
+\end{aligned}
+$$ {#eq-ch01-pipeline-band}
+<!-- equation-check: eq-ch01-pipeline-band check_ch01_quickstart.py [C4] -->
+<!-- equation-check: eq-ch01-pipeline-band check_ch01_quickstart.py [C5] -->
+
+for $F$ either $F^{\uparrow}$ or $F^{\downarrow}$. @eq-ch01-pipeline-band is computed in `sum_spectrum`
+({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}), called by `RadiationBandImpl::forward`; the
+first line is used when the band has weights, the second otherwise.
+
+**Step 3: the column outputs.** The bands are summed level by level, and the net flux follows:
+
+$$
+\begin{aligned}
+F^{\uparrow} &= \sum_b F^{\uparrow}_b , \\
+F^{\downarrow} &= \sum_b F^{\downarrow}_b , \\
+F_{\mathrm{net}} &= F^{\uparrow} - F^{\downarrow} \quad \text{at every level}.
+\end{aligned}
+$$ {#eq-ch01-pipeline-net}
+<!-- equation-check: eq-ch01-pipeline-net check_ch01_quickstart.py [C3] -->
+
+Three quantities are returned: $F_{\mathrm{net}}$ at every level, $F^{\downarrow}$ at the surface and $F^{\uparrow}$
+at the top.
+
+@eq-ch01-pipeline-net is computed in `RadiationImpl::forward`
+({{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}) with `cal_net_flux`,
+`cal_surface_flux` and `cal_toa_flux` ({{< code src/radiation/flux_utils.cpp cal_net_flux repo=pyharp >}},
+{{< code src/radiation/flux_utils.cpp cal_surface_flux repo=pyharp >}},
+{{< code src/radiation/flux_utils.cpp cal_toa_flux repo=pyharp >}}). $F_{\mathrm{net}}$ is positive where more
+energy goes up than down. Steps 1 to 3 are sums and quotients with no approximation; the approximations of a flux
+calculation are in the opacities and in the solver, documented in @sec-ch03, @sec-ch04 and @sec-ch05. The executable
+check is `check_ch01_quickstart.py`.
+
+### Numerical method
+
+Every quantity of a band is a tensor with the spectral points first and the columns second, so one call handles
+all columns and spectral points at once; @fig-ch01-pipeline-shapes gives the shapes. Layer quantities are indexed
+from the surface (layer 0) to the top, and level quantities from the surface (level 0) to the top (level $n_{\mathrm{lyr}}$,
+the number of layers). The Toon solver returns four channels per level (upward, downward, and the two at the midpoint
+of the layer below); DISORT returns two, and `RadiationBandImpl::forward` copies them into the midpoint channels so
+that bands of both solvers can be summed.
+
+```{python}
+#| label: fig-ch01-pipeline-shapes
+#| fig-cap: "Where the quantities of one band live. Left: a column of four layers (light blue) and its five levels (orange ticks), numbered from the surface. Right: the shape of each tensor along the pipeline; nwave is the number of spectral points, ncol of columns, nlyr of layers, nlev = nlyr + 1 of levels, nprop of optical properties. Layer quantities are light blue, level quantities orange."
+#| fig-alt: "A stack of four boxes labelled layer 0 at the bottom to layer 3 at the top, with level 0 (surface) to level 4 (top) at their boundaries. Beside it, five rows: opacity output and solver input prop with shape nwave, ncol, nlyr, nprop; solver output spectrum with shape nwave, ncol, nlev, 2 or 4; band flux ncol, nlev, 4; Radiation.forward returns ncol by nlev, then ncol and ncol."
+#| echo: false
+from pyharp_report.ch01.figures.fig_pipeline_shapes import make_fig
+make_fig()
+```
+
+Where each step is documented is listed in @tbl-ch01-pipeline-map. The chapters on opacities, on the assembly
+of the solver input and on the configuration interface are not written at this pin; for those steps the Code layer
+below cites the functions.
+
+| chapter | what it answers | step |
+|---|---|---|
+| @sec-ch02 | the two-stream equations, their closures, delta scaling, energy conservation | theory |
+| @sec-ch03 | how a band is handed to DISORT and what DISORT solves | solver |
+| @sec-ch04 | the Toon two-stream solver, shortwave and longwave, and the band Planck function | solver |
+| @sec-ch05 | how accurate the two solvers are, against a converged reference | accuracy |
+| @sec-ch07 | assembly of the solver input and spectral integration (stub at this pin) | Steps 1, 2 |
+| @sec-ch08 | configuration, the Python interface and coupling (stub at this pin) | Step 3 |
+| @sec-ch09-toon, @sec-ch09-disort | many columns at once, and CPU against CUDA | batching |
+| @sec-ch10 | pyharp's own tests and CI, its bindings, and every check of this report | evidence |
+
+: Where each step of the pipeline is documented. The opacity chapter is not written at this pin. {#tbl-ch01-pipeline-map}
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| column | {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}} | `bands`, `spectra` | always |
+| band | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `prop`, `spectrum` | always |
+| solver choice | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `rtsolver` | `solver` |
+| band sum | {{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}} | `weight`, `wavenumber` | which is set |
+| pydisort dependency | {{< code pyproject.toml repo=pyharp >}} | `pydisort>=1.7.1` | always |
+
+: Code map of the pipeline. {#tbl-ch01-pipeline-code}
+
+1. `RadiationImpl::forward` calls `forward` of each band in the order of the configuration and stacks their
+   results in the buffer `spectra` ({{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}}).
+2. `RadiationBandImpl::forward` calls each opacity module with the concentrations and the band's keyword inputs,
+   accumulates @eq-ch01-pipeline-prop in the buffer `prop`, multiplies by $\Delta z$, caps $\omega$, and calls the
+   solver ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+3. `RadiationBandImpl::reset` creates the solver named by the band's `solver` key, `disort` or `toon`, and refuses a
+   band with neither weights nor wavenumbers
+   ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}).
+4. `sum_spectrum` applies @eq-ch01-pipeline-band ({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}).
+5. `RadiationImpl::forward` sums the bands and returns @eq-ch01-pipeline-net; when the atmosphere input carries
+   `area`, it also scales the fluxes for a spherical shell (not provided: the configuration chapter is a stub at
+   this pin).
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch01_quickstart.py` `[C2]` | @eq-ch01-pipeline-prop for a gas and a haze | $10^{-15}$ relative | two products and a quotient |
+| `check_ch01_quickstart.py` `[C3]` | @eq-ch01-pipeline-net from the `spectra` buffer | $10^{-14}$ of the largest band flux | one sum, one difference |
+| `check_ch01_quickstart.py` `[C4]` | @eq-ch01-pipeline-band, weights $(0.25, 0.75)$ | $10^{-15}$ relative | one weighted sum |
+| `check_ch01_quickstart.py` `[C5]` | @eq-ch01-pipeline-band, three wavenumbers | $10^{-15}$ relative | the trapezoid rule |
+
+: Tests of the pipeline. {#tbl-ch01-pipeline-tests}
+
+`[C2]` reads the solver input of the quick start's shortwave band, a gas with $\omega_a = 0$ and a haze with
+$\omega_a = 1$ and $\chi_{a,1} = 0.6$, each with $k_a\Delta z = 0.5$ per layer, and finds $\Delta\tau = 1$,
+$\omega = 0.5$ and $\chi_1 = 0.6$. `[C4]` and `[C5]` use a band whose spectral points have different optical depths,
+so their fluxes differ and the weights matter. All pass on both pydisort pins with the same
+lines[^ch01-pipeline-run]. The solvers themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own
+tests are listed in @sec-ch10-test-suite.
+
+[^ch01-pipeline-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/check_ch01_quickstart.py`,
+    checks [C2]-[C5] (the quick-start column and a three-point test band, built in code); run:
+    `python3 derivation-checks/check_ch01_quickstart.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128,
+    pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical claim
+    lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with
+    `bash derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
+    `derivation-checks/check_ch01_quickstart_pydisort171.out` and `_pydisort1813.out`]
+
+### Limits
+
+- **One precision per call.** The band's buffers are double precision unless the module is moved to another type;
+  single precision is answered at @sec-ch09-toon.
+- **Spherical scaling.** The scaling applied when `area` is given: not provided: the configuration chapter is a
+  stub at this pin.
+- **Opacity types.** The opacity modules a band can use are the types `RadiationBandImpl::reset` creates; their
+  physics: not provided: the opacity chapter is not written at this pin.

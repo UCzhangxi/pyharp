@@ -84,6 +84,8 @@
 
 **grey isothermal slab (E3)**: Analytic cases and energy closure, @sec-ch05-analytic.
 
+**grey opacity, TorchScript (jit)**: Quick start: build at the pins and compute the fluxes of a grey column, @sec-ch01-quickstart.
+
 ## H {.unnumbered .unlisted}
 
 **hemispheric mean**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
@@ -91,6 +93,8 @@
 **hemispheric mean closure**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
 ## I {.unnumbered .unlisted}
+
+**installation from source at the pins**: Quick start: build at the pins and compute the fluxes of a grey column, @sec-ch01-quickstart.
 
 **intensity correction, Nakajima-Tanaka**: Intensity corrections after delta-M, @sec-ch03-intcorr.
 
@@ -106,11 +110,23 @@
 
 *Meador-Weaver coefficients*, see **two-stream closure**.
 
+## N {.unnumbered .unlisted}
+
+**net flux, surface and top-of-atmosphere outputs**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
+
+## O {.unnumbered .unlisted}
+
+**optical properties of a band, mixing of opacities**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
+
 ## P {.unnumbered .unlisted}
+
+**pipeline, from concentrations to fluxes**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
 
 **Planck function, band-integrated**: Band-integrated Planck function for the thermal source, @sec-ch04-planck.
 
 **pydisort, how pyharp calls it**: Handing a band to DISORT, @sec-ch03-band.
+
+**pydisort, kintera and snapy, relation to pyharp**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
 
 **pydisort version, build contract**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
 
@@ -121,6 +137,8 @@
 ## Q {.unnumbered .unlisted}
 
 **quadrature closure**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures; Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
+
+**quick start**: Quick start: build at the pins and compute the fluxes of a grey column, @sec-ch01-quickstart.
 
 ## R {.unnumbered .unlisted}
 
@@ -141,6 +159,8 @@
 **solver cost per column**: Cost per column of the two solvers, @sec-ch05-cost.
 
 **source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
+**spectral integration, weights and wavenumbers**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
 
 **support matrix, solver by operation**: DISORT on CUDA by pydisort version, @sec-ch09-disort.
 
