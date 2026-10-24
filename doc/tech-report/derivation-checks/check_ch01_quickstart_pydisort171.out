@@ -1,11 +1,11 @@
 versions: pyharp 2.7.8, torch 2.10.0+cu128, Python 3.11.13, pydisort 1.7.1
 pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f
 device: CPU, precision: float64, threads: 1
-     quick start: net flux, surface to top [W/m^2]: 18.755 27.232 -6.499 -95.239 -215.167
-     quick start: downward flux at the surface [W/m^2]: 441.633
-     quick start: upward flux at the top [W/m^2]: 284.833
+     quick start: net flux, surface to top [W/m^2]: 22.789 38.310 18.955 -52.662 -244.497
+     quick start: downward flux at the surface [W/m^2]: 436.590
+     quick start: upward flux at the top [W/m^2]: 255.503
 [C1] PASS quick start (42 lines in 3 blocks) exit 0; stdout equals the chapter's output block: True
-[C2] PASS shortwave prop (dtau, omega, g) per layer [1.0, 0.5, 0.6] ; relative difference from the mixing rule below 1e-15
+[C2] PASS shortwave prop (dtau, omega, g) per layer 1, 0.25, 0.6; mixing rule from the two opacities (k dz = 0.75, 0.25): omega 0.25, relative difference below 1e-15; the case discriminates: plain mean 0.5, swapped weights 0.75, both more than 0.1 from the weighted value: True
 [C3] PASS 2 bands; |difference| / largest band flux: net, surface and top below 1e-14
 [C4] PASS weights [0.25, 0.75]: band flux minus sum_j w_j F_j, relative below 1e-15; the two spectral points differ: True
 [C5] PASS wavenumbers [10000.0, 12000.0, 20000.0] cm-1: band flux minus the trapezoid rule, relative below 1e-15

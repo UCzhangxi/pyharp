@@ -4,7 +4,9 @@
 #   ENV_*  directories made by derivation-checks/ch04/setup_env.sh <dir> <pydisort version>
 # Writes: check_ch01_quickstart_pydisort<version>.out for each environment, the data file
 #         ../src/pyharp_report/ch01/data/quickstart_fluxes.csv (from the first environment), and draws the chapter's
-#         figures with tools/render_figures.py --chapters ch01.
+#         figures with tools/render_figures.py --chapters ch01. When CH01_BREAKS_WORK names a scratch directory, also
+#         ch01_breaks_pydisort<version>.out (mutants of the mixing rule on rebuilt pyharp; slow, see ch01_breaks.sh),
+#         with one scratch build per environment in CH01_BREAKS_WORK/pydisort<version>.
 # Runs on CPU (CUDA_VISIBLE_DEVICES is emptied), each check from a fresh temporary directory.
 set -u
 D=$(cd "$(dirname "$0")" && pwd); R=$(cd "$D/.." && pwd)
@@ -19,6 +21,14 @@ for E in "$@"; do
   echo "check_ch01_quickstart (pydisort $V): exit $?"
   rm -rf "$W"; first=0
 done
+if [ -n "${CH01_BREAKS_WORK:-}" ]; then
+  for E in "$@"; do
+    E=$(cd "$E" && pwd)
+    V=$("$E/venv/bin/python" -c 'import pydisort; print(pydisort.__version__.replace(".", ""))')
+    bash "$D/ch01_breaks.sh" "$E" "$CH01_BREAKS_WORK/pydisort$V" > "$D/ch01_breaks_pydisort$V.out"
+    echo "ch01_breaks (pydisort $V): exit $?"
+  done
+fi
 PY="$(cd "$1" && pwd)/venv/bin/python"
 (cd "$R" && PYTHONPATH="$R/src" MPLCONFIGDIR=$(mktemp -d) "$PY" tools/render_figures.py --chapters ch01 > /dev/null)
 echo "figures (tools/render_figures.py --chapters ch01): exit $?"
