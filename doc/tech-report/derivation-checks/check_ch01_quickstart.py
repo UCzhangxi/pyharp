@@ -8,8 +8,12 @@ reader sees.
   [C1] The three blocks, joined, run in a fresh directory with this interpreter; their stdout equals the output block
        of the chapter character for character.
   [C2] Optical-property assembly (eq-ch01-pipeline-prop), shortwave band of the quick start (an absorbing gas and a
-       scattering haze): the solver input `prop` of the band holds dtau = dz (k_gas + k_haze),
-       omega = omega_haze k_haze / (k_gas + k_haze) and g = g_haze, to 1e-15 relative (two products and a quotient).
+       scattering haze with different cross sections): the two compiled opacities are loaded and run here, and the
+       solver input `prop` of the band must hold dtau = dz sum_a k_a, omega = sum_a omega_a k_a / sum_a k_a and
+       g = sum_a g_a omega_a k_a / sum_a omega_a k_a computed from them, to 1e-15 relative (two products and a
+       quotient). The case must discriminate: the plain mean of the albedos and the mean with the two extinctions
+       swapped must each differ from the weighted omega by more than 0.1, so an unweighted or mis-weighted mixing
+       rule fails.
   [C3] Column sums (eq-ch01-pipeline-net): the net flux, the surface downward flux and the top upward flux that
        Radiation.forward returns equal the up - down, down[surface] and up[top] of the sum over bands of the
        `spectra` buffer, to 1e-14 relative to the largest band flux (one sum of two bands, then one difference).
@@ -84,15 +88,28 @@ def check_C1(code, work):
                   f"{r.returncode}; stdout equals the chapter's output block: {ok}")
 
 
-def check_C2(ns):
+def check_C2(ns, run_dir):
+    """The band's solver input against the mixing rule computed here from the two compiled opacities themselves."""
     sw = ns["rad"].module("sw")
     prop = sw.buffer("prop")[0, 0]                      # (nlyr, nprop) of the one spectral point and column
-    n, dz = ns["conc"][0, :, 0], ns["dz"]
-    k_gas, k_haze = 0.5e-4 * n, 0.5e-4 * n              # the cross sections of the quick start [m^2/mol]
-    want = torch.stack([dz * (k_gas + k_haze), 1.0 * k_haze / (k_gas + k_haze), 0.6 * torch.ones_like(n)], -1)
+    conc, dz = ns["conc"], ns["dz"]
+    ops = [torch.jit.load(str(run_dir / f)) for f in ("gas_sw.pt", "haze_sw.pt")]
+    out = [m(conc)[0, 0] for m in ops]                  # (nlyr, 3): extinction [1/m], albedo, asymmetry factor
+    k = torch.stack([o[:, 0] for o in out])             # (nopacity, nlyr)
+    w = torch.stack([o[:, 1] for o in out])
+    g = torch.stack([o[:, 2] for o in out])
+    weighted = (w * k).sum(0) / k.sum(0)                # eq-ch01-pipeline-prop
+    plain = w.mean(0)                                   # the unweighted mean, a mutant
+    swapped = (w * k.flip(0)).sum(0) / k.sum(0)         # each albedo weighted by the other opacity's extinction
+    want = torch.stack([dz * k.sum(0), weighted, (g * w * k).sum(0) / (w * k).sum(0)], -1)
     err = ((prop[:, :3] - want).abs() / want.abs()).max().item()
-    return report(2, err <= 1e-15, f"shortwave prop (dtau, omega, g) per layer {prop[0, :3].tolist()} ; relative difference "
-                  f"from the mixing rule {bound(err, 1e-15)}")
+    sep = min((weighted - plain).abs().min().item(), (weighted - swapped).abs().min().item())
+    ok = err <= 1e-15 and sep > 0.1
+    return report(2, ok, f"shortwave prop (dtau, omega, g) per layer " + ", ".join(f"{x:.6g}" for x in prop[0, :3].tolist())
+                  + f"; mixing rule from the two opacities (k dz = "
+                  + ", ".join(f"{x:.6g}" for x in (k[:, 0] * dz[0]).tolist()) + f"): omega {weighted[0].item():.6g}, relative difference "
+                  f"{bound(err, 1e-15)}; the case discriminates: plain mean {plain[0].item():.6g}, swapped weights "
+                  f"{swapped[0].item():.6g}, both more than 0.1 from the weighted value: {sep > 0.1}")
 
 
 def check_C3(ns):
@@ -216,7 +233,7 @@ def main():
                     sys.stdout = old
         finally:
             os.chdir(cwd)
-        oks += [check_C2(ns), check_C3(ns), check_C4(work), check_C5(work), check_C6(work), check_C7(ns)]
+        oks += [check_C2(ns, work / "ns"), check_C3(ns), check_C4(work), check_C5(work), check_C6(work), check_C7(ns)]
         if a.data:
             sp = ns["rad"].spectra[:, 0]                # (nband, nlev, 4)
             rows = ["level,sw_up,sw_down,lw_up,lw_down"]

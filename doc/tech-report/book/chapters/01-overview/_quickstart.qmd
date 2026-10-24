@@ -47,11 +47,20 @@ $$
 \Delta\tau = \Delta z \sum_a \sigma_a n .
 $$
 
-With $n = 40\ \mathrm{mol\,m^{-3}}$ and $\Delta z = 250$ m, the shortwave band (gas and haze, each
-$\sigma = 0.5\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) has $\Delta\tau = 1$ per layer, and the longwave band (gas,
-$\sigma = 2\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) has $\Delta\tau = 2$ per layer. In the shortwave the gas absorbs
-($\omega = 0$) and the haze only scatters ($\omega = 1$, asymmetry factor $0.6$); by @eq-ch01-pipeline-prop the
-layer has $\omega = 0.5$ and asymmetry factor $0.6$.
+With $n = 40\ \mathrm{mol\,m^{-3}}$ and $\Delta z = 250$ m, the shortwave gas
+($\sigma = 0.75\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) contributes $\sigma n\Delta z = 0.75$ and the haze
+($\sigma = 0.25\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) $0.25$, so the shortwave band has $\Delta\tau = 1$ per
+layer; the longwave band (gas, $\sigma = 2\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) has $\Delta\tau = 2$ per layer.
+In the shortwave the gas absorbs ($\omega = 0$) and the haze only scatters ($\omega = 1$, asymmetry factor $0.6$).
+By @eq-ch01-pipeline-prop the layer albedo is the extinction-weighted mean,
+
+$$
+\omega = \frac{0 \times 0.75 + 1 \times 0.25}{0.75 + 0.25} = 0.25 ,
+$$
+
+not the plain mean $0.5$ of the two albedos, and not $0.75$, which the two weights exchanged would give. The
+asymmetry factor is weighted by $\omega_a k_a$, so only the haze contributes and the layer has $0.6$, not the
+plain mean $0.3$.
 
 ### Numerical method
 
@@ -97,9 +106,9 @@ two bands that both use the Toon solver (@sec-ch04). The `planck` flag makes the
 
 <!-- quickstart-code -->
 ```python
-pyharp.compile(Grey(0.5e-4, 0.0, 0.0), "gas_sw.pt")   # gas, shortwave
-pyharp.compile(Grey(0.5e-4, 1.0, 0.6), "haze_sw.pt")  # haze, shortwave
-pyharp.compile(Grey(2.0e-4, 0.0, 0.0), "gas_lw.pt")   # gas, longwave
+pyharp.compile(Grey(0.75e-4, 0.0, 0.0), "gas_sw.pt")   # gas, shortwave
+pyharp.compile(Grey(0.25e-4, 1.0, 0.6), "haze_sw.pt")  # haze, shortwave
+pyharp.compile(Grey(2.0e-4, 0.0, 0.0), "gas_lw.pt")    # gas, longwave
 open("qs.yaml", "w").write("""species: [{name: gas, composition: {H: 2}}]
 geometry: {cells: {nx1: 4}}
 opacities:
@@ -140,9 +149,9 @@ It prints:
 
 <!-- quickstart-output -->
 ```text
-net flux, surface to top [W/m^2]: 18.755 27.232 -6.499 -95.239 -215.167
-downward flux at the surface [W/m^2]: 441.633
-upward flux at the top [W/m^2]: 284.833
+net flux, surface to top [W/m^2]: 22.789 38.310 18.955 -52.662 -244.497
+downward flux at the surface [W/m^2]: 436.590
+upward flux at the top [W/m^2]: 255.503
 ```
 
 The net flux is upward minus downward (@eq-ch01-pipeline-net), so the negative value at the top says the column and
@@ -152,7 +161,7 @@ its surface gain energy from the beam, and the positive value at the surface say
 ```{python}
 #| label: fig-ch01-quickstart-fluxes
 #| fig-cap: "Band fluxes of the quick-start column at its five levels, level 0 being the surface. (a) Shortwave band: upward (orange triangles) and downward, direct beam included (blue circles). (b) Longwave band, same markers. The net flux the script prints is the sum over both panels of upward minus downward."
-#| fig-alt: "Two panels of flux against level number 0 to 4. Left, shortwave: downward flux falls from 500 watts per square metre at the top to about 6 at the surface; upward flux falls from about 47 at the top to about 1 at the surface. Right, longwave: upward flux falls from about 459 at the surface to about 238 at the top; downward flux falls from about 435 at the surface to 0 at the top."
+#| fig-alt: "Two panels of flux against level number 0 to 4. Left, shortwave: downward flux falls from 500 watts per square metre at the top to about 1 at the surface; upward flux falls from about 18 at the top to under 1 at the surface. Right, longwave: upward flux falls from about 459 at the surface to about 238 at the top; downward flux falls from about 435 at the surface to 0 at the top."
 #| echo: false
 from pyharp_report.ch01.figures.fig_quickstart_fluxes import make_fig
 make_fig()
@@ -185,7 +194,7 @@ make_fig()
 | test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
 |---|---|---|---|
 | `check_ch01_quickstart.py` `[C1]` | the code above runs and prints the output above | exact text | printed to 3 decimals |
-| `check_ch01_quickstart.py` `[C2]` | the shortwave layer: $\Delta\tau = 1$, $\omega = 0.5$, $g = 0.6$ | $10^{-15}$ relative | two products and a quotient |
+| `check_ch01_quickstart.py` `[C2]` | the shortwave layer: $\Delta\tau = 1$, $\omega = 0.25$, $g = 0.6$, from the two opacities | $10^{-15}$ relative | two products and a quotient |
 | `check_ch01_quickstart.py` `[C6]` | a band without a spectral grid is refused | message | `RadiationBandImpl::reset` |
 | `check_ch01_quickstart.py` `[C7]` | top: shortwave down $\mu_0F_0$, longwave down 0; surface: longwave up $\pi B$ | $10^{-14}$ relative | one series and a product |
 

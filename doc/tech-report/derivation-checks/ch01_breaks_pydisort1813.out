@@ -1,0 +1,6 @@
+compilers: /bin/cc, /bin/c++ (c++ (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14))
+[M1] plain mean of the albedos (the moments still weighted): exit 2, failing: [C1] [C2]; expected: [C1] [C2]; OK; FAIL shortwave prop (dtau, omega, g) per layer 1, 0.5, 0.6
+[M2] complement of the weighted mean (the two extinctions exchanged, for two opacities): exit 2, failing: [C1] [C2]; expected: [C1] [C2]; OK; FAIL shortwave prop (dtau, omega, g) per layer 1, 0.75, 0.6
+[K0] control: source unchanged: exit 0, failing: none; expected: none; OK; PASS shortwave prop (dtau, omega, g) per layer 1, 0.25, 0.6
+restored: src/radiation/radiation_band.cpp md5 36a38f7ab2c61ff2f8abdb5861b8a7ee, git diff of src: 0 lines
+ch01_breaks: 0 run(s) not as expected

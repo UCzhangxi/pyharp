@@ -180,20 +180,27 @@ below cites the functions.
 
 : Tests of the pipeline. {#tbl-ch01-pipeline-tests}
 
-`[C2]` reads the solver input of the quick start's shortwave band, a gas with $\omega_a = 0$ and a haze with
-$\omega_a = 1$ and $\chi_{a,1} = 0.6$, each with $k_a\Delta z = 0.5$ per layer, and finds $\Delta\tau = 1$,
-$\omega = 0.5$ and $\chi_1 = 0.6$. `[C4]` and `[C5]` use a band whose spectral points have different optical depths,
-so their fluxes differ and the weights matter. All pass on both pydisort pins with the same
-lines[^ch01-pipeline-run]. The solvers themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own
-tests are listed in @sec-ch10-test-suite.
+`[C2]` reads the solver input of the quick start's shortwave band, a gas with $\omega_a = 0$ and $k_a\Delta z = 0.75$
+per layer and a haze with $\omega_a = 1$, $\chi_{a,1} = 0.6$ and $k_a\Delta z = 0.25$. It runs the two compiled
+opacities itself, computes @eq-ch01-pipeline-prop from their outputs, and finds $\Delta\tau = 1$, $\omega = 0.25$ and
+$\chi_1 = 0.6$ in the band. Because the two extinctions differ, the case separates the weighted mean from the plain
+mean of the albedos ($0.5$) and from the mean with the two weights exchanged ($0.75$); the check requires both to be
+more than $0.1$ away, so a mixing rule that drops or swaps the weights fails it: with pyharp rebuilt to use the plain
+mean, or the complement of the weighted mean, `[C2]` fails on both pydisort pins and the unchanged build passes
+(`ch01_breaks.sh`). `[C4]` and `[C5]` use a band whose spectral points have different optical depths, so their fluxes
+differ and the weights matter. All pass on both pydisort pins with the same lines[^ch01-pipeline-run]. The solvers
+themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own tests are listed in @sec-ch10-test-suite.
 
-[^ch01-pipeline-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/check_ch01_quickstart.py`,
-    checks [C2]-[C5] (the quick-start column and a three-point test band, built in code); run:
-    `python3 derivation-checks/check_ch01_quickstart.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128,
-    pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical claim
-    lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with
-    `bash derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
-    `derivation-checks/check_ch01_quickstart_pydisort171.out` and `_pydisort1813.out`]
+[^ch01-pipeline-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck:
+    `derivation-checks/check_ch01_quickstart.py`, checks [C2]-[C5] (the quick-start column and a three-point test
+    band, built in code); run: `python3 derivation-checks/check_ch01_quickstart.py`, CPU, double, one thread; Python
+    3.11.13, torch 2.10.0+cu128, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately,
+    1.8.13, with identical claim lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort
+    version>`; regenerate with `bash derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
+    `derivation-checks/check_ch01_quickstart_pydisort171.out` and `_pydisort1813.out`; [C2] against pyharp rebuilt
+    with the mixing rule broken (plain mean; complement, equal to the swapped weights):
+    `derivation-checks/ch01_breaks.sh`, outputs `derivation-checks/ch01_breaks_pydisort171.out` and
+    `_pydisort1813.out`]
 
 ### Limits
 
