@@ -16,7 +16,7 @@ thermal diffusion between layers, and the step is a strong-stability-preserving 
 weights live in a separate object, `Integrator`, which also offers first-, second- and a four-stage third-order
 variant; the default `rk3` is third order. The section derives the tendency the model integrates and the order of
 each scheme, and lists the fixed assumptions of the model. These include a five-species layout and Mars-like
-default constants, and three CANDIDATE defects. `RadiationModel` has a C++ interface only; `Integrator` is also
+default constants, and four CANDIDATE defects. `RadiationModel` has a C++ interface only; `Integrator` is also
 bound to Python.
 
 ::: {.callout-note title="At a glance"}
@@ -178,8 +178,8 @@ make_fig()
 
 ```{python}
 #| label: fig-ch08-stepper-convergence
-#| fig-cap: "Largest layer-temperature error of the column model after $2\\times10^5$ s, against the step, for `rk1` (orange circles, solid) and `rk3` (green squares, dashed); the reference is 256 `rk3` steps. Dotted lines show slopes 1 and 3."
-#| fig-alt: "Log-log plot of error against step from 1.25e4 to 1e5 s. The rk1 error falls from 0.5 to 0.04 K, roughly along the slope-1 line; the rk3 error falls from 0.034 to 5e-5 K, along the slope-3 line."
+#| fig-cap: "Largest layer-temperature error of the column model after $2\\times10^5$ s, against the step, for `rk1` (orange circles, solid) and `rk3` (green squares, dashed); the reference is 512 `rk3` steps. Dotted lines show slopes 1 and 3."
+#| fig-alt: "Log-log plot of error against step from 3125 to 25000 s. The rk1 error falls from 0.072 to 0.0083 K along the slope-1 line; the rk3 error falls from 4.3e-4 to 7.2e-7 K along the slope-3 line."
 #| echo: false
 from pyharp_report.ch08.figures.fig_stepper_convergence import make_fig
 make_fig()
@@ -226,36 +226,46 @@ No ctest, Python test or example at the pin builds a `RadiationModel` or an `Int
 Python binding, so the derivation check compiles a ten-line wrapper against the installed pyharp library. The wrapper
 builds the model from a YAML file, sets weight 1 on every band and calls `forward` for every stage. It runs the
 model's own code and re-implements none of it. The column has 8 layers from $10^5$ to $10^3$ Pa of one grey absorber
-with a longwave DISORT band, and the defaults of the table above.
+with a longwave DISORT band, and the defaults of the table above. No run passes `tempf`, so every stage's radiation sees
+the current layer temperatures (see [P4] in the Limits layer).
 
 | test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
 |---|---|---|---|
 | `ch08_stepper.py` [C1], [C2] | @tbl-ch08-stepper-weights: orders 1, 2, 3, 3 | exact; slope $\pm0.15$ | sympy; four step sizes |
-| `ch08_stepper.py` [C3], [C4] | @eq-ch08-stepper-tendency, @eq-ch08-stepper-diffusion | $10^{-12}$ rel. | telescoping sum of 8 terms |
+| `ch08_stepper.py` [C3] | @eq-ch08-stepper-tendency | $10^{-12}$ rel. | telescoping sum of 8 terms |
+| `ch08_stepper.py` [C4] | @eq-ch08-stepper-diffusion, $\rho_{i-1/2}$ ported | $10^{-10}$ rel. | derivative of a cumulative sum |
 | `ch08_stepper.py` [C5], [C9] | @eq-ch08-stepper-surface, @eq-ch08-stepper-dz | $10^{-12}$, $10^{-14}$ rel. | a few products |
-| `ch08_stepper.py` [C6] | model order 1 (`rk1`), 3 (`rk3`) | slope $\pm0.3$ | four step sizes |
-| `ch08_stepper.py` [C7], [C8], [P1]-[P3] | clamp, species layout, CANDIDATEs | exact; probes | the code's values |
+| `ch08_stepper.py` [C6] | model order 1 (`rk1`), 3 (`rk3`) | slope $\pm0.15$ | four step sizes |
+| `ch08_stepper.py` [C7], [C8], [P1]-[P4] | clamp, species layout, CANDIDATEs | exact; probes | the code's values |
 
 : Tests of the column stepper (derivation check; no ctest exists). {#tbl-ch08-stepper-tests}
 
 sympy finds the stability polynomial of every scheme equal to $e^z$ through order 1, 2, 3 and 3, and every stage
 convex ([C1]).[^ch08-step-run] On $\mathrm{d}u/\mathrm{d}t = -u^2$ with 8 to 64 steps, `Integrator` itself gives fitted
 slopes of 1.03, 2.04, 3.06 and 3.04 ([C2]). One `rk1` step of $2\times10^4$ s changes the column energy by
-$-9.214960\times10^4\,\mathrm{J\,m^{-2}}$. This equals $-\Delta t(F_L - F_0)$ within $10^{-12}$ relative, and the
-temperatures after the step equal those before it plus @eq-ch08-stepper-tendency, bitwise ([C3]). The diffusive flux
-is zero at both ends and has $\rho_{i-1/2}$ between the adjacent layer densities on all 7 interior levels ([C4]). The
+$-9.491945\times10^4\,\mathrm{J\,m^{-2}}$. This equals $-\Delta t(F_L - F_0)$ within $10^{-12}$ relative, and the
+temperatures after the step equal those before it plus @eq-ch08-stepper-tendency, bitwise ([C3]). With
+$K = 100\,\mathrm{m^2\,s^{-1}}$, so that diffusion carries up to $133\,\mathrm{W\,m^{-2}}$, the exported diffusive flux is
+zero at both ends and equals @eq-ch08-stepper-diffusion on all 7 interior levels within $10^{-10}$ relative (measured
+$1.2\times10^{-15}$). There $\rho_{i-1/2}$ is computed independently, as the derivative at the level of the quadratic
+through the cumulative integral of $\ln\rho\,\mathrm{d}z$ ([C4]). The
 surface temperature changes by @eq-ch08-stepper-surface within $10^{-12}$ ([C5]). The layer thicknesses, 6030 to 7705 m, equal
-@eq-ch08-stepper-dz with the level pressures described above within $10^{-14}$ ([C9]). Over $2\times10^5$ s, with 2 to
-16 steps against 256, the model converges with fitted slope 1.24 for `rk1` and 3.12 for `rk3`
+@eq-ch08-stepper-dz with the level pressures described above within $10^{-14}$ ([C9]). Over $2\times10^5$ s, with 8 to
+64 steps against 512, the model converges with fitted slope 1.04 for `rk1` and 3.07 for `rk3`
 (@fig-ch08-stepper-convergence, [C6]). A layer set to 1500 K
 returns at 1000 K after one step and one at 10 K at 20 K ([C7]). Fewer than five species are refused ([C8]). All checks
 ran on CPU.
 
-[^ch08-step-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_stepper.py` [C1]-[C9], [P1]-[P3]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, wrapper compiled with g++ 12 and ninja through torch.utils.cpp_extension]. Output `derivation-checks/ch08_stepper.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_stepper.pydisort-1.8.13.out` holds the same lines.
+[^ch08-step-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_stepper.py` [C1]-[C9], [P1]-[P4]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, wrapper compiled with g++ 12 and ninja through torch.utils.cpp_extension]. Output `derivation-checks/ch08_stepper.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, `ch05_setup.sh <root> 1.8.13 cuda`) `ch08_stepper.pydisort-1.8.13.out` holds the same lines.
 
 ### Limits
 
 ::: {.callout-warning title="Limits"}
+- **CANDIDATE: the level temperatures are never refreshed.** `RadiationModelImpl::forward` writes `atm["temp"]` only.
+  A Planck band reads `tempf` from `atm` when it is there, so a caller who passes it, as @sec-ch08-radiation shows for
+  a single call, steps the column with the initial level temperatures at every stage. After 64 `rk3` steps to
+  $2\times10^6$ s the layer temperatures differ by up to 6.352 K from the same run without `tempf`; the largest change
+  from the start is 22.16 K with it and 15.81 K without ([P4]). Leave `tempf` out, or refresh it every stage.
 - **CANDIDATE: the surface budget has no albedo.** @eq-ch08-stepper-surface heats the surface with the total downward
   flux whatever its albedo. Over a non-scattering shortwave column the surface warms by the same 0.969 K in one step
   for albedo 0, 0.5 and 1. With albedo $A$ the column and the surface together gain $A F^{\downarrow}_{\mathrm{sfc}}$
@@ -269,6 +279,6 @@ ran on CPU.
   are Mars-like. The temperatures are clamped to [20, 1000] K after every stage, silently ([C7]).
 - `RadiationModel` has no Python binding, no options reader and no test at the pin. `cfl`, `ncycle_out` and
   `max_redo` are read by nothing in it.
-- None of the three CANDIDATEs is in the defect register. Not tested: more than one column, CUDA, `rk2` and `rk3s4`
+- None of the four CANDIDATEs is in the defect register. Not tested: more than one column, CUDA, `rk2` and `rk3s4`
   inside the model (tested on their own in [C1], [C2]).
 :::

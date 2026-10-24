@@ -138,9 +138,9 @@ No ctest reads a configuration file: `test_yaml_input` is commented out and `tes
 |---|---|---|---|
 | `ch08_config.py` [C1] | @eq-ch08-config-weight | $10^{-15}$ rel. | three products and a sum |
 | `ch08_config.py` [C2], [C3] | structure and defaults | exact | copied values |
-| `ch08_config.py` [C4], [C5] | 12 refusals and their messages | message text | the code's own text |
+| `ch08_config.py` [C4], [C5] | 11 file refusals plus the build refusal | message text | the code's own text |
 | `ch08_config.py` [C6], [C7] | `units` not read; species list global | exact | copied values |
-| `ch08_config.py` [P1] | CANDIDATE: `nphase` not set | reproduced | probe |
+| `ch08_config.py` [P1], [C8] | CANDIDATE: `nphase` not set; what a large value does | reproduced; exit, message | probe; child process |
 
 : Tests of the configuration reader (derivation check; no ctest exists). {#tbl-ch08-config-tests}
 
@@ -151,10 +151,11 @@ gets 4; the range is copied to every spectral point; a file without `bands` give
 `integration` block is read except `max_redo`, which stays 5 when the file says 9 ([C3]). Ten broken files and an
 unknown integrator `type` each stop with their message from the list above ([C4]). After `from_yaml` a band has no
 weight and no wavenumber grid, and `RadiationBand` refuses to build until one is set ([C5]). Read six times, the
-DISORT band's `nphase` differs from its `nstr` each time; its value is whatever the memory held ([P1]). All checks ran
-on CPU.
+DISORT band's `nphase` differs from its `nstr` in at least one of six reads; its value is whatever the memory held
+([P1]). Set to $2^{29}$ on an 8-layer band, `nphase` stops the process in the band's first `forward` with
+`dbl_vector, variable ds->phase`, while `nphase = nstr` runs ([C8]). All checks ran on CPU; none ran on CUDA.
 
-[^ch08-cfg-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_config.py` [C1]-[C7], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_config.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_config.pydisort-1.8.13.out` holds the same lines.
+[^ch08-cfg-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_config.py` [C1]-[C8], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, environment of `derivation-checks/ch05_setup.sh <root> 1.7.1 cuda`]. Output `derivation-checks/ch08_config.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, `ch05_setup.sh <root> 1.8.13 cuda`) `ch08_config.pydisort-1.8.13.out` holds the same lines.
 
 ### Limits
 
@@ -163,8 +164,8 @@ on CPU.
   pydisort's options do not initialise it, so it holds whatever the memory held ([P1]). When it is at least 1,
   `c_disort_state_alloc` ({{< code cdisort213/cdisort.c c_disort_state_alloc repo=pydisort >}}) allocates `nlyr`
   $\times$ `nphase` entries for `ds->phase`. A large value overflows that product and stops the run with
-  `dbl_vector, variable ds->phase`. Whether a run stops depends on the memory contents, so the failure is not
-  reproduced on demand. The checks of this chapter, like the
+  `dbl_vector, variable ds->phase`; $2^{29}$ does so on demand ([C8]). Whether an unset `nphase` does depends on
+  the memory contents. The checks of this chapter, like the
   checks of @sec-ch03-band, set `nphase = nstr` as `pyharp.disort_config` does. It is not in the defect register.
 - The file gives no spectral grid: weights or wavenumbers are set from code, or by an opacity table ([C5]).
 - A band's `units` key is accepted and not read. The range is always taken in $\mathrm{cm^{-1}}$; `units: um` with

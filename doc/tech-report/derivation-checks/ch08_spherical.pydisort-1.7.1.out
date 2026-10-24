@@ -1,4 +1,4 @@
-python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8, sympy 1.14.0
+python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pydisort 1.7.1, pyharp 2.7.8, sympy 1.14.0
 pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort source 8af15242a265a60ea6fb51c29d48e6688a63ab67
 [C1] PASS sympy: documented recursion with A constant and V = A dz gives x_i = 1 from x_(i+1) = 1
 [C2] PASS numpy port of the code's recursion = pyharp scaled/plain net flux, plane-parallel and shell: max rel dev 0.0e+00 (tol 1e-13)

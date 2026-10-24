@@ -159,7 +159,7 @@ with $L$ entries, or `area` without `dz` in `atm`, is refused ([C3]). In the fla
 the surface, so the layer heating changes by up to $1.6\times10^7$ relative. The documented recursion, ported, stays
 at 1 within $10^{-15}$ ([P1], @fig-ch08-spherical-factor). All checks ran on CPU.
 
-[^ch08-sph-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_spherical.py` [C1]-[C3], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha]. Output `derivation-checks/ch08_spherical.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, torch 2.10.0+cu126) `ch08_spherical.pydisort-1.8.13.out` holds the same lines.
+[^ch08-sph-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch08_spherical.py` [C1]-[C3], [P1]; run: `derivation-checks/ch08_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, sympy 1.14.0, pydisort 1.7.1 at zoeyzyhu/pydisort 8af15242a265a60ea6fb51c29d48e6688a63ab67, pyharp built from source at the sha, environment of `derivation-checks/ch05_setup.sh <root> 1.7.1 cuda`]. Output `derivation-checks/ch08_spherical.pydisort-1.7.1.out`; with pydisort 1.8.13 (tag `v1.8.13`, `ch05_setup.sh <root> 1.8.13 cuda`) `ch08_spherical.pydisort-1.8.13.out` holds the same lines.
 
 ### Limits
 
