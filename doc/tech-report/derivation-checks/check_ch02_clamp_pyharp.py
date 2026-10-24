@@ -9,12 +9,17 @@ that is commented out, has a zero margin, or is joined by a cap inside a kernel;
        dtau 1, g = 0.5, mu0 = 0.5, albedo 0.2) and a TorchScript opacity that returns omega = 1 exactly. After
        forward, the solver input in the band's `prop` buffer must hold omega = 1 - 1e-12 bitwise, an omega = 0.5 run
        must hold 0.5 bitwise, and the band's fluxes must equal those of the Toon module called directly with
-       omega = 1 - 1e-12 (and differ from those with omega = 1).
+       omega = 1 - 1e-12 (and differ from those with omega = 1 by more than 1e-6 W m-2; the fluxes at omega = 1
+       exactly come from a singular system and are set by round-off, so their digits are not printed).
   [C2] Band clamp, single. The same band in float32 (the band module and its inputs converted with .to): `prop`
        must hold omega = float32(1 - 1e-6) for omega = 1.
-  [C3] No cap in the Toon kernels. The Toon module called directly (shortwave; and longwave with `planck`) at
-       omega = 1, 1 - 1e-12, 1 - 1e-10, 1 - 1e-8, 1 - 1e-6 and 1 - 1e-4 (one layer of dtau 1, g = 0.5) must give six
-       pairwise different F+(TOA); a cap min(omega, 1 - d) with 0 < d <= 1e-4 inside a kernel makes at least two equal.
+  [C3] No cap in the Toon kernels. The Toon module is called directly (shortwave; and longwave with `planck`; one
+       layer of dtau 1, g = 0.5). (a) Its outputs at omega = 1 and at the largest double below 1, 1 - 2^-53, must
+       differ: a cap min(omega, c) with any c < 1 inside a kernel maps both inputs to c and makes them equal, so
+       this catches caps of every size, 1e-13 included. Only the inequality is asserted; the flux at omega = 1 is
+       set by round-off. (b) F+(TOA) at 1 - 1e-6, 1 - 1e-4 and 1 - 1e-2 must differ from that at 1 - 1e-12 by more
+       than 1e-7 relative, a hundred times the round-off wobble of these fluxes near omega = 1 (about 1e-9), so the
+       kernels respond to omega in the physical range; these values are printed to 7 significant digits.
 
 Needs: torch and a pyharp built from source (derivation-checks/ch04/setup_env.sh).
 Run:   python3 check_ch02_clamp_pyharp.py [--work DIR]   (default: a fresh temporary directory). Exit status: failures.
@@ -134,8 +139,9 @@ def check_C1(work):
     dev_one = (spec - ref_one[:, :2]).abs().max().item()
     ok = held and kept and dev_clamped <= 1e-15 and dev_one > 1e-6
     return report(1, ok, f"double: prop omega for omega = 1 is {prop1[..., 1].max().item()!r} (want {want!r}: {held}); "
-                  f"for 0.5 unchanged: {kept}; band fluxes minus Toon at 1 - 1e-12: {dev_clamped:.1e}, "
-                  f"minus Toon at 1: {dev_one:.1e}")
+                  f"for 0.5 unchanged: {kept}; band fluxes minus Toon at 1 - 1e-12: "
+                  f"{'below 1e-15' if dev_clamped <= 1e-15 else f'{dev_clamped:.1e}'}; differ from Toon at omega = 1 "
+                  f"(round-off values, not printed) by more than 1e-6: {dev_one > 1e-6}")
 
 
 def check_C2(work):
@@ -147,14 +153,18 @@ def check_C2(work):
 
 
 def check_C3():
-    ws = [1.0, 1.0 - 1e-12, 1.0 - 1e-10, 1.0 - 1e-8, 1.0 - 1e-6, 1.0 - 1e-4]
+    import math
+    below_one = math.nextafter(1.0, 0.0)                 # 1 - 2^-53, the largest double below 1
+    ladder = [1.0 - 1e-12, 1.0 - 1e-6, 1.0 - 1e-4, 1.0 - 1e-2]
     rows, ok = [], True
     for name, planck in (("shortwave", False), ("longwave", True)):
-        toa = [toon_direct(w, nlyr=1, planck=planck)[-1, 0].item() for w in ws]
-        gaps = [abs(a - b) for i, a in enumerate(toa) for b in toa[i + 1:]]
-        ok &= min(gaps) > 0
-        rows.append(f"{name} F+(TOA) " + ", ".join(f"{x:.15e}" for x in toa) + f" (smallest pairwise gap {min(gaps):.1e})")
-    return report(3, ok, "Toon kernels respond to omega above 1 - 1e-4: " + "; ".join(rows))
+        differ = not torch.equal(toon_direct(1.0, nlyr=1, planck=planck), toon_direct(below_one, nlyr=1, planck=planck))
+        toa = [toon_direct(w, nlyr=1, planck=planck)[-1, 0].item() for w in ladder]
+        gaps = [abs(t / toa[0] - 1) for t in toa[1:]]
+        ok &= differ and min(gaps) > 1e-7
+        rows.append(f"{name}: outputs at 1 and 1 - 2^-53 differ: {differ}; F+(TOA) at 1 - 1e-12, 1 - 1e-6, 1 - 1e-4, "
+                    f"1 - 1e-2: " + ", ".join(f"{x:.7g}" for x in toa) + f" (relative gaps above 1e-7: {min(gaps) > 1e-7})")
+    return report(3, ok, "no cap in the Toon kernels: " + "; ".join(rows))
 
 
 def main():

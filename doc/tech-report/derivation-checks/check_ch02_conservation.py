@@ -104,7 +104,18 @@ def check_C8_basis():
 
 
 SW_KERNEL = "src/rtsolver/toon_mckay89_shortwave_impl.h"
-ROOT = Path(os.environ.get("PYHARP_WT", Path(__file__).resolve().parents[3]))
+def pyharp_root():
+    """The pyharp source tree: $PYHARP_WT if set; else the repository that holds this report (this file sits at
+    doc/tech-report/derivation-checks/, three levels below it). A copy elsewhere must set PYHARP_WT."""
+    if os.environ.get("PYHARP_WT"):
+        return Path(os.environ["PYHARP_WT"])
+    up = Path(__file__).resolve().parents
+    if len(up) < 4 or not (up[3] / "src" / "rtsolver").is_dir():
+        sys.exit(f"{Path(__file__).name}: no pyharp tree found three levels above this file; set PYHARP_WT")
+    return up[3]
+
+
+ROOT = pyharp_root()
 G0, Gb, ea, eb, As, btop, bsurf = sp.symbols("Gamma0 Gamma1 e0 e1 A_s b_top b_surf")
 Cpm1a, Cmm1a, Cpa, Cma, Cpm1b, Cmm1b, Cpb, Cmb = sp.symbols("Cpm1_0 Cmm1_0 Cp_0 Cm_0 Cpm1_1 Cmm1_1 Cp_1 Cm_1")
 

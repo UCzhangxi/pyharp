@@ -1,5 +1,8 @@
-[M39] clamp line commented out: check_ch02_clamp_pyharp exit 2, failing: [C1] [C2] ; text match [C24] PASS
-[M40] the clamp's guard if (nprop > 1) written if (false): check_ch02_clamp_pyharp exit 2, failing: [C1] [C2] ; text match [C24] PASS
-[M41] cap inside the longwave kernel: w0[k] = fmin(w0[k], 1.0 - 1.0e-12) before alp[k]: check_ch02_clamp_pyharp exit 1, failing: [C3] ; text match [C24] PASS
-[M38] control break: double-precision margin 1e-12 written 1e-10: check_ch02_clamp_pyharp exit 1, failing: [C1] ; text match [C24] FAIL
-[K0] control: source unchanged: check_ch02_clamp_pyharp exit 0, failing: none; text match [C24] PASS
+compilers: /bin/cc, /bin/c++ (c++ (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14))
+[M39] clamp line commented out: check_ch02_clamp_pyharp exit 2, failing: [C1] [C2]; expected: [C1] [C2]; OK; text match [C24] PASS
+[M40] the clamp's guard if (nprop > 1) written if (false): check_ch02_clamp_pyharp exit 2, failing: [C1] [C2]; expected: [C1] [C2]; OK; text match [C24] PASS
+[M41] cap inside the longwave kernel: w0[k] = fmin(w0[k], 1.0 - 1.0e-12) before alp[k]: check_ch02_clamp_pyharp exit 1, failing: [C3]; expected: [C3]; OK; text match [C24] PASS
+[M42] tighter cap inside the longwave kernel: w0[k] = fmin(w0[k], 1.0 - 1.0e-13) before alp[k]: check_ch02_clamp_pyharp exit 1, failing: [C3]; expected: [C3]; OK; text match [C24] PASS
+[M38] control break: double-precision margin 1e-12 written 1e-10: check_ch02_clamp_pyharp exit 1, failing: [C1]; expected: [C1]; OK; text match [C24] FAIL
+[K0] control: source unchanged: check_ch02_clamp_pyharp exit 0, failing: none; expected: none; OK; text match [C24] PASS
+ch02_clamp_breaks: 0 run(s) not as expected
