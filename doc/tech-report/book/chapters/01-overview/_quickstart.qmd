@@ -39,13 +39,17 @@ spectral grid of a band is set in Python because the YAML reader does not fill i
 The script evaluates the equations of @sec-ch01-pipeline; it adds one relation, the optical depth of a layer of a
 grey absorber. An opacity with a molar cross section $\sigma$ [$\mathrm{m^2\,mol^{-1}}$] in a gas of concentration
 $n$ [$\mathrm{mol\,m^{-3}}$] has the extinction coefficient $k = \sigma n$ [$\mathrm{m^{-1}}$], which is what the
-opacity module of the script returns. `RadiationBandImpl::forward` multiplies the summed extinction by the layer
-thickness $\Delta z$ [m] ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), so
-a layer has the optical depth
+opacity module of the script returns. Summed over the opacities and multiplied by the layer thickness
+$\Delta z$ [m], it gives the optical depth of a layer,
 
 $$
 \Delta\tau = \Delta z \sum_a \sigma_a n .
-$$
+$$ {#eq-ch01-quickstart-dtau}
+<!-- equation-check: eq-ch01-quickstart-dtau check_ch01_quickstart.py [C2] -->
+
+@eq-ch01-quickstart-dtau is computed in `RadiationBandImpl::forward`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), which sums the extinction
+coefficients the opacity modules return and multiplies by $\Delta z$.
 
 With $n = 40\ \mathrm{mol\,m^{-3}}$ and $\Delta z = 250$ m, the shortwave gas
 ($\sigma = 0.75\times10^{-4}\ \mathrm{m^2\,mol^{-1}}$) contributes $\sigma n\Delta z = 0.75$ and the haze
@@ -68,7 +72,8 @@ plain mean $0.3$.
 `derivation-checks/ch04/setup_env.sh` does both from public sources only: it makes a Python 3.11 virtual
 environment from a locked package list, downloads the torch 2.10.0 and pydisort wheels and checks their sha256,
 clones `chengcli/pyharp` at the pin of `code_pin.yml`, and builds and installs it with CMake (NetCDF on, CPU only).
-It needs a Linux x86_64 host with `python3.11`, `git`, a C++ compiler and the NetCDF C library, and takes about 15
+It needs a Linux x86_64 host with `python3.11`, `git`, a C++17 compiler (with GCC, version 9 or later: the torch
+2.10.0 headers pyharp compiles against stop the build for older GCC) and the NetCDF C library, and takes about 15
 minutes, most of it the build. From `doc/tech-report`:
 
 ```bash
@@ -196,18 +201,21 @@ make_fig()
 | `check_ch01_quickstart.py` `[C1]` | the code above runs and prints the output above | exact text | printed to 3 decimals |
 | `check_ch01_quickstart.py` `[C2]` | the shortwave layer: $\Delta\tau = 1$, $\omega = 0.25$, $g = 0.6$, from the two opacities | $10^{-15}$ relative | two products and a quotient |
 | `check_ch01_quickstart.py` `[C6]` | a band without a spectral grid is refused | message | `RadiationBandImpl::reset` |
-| `check_ch01_quickstart.py` `[C7]` | top: shortwave down $\mu_0F_0$, longwave down 0; surface: longwave up $\pi B$ | $10^{-14}$ relative | one series and a product |
+| `check_ch01_quickstart.py` `[C7]` | top: shortwave down $\mu_0F_0$, longwave down 0; surface: longwave up $\pi B$, against pyharp's band Planck function and an independent quadrature | $10^{-14}$; $3\times10^{-5}$ relative | one series and a product; pyharp's rounded constants |
 
 : Tests of the quick start. {#tbl-ch01-quickstart-tests}
 
 The check reads the three code blocks of this section from the chapter file, joins them, runs them in a fresh
-directory, and compares the printed lines with the output block above (`[C1]`); a change to the code or to a
-printed digit fails it. `[C7]` checks the boundary values a reader can work out by hand: the shortwave downward
-flux at the top is $\mu_0F_0 = 500\ \mathrm{W\,m^{-2}}$, nothing enters the longwave band from above, and the black
-surface emits $\pi B = 459.148600\ \mathrm{W\,m^{-2}}$, the band Planck function of 300 K between 1 and
-$3000\ \mathrm{cm^{-1}}$ (@sec-ch04-planck). The run was made on both pydisort pins with the same
-lines[^ch01-quickstart-run]. No
-pyharp test runs this script; the solver and band tests are cited in @sec-ch01-pipeline.
+directory, and compares the printed lines with the output block above (`[C1]`); a change to the code or to a printed
+digit fails it. `[C7]` checks the boundary values: the shortwave downward flux at the top is $\mu_0F_0 = 500\
+\mathrm{W\,m^{-2}}$, nothing enters the longwave band from above, and the black surface emits $\pi B$ of 300 K between
+1 and $3000\ \mathrm{cm^{-1}}$. pyharp's band Planck function, which uses rounded values of $c_2$ and $\sigma$ and a
+truncated series (@sec-ch04-planck), gives $459.148600\ \mathrm{W\,m^{-2}}$, and the solver's surface emission equals
+it to $10^{-14}$; an independent quadrature of the Planck function with the exact SI constants gives $459.152996\
+\mathrm{W\,m^{-2}}$, and `[C7]` requires the two to agree within $3\times10^{-5}$ relative (they differ by
+$-9.6\times10^{-6}$). A reader working the value out by hand gets the second number. The run was made on both pydisort
+pins with the same lines[^ch01-quickstart-run]. No pyharp test runs this script; the solver and band tests are cited
+in @sec-ch01-pipeline.
 
 [^ch01-quickstart-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/check_ch01_quickstart.py`,
     checks [C1], [C2], [C6] and [C7] (the quick-start column built in code); run: `python3 derivation-checks/check_ch01_quickstart.py`,
@@ -222,7 +230,7 @@ pyharp test runs this script; the solver and band tests are cited in @sec-ch01-p
 
 - **One column, CPU, double precision.** Many columns and CUDA: answered at @sec-ch09-toon.
 - **Toon bands only.** A DISORT band needs its stream count and boundary keys: answered at @sec-ch03-band.
-- **Grey opacities.** Real gas and particle opacities read data files: not provided: the opacity chapter is not
-  written at this pin.
+- **Grey opacities.** Real gas and particle opacities read data files: not provided: they belong to the opacity
+  chapter, not to this overview.
 - **The spectral grid is set in Python.** The YAML reader reads no weights or wavenumbers; the band options must be
   given them before `Radiation` is built, as in the third block.

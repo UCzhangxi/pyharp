@@ -21,10 +21,14 @@ reader sees.
        and weights (0.25, 0.75) returns sum_j w_j F_j of its `spectrum` buffer, to 1e-15 relative.
   [C5] Wavenumber mode (eq-ch01-pipeline-band): the same band on the wavenumber grid (10000, 12000, 20000) cm^-1
        returns the trapezoid rule over its `spectrum` buffer, to 1e-15 relative.
-  [C7] Boundary values of the quick-start column: the shortwave downward flux at the top is mu0 F0 = 500 W m-2, the
-       longwave downward flux at the top is 0, and the longwave upward flux at the black surface (`hard_surface`)
-       is pi times the band Planck function of the bottom level, pi * bbflux_wavenumber(1, 3000, 300 K), to 1e-14
-       relative (one exponential series and a product).
+  [C7] Boundary values of the quick-start column: the shortwave downward flux at the top is mu0 F0 = 500 W m-2 and
+       the longwave downward flux at the top is 0, to 1e-14 relative. The longwave upward flux at the black surface
+       (`hard_surface`) is checked twice: (a) internally, against pi * bbflux_wavenumber(1, 3000, 300 K), pyharp's
+       own band Planck function, to 1e-14 relative (the solver uses that function, so this shows the boundary
+       condition, not the Planck function); (b) independently, against pi times the integral of B_nu from 1 to
+       3000 cm-1 at 300 K by mpmath quadrature (30 digits) with the exact SI values of h, c and k, to 3e-5 relative:
+       pyharp's series uses rounded c2 and sigma and six exponential terms, which put its band values within about
+       1e-5 of the quadrature here (chapter 4, band Planck function); 3e-5 leaves a factor of three.
   [C6] A band with neither weights nor a wavenumber grid is refused when Radiation is built, with the message of
        RadiationBandImpl::reset ("Either 'wavenumber' or 'weight' must be set").
 
@@ -197,14 +201,28 @@ def check_C6(work):
                   f"band sw\": {ok}")
 
 
+def planck_band_quadrature(lo, hi, temp):
+    """pi * integral of B_nu [W m-2 sr-1 (cm-1)-1] over [lo, hi] cm-1, exact SI h, c, k, 30 digits (independent of
+    pyharp)."""
+    import mpmath as mp
+    with mp.workdps(30):
+        h, c, k = mp.mpf("6.62607015e-34"), mp.mpf("299792458"), mp.mpf("1.380649e-23")
+        b = lambda nu: 2 * h * c**2 * (100 * nu)**3 / mp.expm1(h * c * 100 * nu / (k * temp)) * 100
+        return float(mp.pi * mp.quad(b, mp.linspace(lo, hi, 7)))
+
+
 def check_C7(ns):
     sp = ns["rad"].spectra[:, 0]                        # (nband, nlev, 4), level 0 = surface
-    pib = math.pi * pyharp.bbflux_wavenumber(1.0, 3000.0, torch.tensor([300.0])).item()
-    errs = [abs(sp[0, -1, 1].item() / 500.0 - 1), abs(sp[1, -1, 1].item()), abs(sp[1, 0, 0].item() / pib - 1)]
-    ok = max(errs) <= 1e-14
+    pib = math.pi * pyharp.bbflux_wavenumber(1.0, 3000.0, torch.tensor([300.0], dtype=torch.float64)).item()
+    quad = planck_band_quadrature(1, 3000, 300)
+    up = sp[1, 0, 0].item()
+    errs = [abs(sp[0, -1, 1].item() / 500.0 - 1), abs(sp[1, -1, 1].item()), abs(up / pib - 1)]
+    indep = up / quad - 1
+    ok = max(errs) <= 1e-14 and abs(indep) <= 3e-5
     return report(7, ok, f"shortwave down at the top {sp[0, -1, 1].item():.6f} (mu0 F0 = 500); longwave down at the top "
-                  f"{sp[1, -1, 1].item():.1f}; longwave up at the surface {sp[1, 0, 0].item():.6f} against pi B = "
-                  f"{pib:.6f}; relative differences {bound(max(errs), 1e-14)}")
+                  f"{sp[1, -1, 1].item():.1f}; longwave up at the surface {up:.6f}: (a) against pyharp's pi B = "
+                  f"{pib:.6f}, relative differences {bound(max(errs), 1e-14)}; (b) against the independent quadrature "
+                  f"{quad:.6f}, relative difference {indep:+.1e} (tol 3e-5)")
 
 
 def main():

@@ -10,5 +10,5 @@ device: CPU, precision: float64, threads: 1
 [C4] PASS weights [0.25, 0.75]: band flux minus sum_j w_j F_j, relative below 1e-15; the two spectral points differ: True
 [C5] PASS wavenumbers [10000.0, 12000.0, 20000.0] cm-1: band flux minus the trapezoid rule, relative below 1e-15
 [C6] PASS band without a spectral grid: refused with "Either 'wavenumber' or 'weight' must be set in band sw": True
-[C7] PASS shortwave down at the top 500.000000 (mu0 F0 = 500); longwave down at the top 0.0; longwave up at the surface 459.148600 against pi B = 459.148600; relative differences below 1e-14
+[C7] PASS shortwave down at the top 500.000000 (mu0 F0 = 500); longwave down at the top 0.0; longwave up at the surface 459.148600: (a) against pyharp's pi B = 459.148600, relative differences below 1e-14; (b) against the independent quadrature 459.152996, relative difference -9.6e-06 (tol 3e-5)
 check_ch01_quickstart: 7 of 7 claims pass

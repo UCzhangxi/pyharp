@@ -1,5 +1,6 @@
 #!/bin/bash
-# Source-break runs for check [C2] of check_ch01_quickstart.py (the mixing rule of RadiationBandImpl::forward).
+# Source-break runs for checks [C2] (the mixing rule of RadiationBandImpl::forward) and [C7] (the band Planck
+# function, src/radiation/bbflux.cpp) of check_ch01_quickstart.py.
 # usage: ch01_breaks.sh ENV WORK [CHECK]   (ENV made by derivation-checks/ch04/setup_env.sh; WORK a scratch directory;
 #        CHECK another copy of check_ch01_quickstart.py, laid out as derivation-checks/ next to its book/, to compare)
 # WORK/pyharp is a git worktree of ENV/pyharp at its commit and WORK/venv a copy of ENV/venv; neither ENV is changed.
@@ -10,7 +11,10 @@
 #   M1  plain mean: the band albedo is the unweighted mean of the opacities' albedos; the phase moments keep their
 #       weights, so only omega changes (the mutant the review of the chapter found green);
 #   M2  complement: the band albedo written 1 - (weighted mean); for the quick start's gas and haze this equals the
-#       mean with the two extinctions exchanged, and again only omega changes.
+#       mean with the two extinctions exchanged, and again only omega changes;
+#   M3  rounded Stefan-Boltzmann constant: SIGMA = 5.67e-8 for 5.67032e-8 in both band Planck functions, which moves
+#       the band Planck function by about -6e-5; [C7] (a) compares with that same function and cannot see it, (b)
+#       compares with an independent quadrature.
 # K0 rebuilds the unchanged source last, so WORK ends with the build of the pin; the md5 of the restored source file
 # is printed after it. The script exits with the number of runs that are not OK.
 set -u
@@ -19,7 +23,7 @@ E=$(cd "$1" && pwd); mkdir -p "$2"; W=$(cd "$2" && pwd)
 S="$W/pyharp"; PY="$W/venv/bin/python"
 SHA=$(git -C "$E/pyharp" rev-parse HEAD)
 CK=$(cd "$(dirname "${3:-$D/check_ch01_quickstart.py}")" && pwd)/$(basename "${3:-check_ch01_quickstart.py}")
-RB=src/radiation/radiation_band.cpp
+RB=src/radiation/radiation_band.cpp; BB=src/radiation/bbflux.cpp
 
 # compilers of ENV's build
 CC=$(sed -n 's/^CMAKE_C_COMPILER:FILEPATH=//p' "$E/pyharp/build/CMakeCache.txt")
@@ -88,8 +92,10 @@ run M1 "plain mean of the albedos (the moments still weighted)" '[C1] [C2]' \
   "$RB" 's|scattering.copy_(divide_where_positive(scattering, extinction));|scattering.copy_(plain_ssa / static_cast<double>(opacities.size()));|'
 run M2 "complement of the weighted mean (the two extinctions exchanged, for two opacities)" '[C1] [C2]' \
   "$RB" 's|scattering.copy_(divide_where_positive(scattering, extinction));|scattering.copy_(1.0 - divide_where_positive(scattering, extinction));|'
+run M3 "Stefan-Boltzmann constant rounded to 5.67e-8 in the band Planck function" '[C1] [C7]' \
+  "$BB" 's|const double SIGMA = 5.67032e-8;|const double SIGMA = 5.67e-8;|'
 run K0 "control: source unchanged" ''
 git -C "$S" checkout -q -- src
-echo "restored: $RB md5 $(md5sum < "$S/$RB" | cut -d' ' -f1), git diff of src: $(git -C "$S" diff --stat -- src | wc -l) lines"
+echo "restored: $RB md5 $(md5sum < "$S/$RB" | cut -d' ' -f1), $BB md5 $(md5sum < "$S/$BB" | cut -d' ' -f1), git diff of src: $(git -C "$S" diff --stat -- src | wc -l) lines"
 echo "ch01_breaks: $bad run(s) not as expected"
 exit $bad
