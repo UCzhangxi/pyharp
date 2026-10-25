@@ -85,7 +85,7 @@ The checks themselves are files of this report, not of pyharp, and are listed in
 | `derivation-checks/ch10/model_probe/run.sh` | energy of one `RadiationModel` step, its clamp | $10^{-10}$ | @tbl-ch10-invariants-tests |
 | `derivation-checks/ch10/floor_inventory.py` | every guard of the compiled sources listed | 0 unlisted | inventory |
 | `derivation-checks/ch10/break_tests.py` | each check red with its term or floor removed | red or green | @tbl-ch10-invariants-breaks |
-| `derivation-checks/check_ch01_quickstart.py` | the quick start of @sec-ch01-quickstart prints what the chapter shows; band and column sums | exact text; $10^{-14}$ | @tbl-ch01-quickstart-tests |
+| `derivation-checks/check_ch01_quickstart.py` | the quick start of @sec-ch01-quickstart prints what the chapter shows; band and column sums; boundary values | exact text; $10^{-15}$ to $10^{-14}$; $3\times10^{-5}$ against quadrature | @tbl-ch01-quickstart-tests |
 
 : Executable checks of the report in this tree. {#tbl-ch10-index-checks}
 

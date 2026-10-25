@@ -3,8 +3,8 @@
 Cartoon; no data. The pipeline follows `RadiationImpl::forward` (src/radiation/radiation.cpp) and
 `RadiationBandImpl::forward` (src/radiation/radiation_band.cpp) at the pin of code_pin.yml: opacity modules, the
 assembly of the solver input, the solver (DISORT through pydisort, or Toon), the sum over spectral points, and the sum
-over bands. Each box names the chapter that documents the step; steps whose chapter is a stub at this pin are drawn grey and
-dashed. The caption carries the chapter references.
+over bands. Each box names the chapter that documents the step; the figure states no chapter's status, so it stays
+true as chapters are written. The caption carries the chapter references.
 """
 from matplotlib.patches import FancyBboxPatch
 
@@ -25,12 +25,11 @@ def make_fig():
     fig, ax = fs.new_figure("double", 2.8)
     fs.cartoon(ax)
     xs = [-6.0, -3.0, 0.0, 3.0, 6.0]
-    steps = ["opacities\n(opacity chapter,\nnot written)", "solver input:\n$\\Delta\\tau$, $\\omega$, moments\n(assembly, stub)",
-             "solver\nDISORT or Toon\n(two chapters)", "sum over\nspectral points\n(assembly, stub)",
-             "sum over bands,\nnet flux\n(API, stub)"]
-    colors = [fs.GREY, fs.GREY, fs.GREEN, fs.GREY, fs.GREY]
-    for x, t, c in zip(xs, steps, colors):
-        _box(ax, x, 1.2, 2.7, t, c, "-" if c == fs.GREEN else "--", h=1.2)
+    steps = ["opacities\n(opacity chapter)", "solver input:\n$\\Delta\\tau$, $\\omega$, moments\n(assembly chapter)",
+             "solver\nDISORT or Toon\n(two chapters)", "sum over\nspectral points\n(assembly chapter)",
+             "sum over bands,\nnet flux\n(API chapter)"]
+    for x, t in zip(xs, steps):
+        _box(ax, x, 1.2, 2.7, t, fs.GREEN, h=1.2)
     for a, b in zip(xs[:-1], xs[1:]):
         _arrow(ax, (a + 1.42, 1.2), (b - 1.42, 1.2))
     _box(ax, 0.0, 3.25, 4.6, "two-stream theory: equations, closures,\ndelta scaling, conservation", fs.GREEN, h=0.9)

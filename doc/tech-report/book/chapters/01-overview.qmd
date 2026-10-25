@@ -7,8 +7,8 @@ printed output is checked. Notation follows @sec-ch02.
 
 ```{python}
 #| label: fig-ch01-map
-#| fig-cap: "The steps of a flux calculation in pyharp, in the order they run (arrows), and the chapters that document them. Green boxes are written: the solvers (@sec-ch03, @sec-ch04) built on the two-stream theory of @sec-ch02, and, across the whole pipeline, solver accuracy (@sec-ch05), GPU and batching (@sec-ch09-toon, @sec-ch09-disort) and tests (@sec-ch10). Grey dashed boxes are steps whose chapter is a stub at this pin (@sec-ch07, @sec-ch08) or not written (opacities)."
-#| fig-alt: "Five boxes in a row joined by arrows: opacities, solver input, solver, sum over spectral points, sum over bands. Only the solver box is green; the others are grey and dashed. A green box above the solver reads two-stream theory, with an arrow down to the solver. Below the row a bracket labelled across the whole pipeline spans three green boxes: solver accuracy, GPU and batching, tests, CI, bindings."
+#| fig-cap: "The steps of a flux calculation in pyharp, in the order they run (arrows), and the chapters that document them. The opacities are the subject of the opacity chapter, the solver input and the sum over spectral points of @sec-ch07, the solvers of @sec-ch03 and @sec-ch04, built on the two-stream theory of @sec-ch02, and the sum over bands of @sec-ch08; across the whole pipeline are solver accuracy (@sec-ch05), GPU and batching (@sec-ch09-toon, @sec-ch09-disort) and tests (@sec-ch10)."
+#| fig-alt: "Five boxes in a row joined by arrows: opacities, solver input, solver, sum over spectral points, sum over bands, each naming the chapter that documents it. A green box above the solver reads two-stream theory, with an arrow down to the solver. Below the row a bracket labelled across the whole pipeline spans three green boxes: solver accuracy, GPU and batching, tests, CI, bindings."
 #| echo: false
 from pyharp_report.ch01.figures.fig_chapter_map import make_fig
 make_fig()

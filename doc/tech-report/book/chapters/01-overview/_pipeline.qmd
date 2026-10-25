@@ -40,12 +40,12 @@ wavenumber [$\mathrm{cm^{-1}}$]; $b$, index of a band; $F^{\uparrow}$, $F^{\down
 a level as the solvers return them, the downward one including the direct beam [$\mathrm{W\,m^{-2}}$];
 $F_{\mathrm{net}} = F^{\uparrow} - F^{\downarrow}$ [$\mathrm{W\,m^{-2}}$].
 
-Of the packages pyharp is used with, it depends on one: pydisort, which provides the DISORT solver
-(`pydisort>=1.7.1` in {{< code pyproject.toml repo=pyharp >}}); the Toon solver is part of pyharp. kintera and
-snapy are not dependencies. The example `run_sub_neptune_rt.py` shows how the three meet: snapy holds the
-atmosphere's state on its mesh, kintera turns temperature, pressure and mole fractions into the concentrations pyharp
-needs, and pyharp's net flux becomes a heating rate that the example adds to snapy's energy equation
-(`_compute_rt_heating`, {{< code examples/run_sub_neptune_rt.py _compute_rt_heating repo=pyharp >}}).
+Of pydisort, kintera and snapy, pyharp depends only on pydisort, which provides the DISORT solver (`pydisort>=1.7.1`
+in {{< code pyproject.toml repo=pyharp >}}, which also lists pyharp's other Python dependencies); the Toon solver is
+part of pyharp. kintera and snapy are not dependencies. The example `run_sub_neptune_rt.py` shows how the three meet:
+snapy holds the atmosphere's state on its mesh, kintera turns temperature, pressure and mole fractions into the
+concentrations pyharp needs, and pyharp's net flux becomes a heating rate that the example adds to snapy's energy
+equation (`_compute_rt_heating`, {{< code examples/run_sub_neptune_rt.py _compute_rt_heating repo=pyharp >}}).
 
 ### Derivation
 
@@ -66,8 +66,9 @@ $$ {#eq-ch01-pipeline-prop}
 @eq-ch01-pipeline-prop is computed in `RadiationBandImpl::forward`
 ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}), which sums
 $\omega_a k_a$ and $\chi_{a,n}\omega_a k_a$ first and divides through `divide_where_positive`, so a layer with no
-extinction gets $\omega = 0$ and a layer with no scattering gets $\chi_n = 0$. When the band carries an albedo, the
-same function then caps $\omega$ at $1 - \delta\omega$ (@sec-ch02-conservation).
+extinction gets $\omega = 0$ and a layer with no scattering gets $\chi_n = 0$. When the band's optical properties include
+an albedo channel (`nprop > 1`), the same function then replaces $\omega$ by $\min(\omega, 1 - \delta\omega)$, with
+$\delta\omega = 10^{-12}$ in double precision and $10^{-6}$ otherwise, before the solver runs (@sec-ch02-conservation).
 
 **Step 2: the flux of a band.** The solver returns $F^{\uparrow}_j$ and $F^{\downarrow}_j$ at every level for each
 spectral point $j$. A band either has weights $w_j$ (for example the weights of a correlated-k quadrature) or a
@@ -127,9 +128,8 @@ from pyharp_report.ch01.figures.fig_pipeline_shapes import make_fig
 make_fig()
 ```
 
-Where each step is documented is listed in @tbl-ch01-pipeline-map. The chapters on opacities, on the assembly
-of the solver input and on the configuration interface are not written at this pin; for those steps the Code layer
-below cites the functions.
+Where each step is documented is listed in @tbl-ch01-pipeline-map; the Code layer below cites the functions of
+every step.
 
 | chapter | what it answers | step |
 |---|---|---|
@@ -137,12 +137,13 @@ below cites the functions.
 | @sec-ch03 | how a band is handed to DISORT and what DISORT solves | solver |
 | @sec-ch04 | the Toon two-stream solver, shortwave and longwave, and the band Planck function | solver |
 | @sec-ch05 | how accurate the two solvers are, against a converged reference | accuracy |
-| @sec-ch07 | assembly of the solver input and spectral integration (stub at this pin) | Steps 1, 2 |
-| @sec-ch08 | configuration, the Python interface and coupling (stub at this pin) | Step 3 |
+| the opacity chapter | the opacity modules a band can use, and their data | opacities |
+| @sec-ch07 | assembly of the solver input and spectral integration | Steps 1, 2 |
+| @sec-ch08 | configuration, the Python interface and coupling | Step 3 |
 | @sec-ch09-toon, @sec-ch09-disort | many columns at once, and CPU against CUDA | batching |
 | @sec-ch10 | pyharp's own tests and CI, its bindings, and every check of this report | evidence |
 
-: Where each step of the pipeline is documented. The opacity chapter is not written at this pin. {#tbl-ch01-pipeline-map}
+: Where each step of the pipeline is documented. {#tbl-ch01-pipeline-map}
 
 ### Code
 
@@ -166,8 +167,7 @@ below cites the functions.
    ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}).
 4. `sum_spectrum` applies @eq-ch01-pipeline-band ({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}).
 5. `RadiationImpl::forward` sums the bands and returns @eq-ch01-pipeline-net; when the atmosphere input carries
-   `area`, it also scales the fluxes for a spherical shell (not provided: the configuration chapter is a stub at
-   this pin).
+   `area`, it also scales the fluxes for a spherical shell (answered at @sec-ch08-spherical).
 
 ### Tests
 
@@ -192,11 +192,12 @@ differ and the weights matter. All pass on both pydisort pins with the same line
 themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own tests are listed in @sec-ch10-test-suite.
 
 [^ch01-pipeline-run]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck:
-    `derivation-checks/check_ch01_quickstart.py`, checks [C2]-[C5] (the quick-start column and a three-point test
-    band, built in code); run: `python3 derivation-checks/check_ch01_quickstart.py`, CPU, double, one thread; Python
-    3.11.13, torch 2.10.0+cu128, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1 and, separately,
-    1.8.13, with identical claim lines, environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort
-    version>`; regenerate with `bash derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
+    `derivation-checks/check_ch01_quickstart.py`, checks [C2]-[C5] (the quick-start column, a two-point weight band
+    for [C4] and a three-point wavenumber band for [C5], built in code); run: `python3
+    derivation-checks/check_ch01_quickstart.py`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, pyharp
+    2.7.8 built from source at the pin against pydisort 1.7.1 and, separately, 1.8.13, with identical claim lines,
+    environments built by `derivation-checks/ch04/setup_env.sh <dir> <pydisort version>`; regenerate with `bash
+    derivation-checks/ch01_run.sh <env 1.7.1> <env 1.8.13>`; outputs
     `derivation-checks/check_ch01_quickstart_pydisort171.out` and `_pydisort1813.out`; [C2] against pyharp rebuilt
     with the mixing rule broken (plain mean; complement, equal to the swapped weights):
     `derivation-checks/ch01_breaks.sh`, outputs `derivation-checks/ch01_breaks_pydisort171.out` and
@@ -206,7 +207,6 @@ themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own tests 
 
 - **One precision per call.** The band's buffers are double precision unless the module is moved to another type;
   single precision is answered at @sec-ch09-toon.
-- **Spherical scaling.** The scaling applied when `area` is given: not provided: the configuration chapter is a
-  stub at this pin.
+- **Spherical scaling.** The scaling applied when `area` is given: answered at @sec-ch08-spherical.
 - **Opacity types.** The opacity modules a band can use are the types `RadiationBandImpl::reset` creates; their
-  physics: not provided: the opacity chapter is not written at this pin.
+  physics: not provided: it belongs to the opacity chapter, not to this overview.
