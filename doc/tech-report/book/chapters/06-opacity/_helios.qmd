@@ -1,0 +1,41 @@
+## The Helios table (`type: helios`): refused when the band is built {#sec-ch06-helios}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml)
+sources: src/opacity/helios.cpp, src/opacity/helios.hpp, src/radiation/radiation_band.cpp,
+  tests/test_helios_ck_read.cpp, tests/CMakeLists.txt
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+pyharp contains a module that reads a correlated-k table from a text file, named after the HELIOS code
+[@reading17]: `HeliosImpl`,
+and `RadiationBandImpl::reset` builds it for `type: helios`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}). No band can use it. The
+constructor checks the type with `options->type().compare(0, 3, "helios") == 0`
+({{< code src/opacity/helios.cpp HeliosImpl::HeliosImpl repo=pyharp >}}). That compares the first three characters
+of the type, `hel`, with the six-character string `helios`; the two are never equal, so the check fails for every
+non-empty type. The type `helios` is therefore refused with "Mismatch opacity type: helios", and any other spelling
+never reaches the module, because `RadiationBandImpl::reset` refuses it first as an unknown type. Check
+`check_ch06_sources.py` [C4] shows both: `helios` gives the mismatch message; `helios-ck`, `hel` and `Helios` give
+"Unknown opacity type".[^ch06-hel-run]
+
+Python has no class for the module (`pyharp.opacity` does not export it), so it cannot be built with an empty type
+either. Read past the type check, the code would fail again: `HeliosImpl::reset` assigns the g-point weights
+element by element to the member `weights`, which it never allocates
+({{< code src/opacity/helios.cpp HeliosImpl::reset repo=pyharp >}}), and `HeliosImpl::forward` multiplies the table
+by the concentration of species 0 rather than the configured species, under a comment that the units are still to
+be checked ({{< code src/opacity/helios.cpp HeliosImpl::forward repo=pyharp >}}). These two are read from the code
+and not run. The test file `tests/test_helios_ck_read.cpp` belongs to an older code base (it includes headers that
+pyharp does not have) and is not listed in `tests/CMakeLists.txt`, so ctest does not build it.
+
+A reader who wants a correlated-k table in pyharp at the pin has the pre-mixed table of @sec-ch06-picaso. A reader
+of HELIOS tables finds no working reader in pyharp at the pin.
+
+[^ch06-hel-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the bands of `derivation-checks/check_ch06_sources.py` [C4]; run:
+`python3 derivation-checks/check_ch06_sources.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126; pyharp built
+on the CPU by `derivation-checks/ch06_setup.sh` (gcc 11.5.0); output
+`derivation-checks/check_ch06_sources_pydisort171.out`, line [C4]; `check_ch06_sources_pydisort1813.out` holds
+the same line.]

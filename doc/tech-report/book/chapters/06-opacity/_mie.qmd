@@ -1,0 +1,303 @@
+## Liquid-water droplets by Lorenz-Mie theory (`type: water-liquid-mie`) {#sec-ch06-mie}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml)
+sources: src/opacity/water_liquid_mie.cpp, src/opacity/water_liquid_mie_impl.h, src/opacity/water_liquid_mie.hpp,
+  src/opacity/scattering_functions.cpp, python/data/opacity/cloud/segelstein_water.txt
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+Cloud droplets are spheres of water whose size is comparable to the wavelength, so neither the small-particle law
+of @sec-ch06-rayleigh nor geometric optics describes them. Lorenz-Mie theory solves the scattering of a plane wave
+by a homogeneous sphere exactly, as an infinite series of multipole terms. The liquid-water source
+(`type: water-liquid-mie`) evaluates that series for droplets of one radius, takes the refractive index of water
+from a table, and turns the droplet efficiencies into the extinction coefficient, single-scattering albedo and
+phase moments of a layer that holds a given amount of liquid water.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** $k$ by @eq-ch06-mie-k from the Mie efficiencies @eq-ch06-mie-q; moments by @eq-ch06-mie-hg.
+
+**Data.** Liquid-water concentration [$\mathrm{mol\,m^{-3}}$] and droplet radius `re` [$\mu\mathrm{m}$] in.
+
+**Placement.** One source of a band; evaluated at every band forward call.
+
+**Activation.** `type: water-liquid-mie`, one species, `nmom` $\ge 1$; `re` required at forward; off unless listed.
+
+**Guarantee / limits.** Matches an independent reference to $10^{-9}$ for $x \ge 0.18$; see Limits below.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $r$, droplet radius [$\mu\mathrm{m}$ in @eq-ch06-mie-x, m in @eq-ch06-mie-k]; $x$, size
+parameter [-]; $m = n_{\mathrm{r}} - \mathrm{i}\,n_{\mathrm{i}}$, complex refractive index of water [-], with
+$n_{\mathrm{r}} > 0$ and the absorption index $n_{\mathrm{i}} \ge 0$; $a_j$, $b_j$, the Mie coefficients of order
+$j$ [-]; $N$, the last order kept [count]; $\psi_j$, $\xi_j$, Riccati-Bessel functions [-]; $D_j$, the logarithmic
+derivative $\psi_j'/\psi_j$ at $mx$ [-]; $Q_{\mathrm{ext}}$, $Q_{\mathrm{sca}}$, $Q_{\mathrm{abs}}$, extinction,
+scattering and absorption efficiencies [-]; $g$, asymmetry parameter [-]; $\alpha$, the polarisability factor of
+@eq-ch06-mie-small [-]; $\rho_{\mathrm{w}}$, density of liquid water [$\mathrm{kg\,m^{-3}}$]; $M$, molar mass of
+water [$\mathrm{kg\,mol^{-1}}$]; $c$, molar concentration of liquid water [$\mathrm{mol\,m^{-3}}$]; $k$, $\omega$,
+$\chi_l$, $\lambda$ as in @sec-ch06-sources.
+
+### Derivation
+
+**Size parameter.** A droplet of radius $r$ in light of wavelength $\lambda$ (both in $\mu\mathrm{m}$) has the size
+parameter
+
+$$
+x = \frac{2\pi r}{\lambda} ,
+$$ {#eq-ch06-mie-x}
+<!-- equation-check: eq-ch06-mie-x check_ch06_mie.py [C3] -->
+
+computed in `mie_size_parameter`
+({{< code src/opacity/water_liquid_mie_impl.h mie_size_parameter repo=pyharp >}}). The efficiencies depend only on
+$x$ and $m$.
+
+**Efficiencies from the Mie coefficients.** For a homogeneous sphere, the field outside is a sum of multipoles of
+order $j = 1, 2, \dots$ with the electric and magnetic coefficients $a_j$ and $b_j$ (Bohren and Huffman 1983,
+eq. 4.53). The extinction and scattering efficiencies, the cross sections divided by the geometric cross section
+$\pi r^2$, are (their eqs. 4.61 and 4.62; Wiscombe 1980, eqs. 1a and 1b)
+
+$$
+\begin{aligned}
+Q_{\mathrm{ext}} &= \frac{2}{x^2} \sum_{j=1}^{N} (2j+1)\,\mathrm{Re}\,(a_j + b_j) \\
+Q_{\mathrm{sca}} &= \frac{2}{x^2} \sum_{j=1}^{N} (2j+1)\,\bigl(|a_j|^2 + |b_j|^2\bigr) ,
+\end{aligned}
+$$ {#eq-ch06-mie-q}
+<!-- equation-check: eq-ch06-mie-q check_ch06_mie.py [C1] -->
+
+@eq-ch06-mie-q is computed in `mie_efficiency_device`
+({{< code src/opacity/water_liquid_mie_impl.h mie_efficiency_device repo=pyharp >}}). The asymmetry parameter, the
+mean cosine of the scattering angle, is given by Bohren and Huffman's equation 4.74 and Wiscombe's equation 1c:
+
+$$
+g = \frac{4}{x^2 Q_{\mathrm{sca}}} \left[ \sum_{j=1}^{N-1} \frac{j(j+2)}{j+1}\,
+      \mathrm{Re}\bigl(a_j a_{j+1}^{*} + b_j b_{j+1}^{*}\bigr)
+    + \sum_{j=1}^{N} \frac{2j+1}{j(j+1)}\,\mathrm{Re}\bigl(a_j b_j^{*}\bigr) \right] ,
+$$ {#eq-ch06-mie-g}
+<!-- equation-check: eq-ch06-mie-g check_ch06_mie.py [C1] -->
+
+with $^{*}$ the complex conjugate. @eq-ch06-mie-g is computed in the same function
+({{< code src/opacity/water_liquid_mie_impl.h mie_efficiency_device repo=pyharp >}}), which also enforces
+$Q_{\mathrm{ext}} \ge Q_{\mathrm{sca}}$ by setting $Q_{\mathrm{ext}} \leftarrow Q_{\mathrm{sca}}$ when round-off
+inverts them, and clamps $g$ to $[-0.999999, 0.999999]$.
+
+**The coefficients.** With the Riccati-Bessel functions $\psi_j(x) = x\,j_j(x)$ and $\xi_j(x)$, built from the
+spherical Bessel functions of the first and second kind, and $D_j$ the logarithmic derivative of $\psi_j$ at $mx$,
+the coefficients are
+
+$$
+\begin{aligned}
+a_j &= \frac{\left(D_j/m + j/x\right)\psi_j(x) - \psi_{j-1}(x)}{\left(D_j/m + j/x\right)\xi_j(x) - \xi_{j-1}(x)} \\
+b_j &= \frac{\left(m D_j + j/x\right)\psi_j(x) - \psi_{j-1}(x)}{\left(m D_j + j/x\right)\xi_j(x) - \xi_{j-1}(x)} .
+\end{aligned}
+$$ {#eq-ch06-mie-ab}
+<!-- equation-check: eq-ch06-mie-ab check_ch06_mie.py [C1] -->
+
+This is Bohren and Huffman's eq. 4.88, which follows from their eq. 4.53 by writing the derivatives of $\psi_j$ at
+$mx$ through $D_j$. The code advances $\psi_j$ and $\xi_j$ with the three-term recurrence
+$\psi_{j+1} = (2j+1)\,\psi_j/x - \psi_{j-1}$ (the same for $\xi_j$) from $\psi_0 = \sin x$,
+$\psi_1 = \sin x/x - \cos x$.
+
+**The series is truncated.** The code keeps the orders $j \le N$ with Wiscombe's criterion,
+
+$$
+N = \left\lfloor x + 4.05\,x^{1/3} + 2 \right\rfloor ,
+$$ {#eq-ch06-mie-nstop}
+<!-- equation-check: eq-ch06-mie-nstop check_ch06_mie.py [C1] -->
+
+which Wiscombe (1980) gives for $8 < x < 4200$; the code applies it at every $x$. It is computed in `mie_nstop` ({{< code src/opacity/water_liquid_mie_impl.h mie_nstop repo=pyharp >}}).
+
+**Small droplets.** For $x \ll 1$ only the electric dipole term survives. To leading order in $x$, with
+$\alpha = (m^2 - 1)/(m^2 + 2)$, the coefficient is $a_1 = -\tfrac{2\mathrm{i}}{3}\,x^3\alpha^{*}$ in the
+convention of Bohren and Huffman (sec. 5.1), whose refractive index is the complex conjugate of ours; $b_1$ and the
+higher orders are $O(x^5)$. Since $\mathrm{Re}\,(-\mathrm{i}\,\alpha^{*}) = -\mathrm{Im}\,\alpha$, inserting $a_1$
+into @eq-ch06-mie-q gives, to leading order,
+
+$$
+\begin{aligned}
+Q_{\mathrm{sca}} &= \frac{2}{x^2}\cdot 3\,|a_1|^2 = \frac{8}{3}\,x^4\,|\alpha|^2 \\
+Q_{\mathrm{abs}} &= \frac{2}{x^2}\cdot 3\,\mathrm{Re}\,a_1 = -4x\,\mathrm{Im}\,\alpha \\
+Q_{\mathrm{ext}} &= Q_{\mathrm{sca}} + Q_{\mathrm{abs}} ,
+\end{aligned}
+$$ {#eq-ch06-mie-small}
+<!-- equation-check: eq-ch06-mie-small check_ch06_mie.py [C2] -->
+
+with $g = 0$; $\mathrm{Im}\,\alpha \le 0$ when $n_{\mathrm{i}} \ge 0$, so $Q_{\mathrm{abs}} \ge 0$. The neglected
+terms are smaller by a factor of order $x^2$. `mie_efficiency_device` uses @eq-ch06-mie-small for $x < 10^{-3}$
+({{< code src/opacity/water_liquid_mie_impl.h mie_efficiency_device repo=pyharp >}}).
+
+**From efficiencies to the optical properties of a layer.** One droplet has the extinction cross section
+$Q_{\mathrm{ext}}\pi r^2$ and the mass $\tfrac43\pi r^3\rho_{\mathrm{w}}$, so its extinction per unit mass of water
+is $3Q_{\mathrm{ext}}/(4\rho_{\mathrm{w}} r)$. A layer with $c$ moles of liquid water per cubic metre holds $cM$
+kilograms of it, so
+
+$$
+k = c\,M\,\frac{3\,Q_{\mathrm{ext}}}{4\,\rho_{\mathrm{w}}\, r} ,
+$$ {#eq-ch06-mie-k}
+<!-- equation-check: eq-ch06-mie-k check_ch06_mie.py [C3] -->
+
+with $r$ in metres, $M$ the molar mass of the configured species and $\rho_{\mathrm{w}} = 997\,\mathrm{kg\,m^{-3}}$
+unless `water_density` is given. The albedo is $\omega = Q_{\mathrm{sca}}/Q_{\mathrm{ext}}$. Both are computed in
+`water_liquid_mie_properties_from`
+({{< code src/opacity/water_liquid_mie_impl.h water_liquid_mie_properties_from repo=pyharp >}}).
+
+**Phase moments.** The source does not return the Mie phase function. It returns the moments of a
+Henyey-Greenstein phase function with the Mie asymmetry parameter,
+
+$$
+\chi_l = g^{\,l}, \qquad l = 1, \dots, n_{\mathrm{mom}} ,
+$$ {#eq-ch06-mie-hg}
+<!-- equation-check: eq-ch06-mie-hg check_ch06_mie.py [C4] -->
+
+so the first moment is exact and the higher ones are those of the Henyey-Greenstein shape; this is done in
+`MieWaterLiquidImpl::forward` with `henyey_greenstein`
+({{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::forward repo=pyharp >}}).
+
+**The refractive index of water.** Unless the caller overrides it, $m$ comes from the table of Segelstein (1981),
+854 rows of $\lambda$, $n_{\mathrm{r}}$, $n_{\mathrm{i}}$ from 0.1 to 1000 $\mu\mathrm{m}$. Between the rows
+$\lambda_0 \le \lambda \le \lambda_1$ it interpolates in $\ln\lambda$, linearly for $n_{\mathrm{r}}$ and for
+$\ln n_{\mathrm{i}}$:
+
+$$
+\begin{aligned}
+\phi &= \frac{\ln\lambda - \ln\lambda_0}{\ln\lambda_1 - \ln\lambda_0} \\
+n_{\mathrm{r}} &= n_{\mathrm{r},0} + \phi\,(n_{\mathrm{r},1} - n_{\mathrm{r},0}) \\
+\ln n_{\mathrm{i}} &= \ln n_{\mathrm{i},0} + \phi\,(\ln n_{\mathrm{i},1} - \ln n_{\mathrm{i},0}) ,
+\end{aligned}
+$$ {#eq-ch06-mie-nk}
+<!-- equation-check: eq-ch06-mie-nk check_ch06_mie.py [C5] -->
+
+and linearly in $n_{\mathrm{i}}$ itself where either row has $n_{\mathrm{i}} = 0$. This is done in
+`water_refractive_indices` ({{< code src/opacity/water_liquid_mie.cpp water_refractive_indices repo=pyharp >}}).
+
+What is exact and what is not: @eq-ch06-mie-q to @eq-ch06-mie-ab are exact for a homogeneous sphere; the series is
+truncated by @eq-ch06-mie-nstop; @eq-ch06-mie-small neglects terms of relative order $x^2$; @eq-ch06-mie-hg keeps
+only the first moment of the Mie phase function; the droplets all have the radius $r$ (no size distribution). The
+check is `check_ch06_mie.py` (Tests layer).
+
+### Numerical method
+
+`MieWaterLiquidImpl::forward` computes the efficiencies once for every pair of spectral point and distinct droplet
+radius in the call, not once per cell, because they depend on nothing else, and then spreads them to the cells and
+applies @eq-ch06-mie-k. For each pair, `mie_efficiency_device` runs these steps.
+
+1. If $x < 10^{-3}$, return @eq-ch06-mie-small.
+2. Choose the direction of the recurrence for $D_j$. Following Wiscombe, it runs downward when $n_{\mathrm{r}} < 1$,
+   $n_{\mathrm{r}} > 10$, $n_{\mathrm{i}} > 10$, or
+   $x\,n_{\mathrm{i}} \ge 3.9 - 10.8\,n_{\mathrm{r}} + 13.78\,n_{\mathrm{r}}^2$, and upward otherwise.
+3. Downward: start at order $N + 1$ from Lentz's continued fraction, which stops when successive ratios change by
+   less than $10^{-12}$ (`lentz_log_derivative_device`,
+   {{< code src/opacity/water_liquid_mie_impl.h lentz_log_derivative_device repo=pyharp >}}), and apply
+   $D_{j-1} = j/(mx) - 1/(D_j + j/(mx))$. Upward: start from the closed form of $D_1$ and apply
+   $D_j = 1/(j/(mx) - D_{j-1}) - j/(mx)$.
+4. Evaluate @eq-ch06-mie-ab with the recurrences of $\psi_j$ and $\xi_j$, and sum @eq-ch06-mie-q and @eq-ch06-mie-g.
+
+A failure (a non-positive $x$ or $n_{\mathrm{r}}$, a negative $n_{\mathrm{i}}$, too few scratch slots, or a
+continued fraction that does not converge in $10^5$ steps) sets a status. A cell with a failed status gets
+not-a-number, and the final check of `MieWaterLiquidImpl::forward` then refuses the result. In single precision the
+recurrence runs in double for $x \le 0.5$. @fig-ch06-mie-accuracy shows the efficiencies and the error of the code
+against an independent evaluation.
+
+```{python}
+#| label: fig-ch06-mie-accuracy
+#| fig-cap: "(a) Extinction efficiency of a water sphere, m = 1.33 - ik, from an independent 40-digit evaluation, against the size parameter x, for k = 1e-8 (blue circles, solid), 1e-4 (orange squares, dashed) and 0.1 (green triangles, dash-dotted). (b) Relative error of the source against it; the dotted line is the tolerance 1e-9 of check [C1]. Above x = 0.18 the error is below 2e-10 for all three; below x = 0.13 it grows as x falls, most for the weakest absorption."
+#| fig-alt: "Two log-log panels against size parameter from 0.01 to 100. Left: Q_ext rises from about 1e-9, 2e-6 and 2e-3 at x = 0.01 for the three absorption indices to about 4 near x = 6, then settles near 2. Right: the relative error is between 1e-17 and 1e-10 above x of about 0.2, and rises at small x to 6e-4 for k = 1e-8, 2e-6 for k = 1e-4 and 2e-9 for k = 0.1 at x = 0.01."
+#| echo: false
+from pyharp_report.ch06.figures.fig_mie_accuracy import make_fig
+make_fig()
+```
+
+### Code
+
+@tbl-ch06-mie-code lists the code of the liquid-water source.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| option checks | {{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::MieWaterLiquidImpl repo=pyharp >}} | `MieWaterLiquidImpl::MieWaterLiquidImpl` | `type: water-liquid-mie` |
+| Segelstein table | {{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::reset repo=pyharp >}} | `MieWaterLiquidImpl::reset` | always |
+| @eq-ch06-mie-nk | {{< code src/opacity/water_liquid_mie.cpp water_refractive_indices repo=pyharp >}} | `water_refractive_indices` | no index override |
+| @eq-ch06-mie-q to @eq-ch06-mie-small | {{< code src/opacity/water_liquid_mie_impl.h mie_efficiency_device repo=pyharp >}} | `mie_efficiency_device` | always |
+| $D_j$ start for the downward recurrence | {{< code src/opacity/water_liquid_mie_impl.h lentz_log_derivative_device repo=pyharp >}} | `lentz_log_derivative_device` | branch of step 2 |
+| @eq-ch06-mie-nstop | {{< code src/opacity/water_liquid_mie_impl.h mie_nstop repo=pyharp >}} | `mie_nstop` | always |
+| @eq-ch06-mie-k, $\omega$ | {{< code src/opacity/water_liquid_mie_impl.h water_liquid_mie_properties_from repo=pyharp >}} | `water_liquid_mie_properties_from` | always |
+| inputs, @eq-ch06-mie-hg, final check | {{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::forward repo=pyharp >}} | `MieWaterLiquidImpl::forward` | always |
+
+: Code map of the liquid-water source. {#tbl-ch06-mie-code}
+
+1. The constructor requires exactly one species and `nmom` $\ge 1$
+   ({{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::MieWaterLiquidImpl repo=pyharp >}}), and
+   `MieWaterLiquidImpl::reset` reads the Segelstein table through pyharp's resource search
+   ({{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::reset repo=pyharp >}}).
+2. `MieWaterLiquidImpl::forward` requires `wavelength` [$\mu\mathrm{m}$] or `wavenumber` [$\mathrm{cm^{-1}}$], and
+   `re` [$\mu\mathrm{m}$] as a scalar or per cell; it accepts `water_density` [$\mathrm{kg\,m^{-3}}$], and
+   `refractive_index_real` with `refractive_index_imag` (both or neither), each a scalar or one value per spectral
+   point. It refuses a negative or non-finite concentration, a non-positive radius or density, and, without an
+   override, a wavelength outside 0.1 to 1000 $\mu\mathrm{m}$
+   ({{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::forward repo=pyharp >}}).
+3. It sizes the scratch space from the largest $x$ of the call with the same @eq-ch06-mie-nstop and refuses
+   $N \ge 2\times10^6$ (`mie_max_order`, {{< code src/opacity/water_liquid_mie.cpp mie_max_order repo=pyharp >}}).
+4. It computes the efficiencies per spectral point and distinct radius, assembles @eq-ch06-mie-k and $\omega$, fills
+   @eq-ch06-mie-hg, and refuses any non-finite result or negative extinction
+   ({{< code src/opacity/water_liquid_mie.cpp MieWaterLiquidImpl::forward repo=pyharp >}}).
+
+### Tests
+
+@tbl-ch06-mie-tests lists the tests of the liquid-water source.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch06_mie.py` [C1] | @eq-ch06-mie-q, @eq-ch06-mie-g against an independent evaluation, 9 cases | $10^{-9}$ rel.; $g$ $10^{-12}$ | $10^3$ times the continued-fraction stop |
+| `check_ch06_mie.py` [C2] | @eq-ch06-mie-small for $x < 10^{-3}$; its truncation | $10^{-14}$; $10^{-6}$ | a dozen roundings; $O(x^2)$ |
+| `check_ch06_mie.py` [C3], [C4] | @eq-ch06-mie-k, $\omega$, @eq-ch06-mie-hg; scalings in $\rho_{\mathrm{w}}$ and $r$ | $10^{-9}$; $10^{-15}$ | as [C1]; one product |
+| `check_ch06_mie.py` [C5], [C6] | @eq-ch06-mie-nk at 6 wavelengths; three refusals | $10^{-13}$ rel.; exact | one log, one exp; messages |
+| `tests/test_water_liquid_mie.cpp` (ctest `test_water_liquid_mie.release`) | against miepython values; table, scaling, refusals | $10^{-11}$ to $2\times10^{-7}$ abs. | not stated in the test |
+| `tests/test_water_liquid_mie.py` (pytest) | Python binding and the YAML factory | `torch.allclose` default | torch's $10^{-5}$ relative |
+
+: Tests of the liquid-water source. {#tbl-ch06-mie-tests}
+
+The reference of [C1] evaluates @eq-ch06-mie-ab from Bessel functions at 40 digits, with no recurrence and no
+continued fraction, and 30 more orders than @eq-ch06-mie-nstop keeps. Against it the source reproduces
+$Q_{\mathrm{ext}}$ and $Q_{\mathrm{sca}}$ to below $10^{-9}$ relative and $g$ to below $10^{-12}$ in nine cases:
+$m$ from $0.8 - 0.1\mathrm{i}$ to $1.2 - 2\mathrm{i}$, $x$ from 0.1 to 100, both directions of the recurrence. Below
+$x = 10^{-3}$ it returns @eq-ch06-mie-small to below $10^{-14}$, and at $x = 9\times10^{-4}$ that form differs from the
+reference by less than $10^{-6}$. @eq-ch06-mie-k with $Q_{\mathrm{ext}}$ of the reference and $M$ from the atomic
+weights holds to $10^{-9}$, and so do $\omega$ and @eq-ch06-mie-hg. The table interpolation equals
+@eq-ch06-mie-nk to below $10^{-13}$, and a wavelength of 1500 $\mu\mathrm{m}$, $r = 0$ and a lone real-index
+override are refused.[^ch06-mie-run] pyharp's ctest `test_water_liquid_mie.release` and the pytest file
+`tests/test_water_liquid_mie.py` pass.[^ch06-mie-ctest] The ctest also compares the CUDA path with the CPU on a GPU
+build (`DeviceTest`); every run of this chapter is on the CPU in double precision.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **Small droplets lose their absorption (CANDIDATE).** Between $x = 10^{-3}$ and about 0.1, the series of
+  @eq-ch06-mie-q computes $\mathrm{Re}(a_1)$ by cancellation, and the error of $Q_{\mathrm{ext}}$ grows as $x$
+  falls. For $m = 1.33 - 10^{-8}\mathrm{i}$ it is 1.0 relative at $x = 1.001\times10^{-3}$, 0.13 at
+  $x = 3\times10^{-3}$ and $6.4\times10^{-4}$ at $x = 0.01$. There the clamp $Q_{\mathrm{ext}} \ge Q_{\mathrm{sca}}$
+  turns a droplet whose albedo is 0.005 into one with albedo 1.000. For $n_{\mathrm{i}} = 10^{-6}$ the error is
+  0.056 at $x = 1.001\times10^{-3}$; for $n_{\mathrm{i}} = 0.1$ it is $2.0\times10^{-9}$ at $x = 0.01$
+  (@fig-ch06-mie-accuracy).[^ch06-mie-run] With the Segelstein table, liquid water has $n_{\mathrm{i}} \ge 7.0\times10^{-10}$
+  and droplets of 1 $\mu\mathrm{m}$ reach $x < 0.1$ only beyond $\lambda = 63\,\mu\mathrm{m}$, where
+  $n_{\mathrm{i}} \ge 0.42$; the weak-absorption case needs a user override or very small droplets.
+- **Henyey-Greenstein moments.** @eq-ch06-mie-hg keeps $g$ exactly but not the Mie phase function; the forward peak
+  and the backscatter of a real droplet are not represented. not provided: not measured by this chapter's checks.
+- **One radius per cell.** `re` is the radius of identical droplets; a size distribution is not integrated.
+- **Single precision and CUDA** are not covered by this chapter's checks.
+:::
+
+[^ch06-mie-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the cases of `derivation-checks/check_ch06_mie.py`; run:
+`python3 derivation-checks/check_ch06_mie.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6,
+mpmath 1.3.0; pyharp built on the CPU by `derivation-checks/ch06_setup.sh` (gcc 11.5.0); all ch06 outputs
+regenerate with `derivation-checks/ch06_run.sh <venv 1.7.1> <venv 1.8.13>`; output
+`derivation-checks/check_ch06_mie_pydisort171.out`, lines [C1]-[C7]; `check_ch06_mie_pydisort1813.out`
+(pydisort 1.8.13) holds the same claim lines; figure data `src/pyharp_report/ch06/data/mie_accuracy.json`.]
+
+[^ch06-mie-ctest]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_water_liquid_mie.cpp`,
+`tests/test_water_liquid_mie.py`; run: `ctest --test-dir build/tests -R test_water_liquid_mie` and
+`python3 -m pytest -q test_water_liquid_mie.py` in the source tree that `derivation-checks/ch06_setup.sh` builds,
+CPU, double; Python 3.11.13, torch 2.10.0+cu126, pydisort 1.7.1.]
