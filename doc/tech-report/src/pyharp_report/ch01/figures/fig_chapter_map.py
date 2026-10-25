@@ -3,12 +3,14 @@
 Cartoon; no data. The pipeline follows `RadiationImpl::forward` (src/radiation/radiation.cpp) and
 `RadiationBandImpl::forward` (src/radiation/radiation_band.cpp) at the pin of code_pin.yml: opacity modules, the
 assembly of the solver input, the solver (DISORT through pydisort, or Toon), the sum over spectral points, and the sum
-over bands. Each box names the chapter that documents the step; the figure states no chapter's status, so it stays
-true as chapters are written. The caption carries the chapter references.
+over bands. Each box names the chapter that documents the step. All boxes share one neutral style and there is no legend, so
+the figure states no chapter's status and stays true as chapters are written. The caption carries the chapter references.
 """
 from matplotlib.patches import FancyBboxPatch
 
 from pyharp_report import figstyle as fs
+
+NEUTRAL = fs.BLACK  # every box in one style: the map states no chapter's status
 
 
 def _box(ax, x, y, w, text, color, ls="-", h=0.72):
@@ -29,15 +31,15 @@ def make_fig():
              "solver\nDISORT or Toon\n(two chapters)", "sum over\nspectral points\n(assembly chapter)",
              "sum over bands,\nnet flux\n(API chapter)"]
     for x, t in zip(xs, steps):
-        _box(ax, x, 1.2, 2.7, t, fs.GREEN, h=1.2)
+        _box(ax, x, 1.2, 2.7, t, NEUTRAL, h=1.2)
     for a, b in zip(xs[:-1], xs[1:]):
         _arrow(ax, (a + 1.42, 1.2), (b - 1.42, 1.2))
-    _box(ax, 0.0, 3.25, 4.6, "two-stream theory: equations, closures,\ndelta scaling, conservation", fs.GREEN, h=0.9)
+    _box(ax, 0.0, 3.25, 4.6, "two-stream theory: equations, closures,\ndelta scaling, conservation", NEUTRAL, h=0.9)
     _arrow(ax, (0.0, 2.75), (0.0, 1.85))
     ax.plot([-7.35, -7.35, 7.35, 7.35], [0.42, 0.25, 0.25, 0.42], color=fs.BLACK, lw=0.8)
     ax.text(0.0, 0.0, "across the whole pipeline", ha="center", va="center", fontsize=fs.SMALL_PT)
     for x, t in [(-4.6, "solver accuracy"), (0.0, "GPU and batching"), (4.6, "tests, CI, bindings")]:
-        _box(ax, x, -0.75, 3.4, t, fs.GREEN)
+        _box(ax, x, -0.75, 3.4, t, NEUTRAL)
     ax.set_xlim(-7.5, 7.5)
     ax.set_ylim(-1.3, 3.85)
     return fig
