@@ -138,6 +138,23 @@ sections:
     - RadiationModel, column time stepping
     - Runge-Kutta, strong-stability preserving
     - surface energy budget
+  sec-ch06-sources:
+    - opacity sources, selection by type
+    - opacities block of the radiation YAML
+    - optical-property tensor of a source (nprop)
+  sec-ch06-rayleigh:
+    - Rayleigh scattering, gas
+    - Dalgarno-Williams H2 cross section
+    - Rayleigh phase function and its moments
+  sec-ch06-mie:
+    - Mie scattering, liquid-water droplets
+    - refractive index of water (Segelstein table)
+    - Henyey-Greenstein moments from the Mie asymmetry parameter
+  sec-ch06-picaso:
+    - correlated-k table, pre-mixed (PICASO)
+    - opacity table interpolation in pressure and temperature
+  sec-ch06-helios:
+    - Helios opacity table, refused
 unlabeled:
   - file: chapters/appendices/_appb-ch01.qmd
     heading: Overview and quick start (@sec-ch01)
@@ -163,3 +180,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch08.qmd
     heading: Radiation API, configuration, coupling and the column model (@sec-ch08)
     covered-by: sec-ch08
+  - file: chapters/appendices/_appb-ch06.qmd
+    heading: Opacity sources (@sec-ch06)
+    covered-by: sec-ch06

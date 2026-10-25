@@ -1,0 +1,190 @@
+## Rayleigh scattering by gas molecules (`type: rayleigh`) {#sec-ch06-rayleigh}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml)
+sources: src/opacity/rayleigh.cpp, src/opacity/rayleigh.hpp, src/constants.h
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+Molecules scatter light much shorter than their size with a cross section that grows as the inverse fourth power
+of the wavelength: this is why a clear sky is blue and why a deep gas atmosphere reflects ultraviolet light. The
+Rayleigh source (`type: rayleigh`) adds this scattering to a band. It computes the cross section of molecular
+hydrogen from a published fit, scales it by a fixed factor for each other gas, multiplies by the molar
+concentrations, and returns a purely scattering layer with the Rayleigh phase function.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Gas scattering $k$ by @eq-ch06-rayleigh-k; phase function @eq-ch06-rayleigh-phase.
+
+**Data.** Molar concentrations of the listed species in; $k$ [$\mathrm{m^{-1}}$], $\omega = 1$, $\chi_2 = 1/10$ out.
+
+**Placement.** One source of a band; evaluated at every band forward call.
+
+**Activation.** `type: rayleigh`, `species: [...]` (at least one), `nmom` $\ge 2$; off unless listed.
+
+**Guarantee / limits.** Exact port of the fit; no depolarisation correction; eight species.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $\sigma_{\mathrm{H_2}}$, the cross section of $\mathrm{H_2}$ [$\mathrm{cm^2}$ per molecule] in
+@eq-ch06-rayleigh-sigma and [$\mathrm{m^2\,mol^{-1}}$] after @eq-ch06-rayleigh-k; $\lambda_{\mathrm{A}}$, the
+wavelength in units of $10^{-10}$ m [-]; $f_s$, the scale factor of species $s$ [-]; $N_{\mathrm{A}}$,
+Avogadro's constant [$\mathrm{mol^{-1}}$]; $c_s$, $k$, $\omega$, $\chi_l$, $\Theta$, $\nu$ as in
+@sec-ch06-sources.
+
+### Derivation
+
+**The cross section of molecular hydrogen.** The source uses the fit of Dalgarno and Williams (1962) for the
+Rayleigh cross section of $\mathrm{H_2}$, a sum of three inverse even powers of the wavelength in units of $10^{-10}$ m (the
+angstrom), $\lambda_{\mathrm{A}} = 10^{8}/\nu$:
+
+$$
+\sigma_{\mathrm{H_2}} = \frac{8.14\times10^{-13}}{\lambda_{\mathrm{A}}^{4}}
+  + \frac{1.28\times10^{-6}}{\lambda_{\mathrm{A}}^{6}} + \frac{1.61}{\lambda_{\mathrm{A}}^{8}} .
+$$ {#eq-ch06-rayleigh-sigma}
+<!-- equation-check: eq-ch06-rayleigh-sigma check_ch06_rayleigh.py [C1] -->
+
+The first term is the $\lambda^{-4}$ law of a small polarisable particle; the other two correct for the variation of
+the molecule's polarisability with frequency, and they matter in the ultraviolet (@fig-ch06-rayleigh-sigma).
+
+**From a cross section to an extinction coefficient.** A cross section per molecule [$\mathrm{cm^2}$] becomes a
+cross section per mole [$\mathrm{m^2\,mol^{-1}}$] by multiplying by $N_{\mathrm{A}}$ molecules per mole and by
+$10^{-4}\,\mathrm{m^2\,cm^{-2}}$. The extinction coefficient of a layer is the sum over the configured species of
+the molar concentration times the molar cross section, and the source takes every species' cross section to be
+that of $\mathrm{H_2}$ times a constant factor $f_s$:
+
+$$
+k = \sigma_{\mathrm{H_2}}\, N_{\mathrm{A}}\, 10^{-4} \sum_s f_s\, c_s .
+$$ {#eq-ch06-rayleigh-k}
+<!-- equation-check: eq-ch06-rayleigh-k check_ch06_rayleigh.py [C1] -->
+
+@eq-ch06-rayleigh-sigma and @eq-ch06-rayleigh-k are computed in `RayleighImpl::forward`
+({{< code src/opacity/rayleigh.cpp RayleighImpl::forward repo=pyharp >}}), with $N_{\mathrm{A}}$ the constant
+`Avogadro` ({{< code src/constants.h Avogadro repo=pyharp >}}). The factors $f_s$ are those of
+@tbl-ch06-rayleigh-scales, which the code attributes to Pierrehumbert (2010).
+
+| species | $f_s$ | species | $f_s$ |
+|---|---|---|---|
+| $\mathrm{H_2}$ | 1 | $\mathrm{N_2}$ | 4.6035 |
+| $\mathrm{He}$ | 0.0641 | $\mathrm{O_2}$ | 3.8634 |
+| $\mathrm{H_2O}$ | 3.3690 | $\mathrm{CO_2}$ | 10.5611 |
+| $\mathrm{CH_4}$ | 10.1509 | $\mathrm{NH_3}$ | 7.3427 |
+
+: Scale factors of the Rayleigh source, from `species_scale` in rayleigh.cpp; names are matched without regard to case. {#tbl-ch06-rayleigh-scales}
+
+**The phase function and its moments.** Light scattered by a small isotropic particle has the phase function
+$P(\cos\Theta) = \tfrac34\,(1 + \cos^2\Theta)$, normalised so that its mean over the sphere is 1. Its moments
+$\chi_l = \tfrac12\int_{-1}^{1} P(\mu)\,P_l(\mu)\,\mathrm{d}\mu$ follow from writing $\mu^2$ in Legendre
+polynomials, $\mu^2 = \tfrac13 + \tfrac23 P_2(\mu)$:
+
+$$
+\begin{aligned}
+P(\mu) &= \tfrac34 + \tfrac34\left(\tfrac13 + \tfrac23 P_2(\mu)\right) \\
+       &= 1 + \tfrac12 P_2(\mu) \\
+       &= \sum_l (2l+1)\,\chi_l\,P_l(\mu) ,
+\end{aligned}
+$$ {#eq-ch06-rayleigh-phase}
+<!-- equation-check: eq-ch06-rayleigh-phase check_ch06_rayleigh.py [C3] -->
+
+so $\chi_0 = 1$, $(2\cdot2+1)\,\chi_2 = \tfrac12$, that is $\chi_2 = \tfrac{1}{10}$, and every other moment is
+zero. Rayleigh scattering by a gas absorbs nothing, so $\omega = 1$. Both are set
+in `RayleighImpl::forward` ({{< code src/opacity/rayleigh.cpp RayleighImpl::forward repo=pyharp >}}): the albedo
+column is filled with 1 and the moment column $l = 2$ with 0.1; all other moments stay zero.
+
+Nothing is truncated in the port: @eq-ch06-rayleigh-sigma and @eq-ch06-rayleigh-k are evaluated as written and
+@eq-ch06-rayleigh-phase is exact. The approximations are those of the model: the fit itself, constant factors
+$f_s$ for the other gases, and no depolarisation (Limits). The check is `check_ch06_rayleigh.py` (Tests layer).
+
+### Numerical method
+
+The source evaluates @eq-ch06-rayleigh-sigma once per spectral point and adds one product per configured species,
+in every column and layer. There is no grid, no iteration and no stopping criterion; the cost is one tensor
+operation per species. @fig-ch06-rayleigh-sigma shows the cross section the code returns and how much of it comes
+from the two correction terms.
+
+```{python}
+#| label: fig-ch06-rayleigh-sigma
+#| fig-cap: "(a) The H2 Rayleigh cross section of the source (green, solid) and its leading term, proportional to the inverse fourth power of the wavelength (blue, dashed). (b) The share of the two higher terms, the ratio of the two curves minus one (vermillion circles): half of the cross section at 0.2 um, under 2 % beyond 1 um."
+#| fig-alt: "Two panels against wavelength from 0.2 to 2 micrometres on a log axis. Left: the cross section falls from about 8e-26 to 5e-30 square centimetres per molecule; the leading-term line lies below it at short wavelengths and merges with it beyond about 0.5 micrometres. Right: the relative excess falls from 0.52 at 0.2 micrometres to near zero at 2 micrometres."
+#| echo: false
+from pyharp_report.ch06.figures.fig_rayleigh_sigma import make_fig
+make_fig()
+```
+
+### Code
+
+@tbl-ch06-rayleigh-code lists the code of the Rayleigh source.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| option checks | {{< code src/opacity/rayleigh.cpp RayleighImpl::RayleighImpl repo=pyharp >}} | `RayleighImpl::RayleighImpl` | `type: rayleigh` |
+| scale factors $f_s$ | {{< code src/opacity/rayleigh.cpp RayleighImpl::reset repo=pyharp >}} | `RayleighImpl::reset` | `species` |
+| @eq-ch06-rayleigh-sigma, @eq-ch06-rayleigh-k, @eq-ch06-rayleigh-phase | {{< code src/opacity/rayleigh.cpp RayleighImpl::forward repo=pyharp >}} | `RayleighImpl::forward` | always |
+| Avogadro's constant | {{< code src/constants.h Avogadro repo=pyharp >}} | `Avogadro` | always |
+
+: Code map of the Rayleigh source. {#tbl-ch06-rayleigh-code}
+
+1. The constructor refuses an empty `species` list and `nmom` below 2, because the phase function needs the moment
+   $\chi_2$ ({{< code src/opacity/rayleigh.cpp RayleighImpl::RayleighImpl repo=pyharp >}}).
+2. `RayleighImpl::reset` looks up $f_s$ for each configured species by its lower-cased name and refuses a species
+   that has none ({{< code src/opacity/rayleigh.cpp RayleighImpl::reset repo=pyharp >}}).
+3. `RayleighImpl::forward` takes the keyword `wavenumber` [$\mathrm{cm^{-1}}$], or else `wavelength`
+   [$\mu\mathrm{m}$] converted by @eq-ch06-sources-lambda, and refuses a grid that is missing, not
+   one-dimensional, not finite or not positive. It then evaluates @eq-ch06-rayleigh-sigma and
+   @eq-ch06-rayleigh-k, and fills $\omega$ and $\chi_2$
+   ({{< code src/opacity/rayleigh.cpp RayleighImpl::forward repo=pyharp >}}).
+
+### Tests
+
+@tbl-ch06-rayleigh-tests lists the tests of the Rayleigh source.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch06_rayleigh.py` [C1] | @eq-ch06-rayleigh-sigma, @eq-ch06-rayleigh-k for $\mathrm{H_2}$, 41 wavenumbers | $10^{-14}$ rel. | under 10 roundings |
+| `check_ch06_rayleigh.py` [C2] | $f_s$ of @tbl-ch06-rayleigh-scales; a mixture is the sum of its parts | $10^{-15}$ rel. | one product, one quotient |
+| `check_ch06_rayleigh.py` [C3] | @eq-ch06-rayleigh-phase in sympy; the module's $\omega$, $\chi_l$ | exact; bitwise | rational arithmetic; constants |
+| `check_ch06_rayleigh.py` [C4], [C5] | wavelength and wavenumber agree; three refusals | $10^{-15}$ rel.; exact | one division; messages |
+| `tests/test_rayleigh.cpp` (ctest `test_rayleigh.release`) | a mixture, both spectral keys, two refusals | $10^{-12}$ rel. | not stated in the test |
+| `tests/test_rayleigh.py` (pytest) | the Python binding against the fit | `pytest.approx` default | pytest's $10^{-6}$ relative |
+
+: Tests of the Rayleigh source. {#tbl-ch06-rayleigh-tests}
+
+The source reproduces @eq-ch06-rayleigh-k for $\mathrm{H_2}$ from 1000 to 50000 $\mathrm{cm^{-1}}$ to below
+$10^{-14}$ relative, returns $f_s$ times the $\mathrm{H_2}$ value for each of the seven other species and the sum of
+the parts for a mixture of all eight, to below $10^{-15}$. The sympy moments of $\tfrac34(1 + \mu^2)$ are 1, 0,
+1/10, 0, 0, 0 for $l = 0$ to 5, and the module returns $\omega = 1$ and the moments (0, 0.1, 0, 0) for
+`nmom: 4`. The `wavelength` and `wavenumber` keys give the same output, and `nmom: 1`, the species Ar and an empty
+species list are refused.[^ch06-ray-run] pyharp's ctest `test_rayleigh.release` and the pytest file
+`tests/test_rayleigh.py` pass.[^ch06-ray-ctest] All of these run on the CPU in double precision; the CUDA path,
+which the same tensor operations take on a GPU, is not tested.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **Avogadro's constant.** `Avogadro` is $6.02214179\times10^{23}\,\mathrm{mol^{-1}}$, while the SI value is
+  $6.02214076\times10^{23}$ exactly; every Rayleigh extinction is high by $1.71\times10^{-7}$
+  relative.[^ch06-ray-run]
+- **No depolarisation.** The phase function and the cross section are those of an isotropic scatterer; the
+  anisotropy of real molecules (the King correction factor) is not modelled. not provided: not measured by this chapter's checks.
+- **Other gases by a constant factor.** The cross section of every gas except $\mathrm{H_2}$ has the wavelength
+  dependence of $\mathrm{H_2}$; a gas whose refractive index varies differently with wavelength gets the wrong
+  slope. not provided: not measured by this chapter's checks.
+- **Species.** Only the eight of @tbl-ch06-rayleigh-scales; the class comment in rayleigh.hpp lists six of them.
+:::
+
+[^ch06-ray-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the cases of `derivation-checks/check_ch06_rayleigh.py`; run:
+`python3 derivation-checks/check_ch06_rayleigh.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6,
+sympy 1.14.0; pyharp built on the CPU by `derivation-checks/ch06_setup.sh` (gcc 11.5.0); all ch06 outputs
+regenerate with `derivation-checks/ch06_run.sh <venv 1.7.1> <venv 1.8.13>`; output
+`derivation-checks/check_ch06_rayleigh_pydisort171.out`, lines [C1]-[C6]; `check_ch06_rayleigh_pydisort1813.out`
+(pydisort 1.8.13) holds the same claim lines; figure data `src/pyharp_report/ch06/data/rayleigh_sigma.json`.]
+
+[^ch06-ray-ctest]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_rayleigh.cpp`,
+`tests/test_rayleigh.py`; run: `ctest --test-dir build/tests -R test_rayleigh` and
+`python3 -m pytest -q test_rayleigh.py` in the source tree that `derivation-checks/ch06_setup.sh` builds, CPU,
+double; Python 3.11.13, torch 2.10.0+cu126, pydisort 1.7.1.]

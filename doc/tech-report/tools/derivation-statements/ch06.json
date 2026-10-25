@@ -1,0 +1,20 @@
+{
+ "eq-ch06-sources-lambda": "Wavelength in micrometres from wavenumber in inverse centimetres.",
+ "eq-ch06-sources-out": "Layout of the tensor a source returns: extinction, albedo and phase moments, or extinction alone.",
+ "eq-ch06-sources-nprop": "Width of the band's prop buffer: the widest of its sources.",
+ "eq-ch06-rayleigh-sigma": "Dalgarno-Williams fit of the H2 Rayleigh cross section per molecule.",
+ "eq-ch06-rayleigh-k": "Rayleigh extinction: the H2 cross section per mole times the scaled sum of the concentrations.",
+ "eq-ch06-rayleigh-phase": "Legendre moments of the Rayleigh phase function: chi_0 = 1, chi_2 = 1/10, all others 0.",
+ "eq-ch06-mie-x": "Size parameter of a droplet.",
+ "eq-ch06-mie-q": "Extinction and scattering efficiencies as sums over the Mie coefficients (Wiscombe 1980, eqs. 1a-1b).",
+ "eq-ch06-mie-g": "Asymmetry parameter as a sum over the Mie coefficients (Wiscombe 1980, eq. 1c).",
+ "eq-ch06-mie-ab": "Mie coefficients from the logarithmic derivative D_j and Riccati-Bessel functions.",
+ "eq-ch06-mie-nstop": "Wiscombe's truncation of the Mie series.",
+ "eq-ch06-mie-small": "Small-particle limit of the efficiencies from the dipole coefficient a_1.",
+ "eq-ch06-mie-k": "Extinction of a layer of droplets from the efficiency, the water content and the droplet radius.",
+ "eq-ch06-mie-hg": "Henyey-Greenstein moments g^l from the Mie asymmetry parameter.",
+ "eq-ch06-mie-nk": "Refractive index of water interpolated in ln(wavelength) from the Segelstein table.",
+ "eq-ch06-picaso-tnom": "Nominal temperature at the layer pressure and the layer's temperature offset.",
+ "eq-ch06-picaso-interp": "Multilinear interpolation of ln kappa in wavenumber, ln p and temperature offset.",
+ "eq-ch06-picaso-k": "Extinction from the pre-mixed cross section and the total molar concentration."
+}

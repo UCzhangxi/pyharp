@@ -1,0 +1,196 @@
+## Pre-mixed correlated-k table (`type: picaso-ck`) {#sec-ch06-picaso}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml)
+sources: src/opacity/picaso_ck.cpp, src/opacity/picaso_ck.hpp, src/math/interpn.h, src/math/locate.h,
+  src/math/interpolation.cpp, src/utils/netcdf_opacity_utils.hpp
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+Molecular absorption varies by orders of magnitude across a spectral band, too fast to resolve line by line in a
+climate model. A correlated-k table replaces each band by a few quadrature points, each with an absorption cross
+section tabulated against pressure and temperature. A *pre-mixed* table, as PICASO provides [@reading12;
+@reading13], tabulates the cross section of the whole gas mixture at a given composition, so a single table covers
+all absorbers at once. The source `type: picaso-ck` reads such a table from a NetCDF file and interpolates it to the
+pressure and temperature of every layer.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** $k$ by @eq-ch06-picaso-k from the table interpolated by @eq-ch06-picaso-interp.
+
+**Data.** Layer pressure `pres` [Pa], temperature `temp` [K] and concentrations in; $k$ [$\mathrm{m^{-1}}$] out.
+
+**Placement.** One source of a band; evaluated at every band forward call.
+
+**Activation.** `type: picaso-ck`, one `data` file; needs a NetCDF build; off unless listed.
+
+**Guarantee / limits.** Exact for tables linear in the interpolation variables; clamps at the table edges.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $\kappa$, the tabulated cross section of the mixture [$\mathrm{cm^2\,mol^{-1}}$]; $q$, index of a
+quadrature point of the table (a band and a g-point) [count]; $\nu_q$, its wavenumber [$\mathrm{cm^{-1}}$]; $p_i$,
+the pressures of the table [Pa]; $T_{\mathrm{nom}}(p)$, the nominal temperature at pressure $p$ [K];
+$\Delta T_j$, the tabulated temperature offsets [K]; $p$, $T$, the pressure and temperature of a layer;
+$c_s$, $k$, $\nu$ as in @sec-ch06-sources.
+
+### Derivation
+
+**Where a layer sits in the table.** The table is not tabulated on temperature itself but on the offset from a
+nominal temperature that depends on pressure, so that the few offsets cover the temperatures an atmosphere actually
+has at each pressure. A layer at $(p, T)$ is placed at $\ln p$ and at the offset
+
+$$
+\begin{aligned}
+\ln T_{\mathrm{nom}}(p) &= \mathcal{L}_p\bigl[\ln T_{\mathrm{nom}}(p_i)\bigr](\ln p) \\
+\Delta T &= T - T_{\mathrm{nom}}(p) ,
+\end{aligned}
+$$ {#eq-ch06-picaso-tnom}
+<!-- equation-check: eq-ch06-picaso-tnom check_ch06_picaso.py [C1] -->
+
+where $\mathcal{L}_p[\cdot](\ln p)$ is the piecewise-linear interpolation in $\ln p$ between the table pressures,
+defined below. @eq-ch06-picaso-tnom is computed in `PicasoCKImpl::forward`
+({{< code src/opacity/picaso_ck.cpp PicasoCKImpl::forward repo=pyharp >}}).
+
+**Interpolation.** For one axis with points $x_1 < x_2$ around the query $x$ and values $v_1$, $v_2$, the rule is
+
+$$
+\mathcal{L}[v](x) = \frac{(x - x_1)\,v_2 + (x_2 - x)\,v_1}{x_2 - x_1} ,
+$$
+
+and a query outside the axis takes the value at the nearest end. The source applies this rule axis after axis to
+$\ln\kappa$, over the wavenumber of the quadrature points, $\ln p$ and $\Delta T$, and exponentiates the result:
+
+$$
+\kappa(\nu, p, T) = \exp\Bigl(\mathcal{L}_{\nu}\,\mathcal{L}_{p}\,\mathcal{L}_{\Delta T}\bigl[\ln\kappa(\nu_q, p_i,
+\Delta T_j)\bigr]\bigl(\nu, \ln p, \Delta T\bigr)\Bigr) .
+$$ {#eq-ch06-picaso-interp}
+<!-- equation-check: eq-ch06-picaso-interp check_ch06_picaso.py [C2] -->
+
+@eq-ch06-picaso-interp is computed by `interpn` ({{< code src/math/interpn.h interpn repo=pyharp >}}), called from
+`PicasoCKImpl::forward`. Interpolating $\ln\kappa$ linearly is interpolating $\kappa$ geometrically: halfway between
+two points it returns their geometric mean.
+
+**Extinction.** The table holds the cross section per mole of the whole mixture, so the extinction of a layer is the
+cross section times the total molar concentration, with $10^{-4}\,\mathrm{m^2\,cm^{-2}}$:
+
+$$
+k = 10^{-4}\,\kappa(\nu, p, T) \sum_s c_s .
+$$ {#eq-ch06-picaso-k}
+<!-- equation-check: eq-ch06-picaso-k check_ch06_picaso.py [C1] -->
+
+@eq-ch06-picaso-k is computed in `PicasoCKImpl::forward`
+({{< code src/opacity/picaso_ck.cpp PicasoCKImpl::forward repo=pyharp >}}); the source returns $k$ alone
+($n_{\mathrm{prop}} = 1$ in @eq-ch06-sources-out). The sum runs over every species column of the concentration
+tensor.
+
+@eq-ch06-picaso-k is exact. @eq-ch06-picaso-interp is exact where $\ln\kappa$ is linear in each of
+$\nu$, $\ln p$ and $\Delta T$ between table points, and otherwise has an error of second order in the table
+spacing of each axis. The check is `check_ch06_picaso.py` (Tests layer).
+
+### Numerical method
+
+When the band is built, `PicasoCKImpl::reset` reads the NetCDF variables of @tbl-ch06-picaso-vars, permutes `kappa`
+into the order (band, g-point, pressure, temperature offset) whatever its order in the file, flattens band and
+g-point into one axis of quadrature points, and stores $\ln\kappa$ with $\kappa$ floored at $10^{-300}$. At each
+forward call the source evaluates @eq-ch06-picaso-tnom for every layer and @eq-ch06-picaso-interp at every spectral
+point of the band, every column and every layer, in one call of `interpn`. @fig-ch06-picaso-table shows the
+pressure and temperature axes.
+
+| NetCDF variable | dimensions | unit as used |
+|---|---|---|
+| `quadrature_wavenumber`, `quadrature_weight` | (band, gpoint) | $\mathrm{cm^{-1}}$; - |
+| `wavenumber_lower`, `wavenumber_upper` | (band) | $\mathrm{cm^{-1}}$ |
+| `pressure` | (pressure) | Pa |
+| `temperature_offset` | (temperature_offset) | K |
+| `nominal_temperature` | (pressure) | K |
+| `kappa` | the four above, any order | $\mathrm{cm^2\,mol^{-1}}$ |
+
+: Variables a `picaso-ck` file must contain; the dimension names must match. {#tbl-ch06-picaso-vars}
+
+```{python}
+#| label: fig-ch06-picaso-table
+#| fig-cap: "The pressure-temperature axes of a pre-mixed table with three pressures and three offsets. The nominal temperature (blue, solid) and the offsets of plus and minus 50 K (sky blue, dashed) form the grid; a layer (vermillion star) is placed at its pressure and at its offset T - T_nom(p) from the nominal curve (vermillion arrow), and ln kappa is interpolated linearly in ln p and in that offset."
+#| fig-alt: "A plot of temperature from 150 to 350 K against three pressures equally spaced in ln p. A solid line through 200, 250 and 300 K is the nominal temperature; dashed lines 50 K above and below it are the offsets. A star at about 228 K between the second and third pressures has a double arrow up to the nominal line, labelled T minus T_nom(p)."
+#| echo: false
+from pyharp_report.ch06.figures.fig_picaso_table import make_fig
+make_fig()
+```
+
+### Code
+
+@tbl-ch06-picaso-code lists the code of the table source.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| option checks | {{< code src/opacity/picaso_ck.cpp PicasoCKImpl::PicasoCKImpl repo=pyharp >}} | `PicasoCKImpl::PicasoCKImpl` | `type: picaso-ck` |
+| reading the table | {{< code src/opacity/picaso_ck.cpp PicasoCKImpl::reset repo=pyharp >}} | `PicasoCKImpl::reset` | `data` |
+| dimension permutation | {{< code src/utils/netcdf_opacity_utils.hpp read_tensor_permuted repo=pyharp >}} | `read_tensor_permuted` | always |
+| @eq-ch06-picaso-tnom, @eq-ch06-picaso-k | {{< code src/opacity/picaso_ck.cpp PicasoCKImpl::forward repo=pyharp >}} | `PicasoCKImpl::forward` | always |
+| @eq-ch06-picaso-interp | {{< code src/math/interpn.h interpn repo=pyharp >}} | `interpn` | always |
+| bracketing index, end values | {{< code src/math/locate.h locate repo=pyharp >}} | `locate` | always |
+
+: Code map of the pre-mixed table source. {#tbl-ch06-picaso-code}
+
+1. The constructor requires exactly one data file
+   ({{< code src/opacity/picaso_ck.cpp PicasoCKImpl::PicasoCKImpl repo=pyharp >}}). `PicasoCKImpl::reset` refuses a
+   build without NetCDF and a file that lacks a variable or a dimension of @tbl-ch06-picaso-vars
+   ({{< code src/opacity/picaso_ck.cpp PicasoCKImpl::reset repo=pyharp >}}).
+2. `PicasoCKImpl::forward` requires `pres` and `temp` of shape (ncol, nlyr), takes the spectral points from the
+   `wavenumber` keyword (which the band always sets) or else from the table's own quadrature points, evaluates
+   @eq-ch06-picaso-tnom, @eq-ch06-picaso-interp and @eq-ch06-picaso-k, and returns $k$
+   ({{< code src/opacity/picaso_ck.cpp PicasoCKImpl::forward repo=pyharp >}}).
+3. `interpn` finds the bracketing points with `locate` and uses the end value outside the axis
+   ({{< code src/math/interpn.h interpn repo=pyharp >}}, {{< code src/math/locate.h locate repo=pyharp >}}).
+
+### Tests
+
+@tbl-ch06-picaso-tests lists the tests of the table source; pyharp's own test suite has none for it.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch06_picaso.py` [C1] | @eq-ch06-picaso-tnom, @eq-ch06-picaso-k on a table linear in the variables | $10^{-14}$ rel. | a few logs, exps, products |
+| `check_ch06_picaso.py` [C2] | @eq-ch06-picaso-interp on a random table | $10^{-13}$ rel. | interpolation done in another order |
+| `check_ch06_picaso.py` [C3] | end values outside the table | $10^{-13}$ rel. | rounding of the edge reference |
+| `check_ch06_picaso.py` [C4], [C5] | only $\sum_s c_s$ matters; two refusals | bitwise; exact | same sum; messages |
+| `check_ch06_picaso.py` [C6] | a spectral point between two quadrature points | $10^{-14}$ rel. | a geometric mean |
+
+: Tests of the pre-mixed table source. {#tbl-ch06-picaso-tests}
+
+The check writes the tables it needs in the layout of @tbl-ch06-picaso-vars, so no PICASO data file is involved, and
+reads the source through a band. Its `prop` buffer holds $k\,\Delta z$ (@sec-ch06-sources). On a table whose
+$\ln\kappa$ is linear in $\nu$, $\ln p$ and $\Delta T$, stored with its four dimensions in reverse order, the band
+returns @eq-ch06-picaso-k to below $10^{-14}$ relative at four quadrature points, two columns and three layers. On
+a random table it matches a trilinear interpolation of $\ln\kappa$ written independently, to below $10^{-13}$.
+Pressures of $10^2$ and $10^7$ Pa and temperatures of 100 and 900 K return the values at the table's edges, and
+two splits of the same total concentration give bitwise equal $k$. A second data file and a file without `kappa`
+are refused. A spectral point halfway between two quadrature points of different bands returns the geometric mean
+of their $k$.[^ch06-pk-run] All of this runs on the CPU in double precision.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **The band's spectral grid must be the table's quadrature points.** The band always passes its own wavenumbers;
+  a band wavenumber between two quadrature points gets a geometric mean of their cross sections, a value that
+  belongs to neither ([C6]). The band's weights must equal the table's `quadrature_weight`; the source reads them
+  but the band does not use them.[^ch06-pk-run]
+- **Silent clamping.** A layer outside the table's pressures or temperature offsets gets the edge value, with no
+  warning; `warn_out_of_bounds` is not read by this source.
+- **Every species counts.** @eq-ch06-picaso-k sums all columns of the concentration tensor, so a condensate species
+  in the state adds to the gas that absorbs.
+- **NetCDF.** A pyharp build without NetCDF refuses the source when the band is built.
+- **No test in pyharp.** The source is covered by this chapter's check only; with real PICASO tables it is not
+  tested here.
+:::
+
+[^ch06-pk-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the synthetic tables of `derivation-checks/check_ch06_picaso.py`; run:
+`python3 derivation-checks/check_ch06_picaso.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6,
+scipy 1.17.1; pyharp built on the CPU with NetCDF by `derivation-checks/ch06_setup.sh` (gcc 11.5.0); all ch06
+outputs regenerate with `derivation-checks/ch06_run.sh <venv 1.7.1> <venv 1.8.13>`; output
+`derivation-checks/check_ch06_picaso_pydisort171.out`, lines [C1]-[C6]; `check_ch06_picaso_pydisort1813.out`
+(pydisort 1.8.13) holds the same claim lines.]

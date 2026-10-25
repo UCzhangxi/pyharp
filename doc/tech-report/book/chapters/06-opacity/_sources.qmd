@@ -1,0 +1,188 @@
+## How a band selects and builds its opacity sources (`opacities:`, `type`) {#sec-ch06-sources}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f (code_pin.yml)
+sources: src/opacity/opacity_options.cpp, src/opacity/opacity_options.hpp, src/radiation/radiation_band.cpp
+status: draft
+author: gitlinffff
+reviewer:
+-->
+
+### Summary
+
+A band does not compute optical properties itself. Its YAML entry lists the names of opacity sources, each name is
+an entry of the `opacities:` block, and the entry's `type` chooses the C++ module that computes that source. This
+section states the contract every source keeps: what it is given, the shape and units of what it returns, and how
+the band sizes the buffer that receives it. The sections after this one describe the sources of the chapter.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** One module per listed source; output layout @eq-ch06-sources-out, buffer width @eq-ch06-sources-nprop.
+
+**Data.** Molar concentrations in; $k_a$ [$\mathrm{m^{-1}}$], $\omega_a$, $\chi_{a,l}$ per spectral point and layer out.
+
+**Placement.** Built when the band is built; evaluated at every band forward call.
+
+**Activation.** `opacities: <name>: {type: ...}`, listed in the band's `opacities`; `type` is required.
+
+**Guarantee / limits.** Unknown types and unknown species are refused before any computation.
+
+**Evidence.** See the Tests layer below.
+:::
+
+Local symbols: $a$, index of an opacity source of a band; $s$, index of a species; $c_s$, molar concentration of
+species $s$ [$\mathrm{mol\,m^{-3}}$]; $k_a$, extinction coefficient of source $a$ [$\mathrm{m^{-1}}$]; $\omega_a$,
+its single-scattering albedo [-]; $\chi_{a,l}$, its phase-function moment of order $l$ [-], $\chi_{a,0} = 1$;
+$n_{\mathrm{mom},a}$, the number of moments it returns [count]; $n_{\mathrm{prop}}$, the last dimension of the band's
+`prop` buffer [count]; $\nu$, wavenumber [$\mathrm{cm^{-1}}$]; $\lambda$, wavelength [$\mu\mathrm{m}$].
+
+### Derivation
+
+**The spectral coordinate.** A source receives the spectral grid in two forms, the wavenumber $\nu$ and the
+wavelength $\lambda$, related by
+
+$$
+\lambda = \frac{10^{4}}{\nu} .
+$$ {#eq-ch06-sources-lambda}
+<!-- equation-check: eq-ch06-sources-lambda check_ch06_rayleigh.py [C4] -->
+
+The factor $10^4$ converts centimetres to micrometres. @eq-ch06-sources-lambda is applied in
+`RadiationBandImpl::forward` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}),
+which writes both keys into the keyword arguments of every source from the band's wavenumber grid, overwriting
+values the caller passed. A source called directly from Python accepts either key.
+
+**What a source returns.** Every source returns one tensor of shape $(n_{\mathrm{wave}}, n_{\mathrm{col}},
+n_{\mathrm{lyr}}, n_{\mathrm{prop},a})$. Along the last dimension it holds, at each spectral point, column and layer,
+
+$$
+\bigl(k_a,\ \omega_a,\ \chi_{a,1},\ \dots,\ \chi_{a,n_{\mathrm{mom},a}}\bigr),
+\qquad n_{\mathrm{prop},a} = 2 + n_{\mathrm{mom},a} ,
+$$ {#eq-ch06-sources-out}
+<!-- equation-check: eq-ch06-sources-out check_ch06_sources.py [C2] -->
+
+for a source that scatters, and only $k_a$ ($n_{\mathrm{prop},a} = 1$) for a source that only absorbs. The moment
+$\chi_{a,0} = 1$ is never stored. The moments follow the convention of DISORT: the phase function is
+$P(\cos\Theta) = \sum_l (2l+1)\,\chi_l\, P_l(\cos\Theta)$, with $\Theta$ the scattering angle and $P_l$ the Legendre
+polynomial of order $l$.
+
+**The width of the band's buffer.** The band adds the sources into one buffer `prop`, whose last dimension must hold
+the widest source:
+
+$$
+n_{\mathrm{prop}} = \max\Bigl(1,\ \max_a n_{\mathrm{prop},a}\Bigr) .
+$$ {#eq-ch06-sources-nprop}
+<!-- equation-check: eq-ch06-sources-nprop check_ch06_sources.py [C1] -->
+
+@eq-ch06-sources-nprop is computed in `RadiationBandImpl::reset`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}), which also raises
+$n_{\mathrm{prop}}$ to 3 when the band's solver is Toon. Nothing in this contract is approximated; each source's
+own approximations are stated in its section. The check is `check_ch06_sources.py` (Tests layer).
+
+### Numerical method
+
+There is no numerical method in the selection itself: it is a lookup by string, done once when the band is built.
+@fig-ch06-sources-contract shows the tensor a source returns.
+
+```{python}
+#| label: fig-ch06-sources-contract
+#| fig-cap: "The tensor an opacity source returns, along its last dimension: the extinction coefficient k, the single-scattering albedo omega and the phase moments chi_1 to chi_n (n = nmom). A source that only absorbs returns the first column alone (nprop = 1); a source that scatters returns all of them (nprop = 2 + nmom). Filled boxes are present in both kinds."
+#| fig-alt: "A row of six boxes labelled k, omega, chi_1, chi_2, dots, chi_n, preceded by '(nwave, ncol, nlyr,'. A bracket over the first box reads 'absorption only: nprop = 1'; a bracket over all six reads 'scattering: nprop = 2 + nmom'. Below: extinction in inverse metres, albedo, phase moments, all dimensionless except k."
+#| echo: false
+from pyharp_report.ch06.figures.fig_sources_contract import make_fig
+make_fig()
+```
+
+When the YAML is read, `OpacityOptionsImpl::from_yaml`
+({{< code src/opacity/opacity_options.cpp OpacityOptionsImpl::from_yaml repo=pyharp >}}) reads one entry of
+`opacities:` into the options of @tbl-ch06-sources-keys. When the band is built, `RadiationBandImpl::reset`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}) builds one module for each
+name in the band's `opacities` list, chooses it by `type`, and sizes `prop` by @eq-ch06-sources-nprop. At each
+forward call the band evaluates every source on the same concentrations and keyword arguments.
+
+| key | meaning | default | read into |
+|---|---|---|---|
+| `type` | the module, by string | required | `type` |
+| `data` | data files; `<band>` is replaced by the band name | none | `opacity_files` |
+| `species` | species names, looked up in `species:` | none | `species_ids` |
+| `nmom` | phase moments to return | 0 | `nmom` |
+| `fractions` | number fractions (used by CIA sources) | none | `fractions` |
+
+: Keys of one `opacities:` entry; `jit_kwargs`, `warn_out_of_bounds` and `verbose` are also read, and no source of this chapter uses them. {#tbl-ch06-sources-keys}
+
+The types `RadiationBandImpl::reset` accepts are thirteen. This chapter documents `rayleigh` (@sec-ch06-rayleigh),
+`water-liquid-mie` (@sec-ch06-mie), `picaso-ck` (@sec-ch06-picaso) and `helios` (@sec-ch06-helios). For `jit`,
+`molecule-line`, `molecule-cia`, `multiband-ck`, `respq-table`, `wavetemp`, `fourcolumn`, `water-ice-fu96-98` and
+`water-cloud-temperature-switch`: not provided: the chapter outline lists only the four sources above for this
+chapter.
+
+### Code
+
+@tbl-ch06-sources-code lists the code that reads, builds and sizes the sources.
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| the options of one source | {{< code src/opacity/opacity_options.hpp OpacityOptionsImpl repo=pyharp >}} | `OpacityOptionsImpl` | always |
+| reading one `opacities:` entry | {{< code src/opacity/opacity_options.cpp OpacityOptionsImpl::from_yaml repo=pyharp >}} | `OpacityOptionsImpl::from_yaml` | `opacities:` |
+| one module per type, buffer width | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `RadiationBandImpl::reset` | band `opacities` |
+| spectral keys, evaluation of the sources | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `RadiationBandImpl::forward` | always |
+
+: Code map of the source selection. {#tbl-ch06-sources-code}
+
+1. `OpacityOptionsImpl::from_yaml` refuses a missing `opacities:` block, a name not in it and an entry without
+   `type`
+   ({{< code src/opacity/opacity_options.cpp OpacityOptionsImpl::from_yaml repo=pyharp >}}). It replaces `<band>`
+   in every data file name with the band name and turns each species name into its index in the `species:` list,
+   refusing a name that is not there.
+2. `RadiationBandImpl::reset` compares `type` with each accepted string in turn and builds the matching module; any
+   other string, the empty one included, is refused with "Unknown opacity type"
+   ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}}).
+3. Each module's constructor checks its own options (species count, `nmom`, data files) and reads its data; those
+   checks are listed in the source's own section.
+4. `RadiationBandImpl::forward` puts the band's wavenumber grid and @eq-ch06-sources-lambda into the keyword
+   arguments and calls every source
+   ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+
+### Tests
+
+@tbl-ch06-sources-tests lists the checks of this section.
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| `check_ch06_sources.py` [C1] | @eq-ch06-sources-nprop for four bands | exact | integer widths |
+| `check_ch06_sources.py` [C2] | @eq-ch06-sources-out shape; $k_a$ finite and $\ge 0$ | exact | shapes and a sign |
+| `check_ch06_sources.py` [C3], [C5] | unknown types, missing `type`, unknown species refused; `<band>` replaced | exact | messages and a file name |
+| `tests/test_opacity_options.py` (pytest) | `nmom` and `warn_out_of_bounds` getters and setters | exact | not stated in the test |
+
+: Tests of the source selection. {#tbl-ch06-sources-tests}
+
+Bands listing `rayleigh` with four moments, `water-liquid-mie` with three, `picaso-ck`, and `rayleigh` with
+`picaso-ck` build each listed module and give `prop` the widths 6, 5, 1 and 6 of @eq-ch06-sources-nprop. The three
+sources return the shapes $(3, 2, 4, 6)$, $(3, 2, 4, 5)$ and $(3, 2, 4, 1)$ for three spectral points, two
+columns and four layers. A type `foo` and an empty type are refused with "Unknown opacity type", an entry without
+`type` and a species missing from `species:` are refused when the YAML is read, and a data file named
+`table_<band>.nc` is read as `table_b.nc` in band `b`.[^ch06-src-run] pyharp's own pytest file
+`tests/test_opacity_options.py` passes.[^ch06-src-pytest] All of this runs on the CPU; nothing here depends on the
+device.
+
+### Limits
+
+::: {.callout-warning title="Limits"}
+- **Units are not checked.** A source trusts that concentrations are molar [$\mathrm{mol\,m^{-3}}$], pressures in
+  Pa and temperatures in K; none of the sources of this chapter can tell a wrong unit from a different state.
+- **The message for a missing `type`** names the entry without a space: "'type' missing in opacityx" for an
+  entry `x` (`OpacityOptionsImpl::from_yaml`,
+  {{< code src/opacity/opacity_options.cpp OpacityOptionsImpl::from_yaml repo=pyharp >}}).[^ch06-src-run]
+- **Nine further types** (named in the Numerical method layer): not provided: this chapter's outline lists four
+  sources.
+:::
+
+[^ch06-src-run]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f, pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67
+(the pydisort 1.7.1 wheel); deck: the bands of `derivation-checks/check_ch06_sources.py`; run:
+`python3 derivation-checks/check_ch06_sources.py`, CPU, double; Python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6,
+scipy 1.17.1; pyharp built on the CPU by `derivation-checks/ch06_setup.sh` (gcc 11.5.0); all ch06 outputs
+regenerate with `derivation-checks/ch06_run.sh <venv 1.7.1> <venv 1.8.13>`; output
+`derivation-checks/check_ch06_sources_pydisort171.out`, lines [C1]-[C5]; `check_ch06_sources_pydisort1813.out`
+(pydisort 1.8.13, tag `v1.8.13`) holds the same claim lines.]
+
+[^ch06-src-pytest]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_opacity_options.py`;
+run: `python3 -m pytest -q test_opacity_options.py` in the `tests/` directory of the source tree that
+`derivation-checks/ch06_setup.sh` builds, CPU; Python 3.11.13, torch 2.10.0+cu126, pydisort 1.7.1.]
