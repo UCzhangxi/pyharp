@@ -1,0 +1,294 @@
+## Matching the spectral measure (`weight` or `wavenumber`) {#sec-ch07-spectral}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f
+sources: src/radiation/radiation_band.cpp; src/radiation/flux_utils.cpp; src/radiation/bbflux.cpp
+status: draft
+-->
+
+### Summary
+
+A solver output can represent either flux per unit wavenumber or flux already integrated across an interval.
+The final accumulator must distinguish them. Integrating an interval flux over wavenumber again introduces an extra
+spectral-width factor, even when the transfer solution itself is accurate.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Match the source measure to @eq-ch07-spectral-trapezoid or @eq-ch07-spectral-weight.
+
+**Data.** Wavenumber in $\mathrm{cm^{-1}}$; integrated flux in $\mathrm{W\,m^{-2}}$.
+
+**Placement.** After each spectral transfer solve, before the band's flux is returned.
+
+**Activation.** Nonempty `weight` selects a sum; otherwise `wavenumber` selects a trapezoid.
+
+**Guarantee / limits.** No automatic check that source and accumulator units agree.
+
+**Evidence.** Stored thermal controls and their audit appear in the Tests layer.
+:::
+
+Local symbols are wavenumber $\nu$ in $\mathrm{cm^{-1}}$, spectral index $j$, interval endpoints
+$\nu_{\mathrm{lo}}$ and $\nu_{\mathrm{hi}}$, and width $\Delta\nu=\nu_{\mathrm{hi}}-\nu_{\mathrm{lo}}$.
+The spectral radiance $B_\nu(T)$ has units $\mathrm{W\,m^{-2}\,sr^{-1}\,(cm^{-1})^{-1}}$;
+$\mathcal B(T)$ is its interval integral in $\mathrm{W\,m^{-2}\,sr^{-1}}$.
+The density $F_\nu$ has units $\mathrm{W\,m^{-2}\,(cm^{-1})^{-1}}$;
+$\mathcal F_j$ is a point's interval-integrated solver output in $\mathrm{W\,m^{-2}}$.
+Quadrature weights $w_j$ and absorption rank $\eta$ are dimensionless.
+The asymmetry parameter $g$ retains its angular meaning in @sec-ch07-mixture.
+
+### Derivation
+
+For thermal emission the source in the transfer equation is monochromatic: $(1-\omega)B_\nu(T)$.
+This is Eq. (2) on p. 16289 of @reading02 and Eq. (3) on p. 2503 of @reading01.
+Their spectral variable is frequency; the implementation uses wavenumber and the corresponding transformed density.
+An interval-integrated radiance is
+
+$$
+\mathcal B(T)=\int_{\nu_{\mathrm{lo}}}^{\nu_{\mathrm{hi}}}B_\nu(T)\,\mathrm{d}\nu.
+$$ {#eq-ch07-spectral-planck}
+
+`bbflux_wavenumber` evaluates @eq-ch07-spectral-planck for unequal endpoints on the Toon path
+({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}}).
+For DISORT, `c_planck_func2` documents the same interval contract and a density branch for equal endpoints
+({{< code cdisort213/cdisort.c c_planck_func2 repo=pydisort >}}).
+The paper's monochromatic convention does not make these interval outputs spectral densities.
+
+Suppose the transfer output is a density. Linearly interpolate it over each increasing grid interval and integrate:
+
+$$
+\begin{aligned}
+F_\nu(\nu) &\simeq F_{\nu,j}
+ +\frac{\nu-\nu_j}{\nu_{j+1}-\nu_j}(F_{\nu,j+1}-F_{\nu,j}),\\
+\int_{\nu_j}^{\nu_{j+1}} F_\nu\,\mathrm{d}\nu
+ &\simeq (\nu_{j+1}-\nu_j)F_{\nu,j}
+ +\frac{\nu_{j+1}-\nu_j}{2}(F_{\nu,j+1}-F_{\nu,j}),\\
+F &\simeq \sum_j\frac{\nu_{j+1}-\nu_j}{2}(F_{\nu,j}+F_{\nu,j+1}).
+\end{aligned}
+$$ {#eq-ch07-spectral-trapezoid}
+
+`sum_spectrum` selects the trapezoid in @eq-ch07-spectral-trapezoid
+({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}), implemented by `trapezoid`
+({{< code src/math/trapezoid.cpp trapezoid repo=pyharp >}}).
+For twice continuously differentiable density, linear-interpolation error on an interval of width $h_j$ is bounded
+by $M u(h_j-u)/2$, where $u$ is distance from its left endpoint and $M$ bounds $|F_\nu''|$ on the band.
+Integrating this bound and then summing intervals gives
+
+$$
+\begin{aligned}
+|E_j| &\le \frac{M}{2}\int_0^{h_j}u(h_j-u)\,\mathrm{d}u,\\
+|E_j| &\le \frac{M h_j^3}{12},\\
+\sum_j |E_j| &\le \frac{M h^2}{12}\sum_j h_j
+ =\frac{M h^2\Delta\nu}{12}.
+\end{aligned}
+$$
+
+Here $E_j$ is the interval flux error and $h$ is the largest grid width.
+This is a quadrature bound, not a measured convergence order for the transfer solver.
+
+Alternatively, represent a normalized absorption-rank integral by quadrature. Under the assumption that the
+chosen interval Planck source is appropriate for each term, the matching discrete rule is
+
+$$
+\begin{aligned}
+\int_0^1 1\,\mathrm{d}\eta &= 1,\\
+\sum_j w_j &= 1,\\
+F &\simeq \sum_j w_j\mathcal F_j.
+\end{aligned}
+$$ {#eq-ch07-spectral-weight}
+
+`sum_spectrum` computes the final sum in @eq-ch07-spectral-weight
+({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}); it does not normalize or validate the weights.
+Normalization is within each physical band, not across unrelated spectral bins.
+The first two lines define the convention tested here; they are not an assertion that every opacity-file weight
+has these units. A general correlated-k accuracy analysis is outside this chapter.
+
+For a grey isothermal test, each point receives the same interval-integrated thermal source and returns the same
+$\mathcal F$. The normalized sum gives $\mathcal F$. Applying the trapezoid to those same values instead gives
+
+$$
+\begin{aligned}
+F^{\mathrm{repeated}} &= \sum_j(\nu_{j+1}-\nu_j)\mathcal F,\\
+F^{\mathrm{repeated}} &= (\nu_{\mathrm{hi}}-\nu_{\mathrm{lo}})\mathcal F,\\
+F^{\mathrm{repeated}} &= \Delta\nu\mathcal F.
+\end{aligned}
+$$ {#eq-ch07-spectral-width}
+
+The selection in `RadiationBandImpl::forward` causes @eq-ch07-spectral-width when weights are empty and each point
+retains the same band limits ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+The numerical width factor has units $\mathrm{cm^{-1}}$; this is a dimensional inconsistency, not a physical flux gain.
+Check `[C7]` proves the constant and affine identities exactly; `[C3]` tests the width identity in stored native outputs.
+<!-- equation-check: eq-ch07-spectral-planck ch07_evidence_check.py [C6] -->
+<!-- equation-check: eq-ch07-spectral-trapezoid ch07_evidence_check.py [C7] -->
+<!-- equation-check: eq-ch07-spectral-weight ch07_evidence_check.py [C5] -->
+<!-- equation-check: eq-ch07-spectral-width ch07_evidence_check.py [C3] -->
+
+### Numerical method
+
+`RadiationBandOptionsImpl::from_yaml` assigns the full band limits to every spectral point for both Toon and DISORT
+({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
+`ToonMcKay89Impl::forward` passes these endpoints to the Planck routine
+({{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}}).
+Thus the default endpoint setup supplies an interval source, independently of the later accumulator choice.
+
+```{python}
+#| label: fig-ch07-spectral-flow
+#| fig-cap: "Spectral measure choices. The blue branch carries a density and uses a trapezoid; the green branch carries an interval flux and uses dimensionless weights. The red dashed arrow marks the inconsistent extra integration."
+#| fig-alt: "A density goes to a wavenumber trapezoid; an interval flux goes to a weighted sum. Sending the interval flux to the trapezoid adds a width factor."
+#| echo: false
+from pyharp_report.ch07.figures.fig_spectral_flow import make_fig
+make_fig()
+```
+
+Each spectrum has a spectral axis, a column axis, a level axis and a flux-channel axis. The reduction removes only
+the spectral axis. The flux channels store nonnegative upward and downward magnitudes; net flux is upward minus
+downward in `cal_net_flux` ({{< code src/radiation/flux_utils.cpp cal_net_flux repo=pyharp >}}).
+Vertical arrays run from bottom to top. The audit uses top upward flux and treats atmosphere and surface temperatures
+as separate inputs. Assembly itself has no spectral iteration or convergence criterion.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| endpoint setup | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `from_yaml` | `solver`[^rg-f705d5fe0070] |
+| accumulation | {{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}} | `sum_spectrum` | `weight` |
+| thermal source | {{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}} | `bbflux_wavenumber` | unequal endpoints |
+| DISORT source | {{< code cdisort213/cdisort.c c_planck_func2 repo=pydisort >}} | `c_planck_func2` | `planck` |
+: Spectral implementation map. {#tbl-ch07-spectral-code}
+
+`bands`[^rg-082ffa154e1b] is the list of radiation-band configurations.
+`name`[^rg-11346b87d129] is the band identifier.
+`solver` is the transfer-solver selector.
+`range`[^rg-593a41923a13] is the pair of spectral endpoints, interpreted as wavenumbers by default.
+`nwave`[^rg-d1be40df31ac] is the number of spectral points.
+`nstr`[^rg-e099cb0e45b5] is the discrete-ordinate stream count.
+`flags`[^rg-82c32909bbf2] is the comma-separated solver options.
+`opacities` is the list of opacity-source names used by the band.
+
+The historical test constructs a minimal band through YAML, with a generated grey-opacity file:
+
+```yaml
+bands:
+  - name: bx
+    solver: disort
+    range: [600.0, 800.0]
+    nwave: 16
+    nstr: 4
+    flags: lamber,quiet,onlyfl,planck
+    opacities: [grey]
+```
+
+The complete generated configuration, including species, geometry and opacity registration, is in the committed
+`band_lab.py` helper. The helper explicitly assigns `nphase = nstr`; the experiment does not rely on the YAML
+path initializing it. After parsing, the three test configurations are:
+
+```python
+# Interval flux with normalized weights:
+bo.weight([1.0 / nwave] * nwave)
+# Existing endpoint setup with wavenumber accumulation:
+bo.wavenumber(list(nu))
+# Density experiment, in a separately constructed band:
+bo.wavenumber(list(nu))
+bo.set_wave_lower(list(nu))
+bo.set_wave_upper(list(nu))
+```
+
+These are alternative configurations, not successive mutations of one band. Nonempty weights take precedence even
+if wavenumbers also exist. The density experiment is a diagnostic, not a safe Toon workaround: its equal-endpoint
+Planck branch has a separate recorded failure.
+
+`from_yaml` requires `bands`, a matching band name, `opacities`, `nwave`, geometry cells with `nx1`, and a supported
+`solver`; `twostr` is rejected. It defaults `nstr` to four and `verbose` to false.
+Toon-specific flags and temperature interpolation belong to the solver and API chapters.
+At the accumulation boundary, `sum_spectrum` requires a one-dimensional coordinate/weight tensor and rejects unknown
+mode names. Neither it nor the band checks the spectral units or requires weights to sum to one.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| record audit `[C3]` (report script) | paired excess equals width | relative $10^{-12}$ | exceeds rounding bound for short positive sums |
+| record audit `[C5]` (report script) | normalized-bin blackbody control | relative $10^{-4}$ | above recorded Planck-constant error |
+| record audit `[C6]` (report script) | sum of Planck bins versus $\sigma T^4$ | relative $10^{-4}$ | same source-accuracy allowance |
+| identity `[C7]` (report script) | affine and constant trapezoids | exact | rational arithmetic |
+| record audit `[C4]` (report script) | known failures remain visible | stored assertions | original diagnostic thresholds |
+: Spectral checks; record-audit PASS is distinct from physical acceptance. {#tbl-ch07-spectral-tests}
+
+The thermal control uses one column, eight layers at $250\,\mathrm{K}$, grey absorption with total optical thickness
+40, no scattering and a black surface at the same temperature. The exact outgoing blackbody reference is
+$\pi\int B_\nu\,\mathrm{d}\nu$, evaluated by independent quadrature with SI defining constants.[^ch07-spectral-run]
+Optically thin or reflective boundary variations are ratio controls, not additional blackbody-equilibrium tests.
+
+For DISORT with 128 points, the recorded existing-wavenumber ratios grow from approximately one to ten,
+200 and 1000 as the width increases through $1$, $10$, $200$ and $1000\,\mathrm{cm^{-1}}$.
+Both normalized-weight and density controls remain close to unity, as shown in
+@fig-ch07-spectral-ratios.[^ch07-spectral-run]
+
+The width identity holds below $10^{-12}$ relative across 40 grid/solver/width combinations and 24 paired
+boundary/solver/opacity variations.[^ch07-spectral-run] Refining the grey grid does not remove the extra width.
+The three normalized-bin controls have relative error below $1.1\,10^{-5}$; four Planck tilings agree with
+$\sigma T^4$ within $10^{-4}$.[^ch07-spectral-run]
+
+```{python}
+#| label: fig-ch07-spectral-ratios
+#| fig-cap: "Stored DISORT grey-band ratios at 128 points. Blue circles use normalized weights, green triangles use density endpoints, and red squares retain the band limits under a trapezoid. The dashed black line marks unity."
+#| fig-alt: "Weight and density controls remain near unity while the existing wavenumber path grows in proportion to band width."
+#| echo: false
+from pyharp_report.ch07.figures.fig_spectral_ratios import make_fig
+make_fig()
+```
+
+Check `[C4]` retains 11 passing and four failing Planck assertions. Three failures concern equal wavenumber endpoints;
+one concerns the wavelength density at $5\,\mu\mathrm{m}$. It also retains a zero single-point accumulated flux despite
+a nonzero spectrum.[^ch07-spectral-run] These are findings to resolve, not accepted physical behavior.
+Existing `BBFluxTest.Wavenumber1` and `BBFluxTest.Wavelength` check shapes, while `BBFluxTest.Wavenumber2` prints values
+({{< code tests/test_bbflux.cpp repo=pyharp >}}). `FluxUtilsTest.CalTotalFluxWave` and `FluxUtilsTest.CalTotalFluxWeight` checks result sizes
+({{< code tests/test_flux_utils.cpp repo=pyharp >}}); none supplies the spectral-unit assertion above.
+
+[^ch07-spectral-run]: Historical native run: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f source-built;
+    pydisort 1.7.1 PyPI wheel, compiled commit unverified. Source citations use
+    pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67. Commands: `python check_a_planck.py`,
+    `python check_b_band.py`, `python check_c_accum.py`, `python check_d_bins.py`,
+    `python check_e_narrow.py`, `python check_f_norm.py` in the saved spectral directory.
+    Inputs and outputs: corresponding scripts and `results_*.json` under `derivation-checks/ch07/spectral/`;
+    helpers `band_lab.py` and `ch7_common.py`. Python 3.11.13, Torch 2.10.0+cpu, CPU float64, one thread.
+    The preserved environment currently reports NumPy 2.4.6, SciPy 1.17.1 and NetCDF4 1.7.5;
+    those versions were recovered later, not locked with the original run. Current audit:
+    `python derivation-checks/ch07_evidence_check.py`, output `ch07_evidence_check.out`, `[C3]`--`[C6]`.
+    This checks stored evidence and does not rerun the solver.
+
+### Limits
+
+The repeated integration is retained as a CANDIDATE defect. No authoritative defect numbering is assigned here.
+A density-endpoint change alone is not sufficient for Toon: the equal-endpoint Planck branch needs separate treatment.
+The scripts retain the original failures; no solver code is changed.
+
+ReSPQ weight units remain unresolved. `RespqTableImpl` divides file weights by point width
+({{< code src/opacity/respq_table.cpp repo=pyharp >}}), whereas `PicasoCKImpl` reads the same variable name without that division
+({{< code src/opacity/picaso_ck.cpp repo=pyharp >}}). Width division is consistent with the tested interval-source convention only
+if the file weights already carry wavenumber units. No real table from either producer is tested.
+The supplied table conventions therefore cannot be inferred from the variable name alone.
+
+The spectral record covers CPU float64, one column, grey or manufactured line absorption, and no scattering.
+CUDA, batching, float32, scattering, `area_scale` and the multiband wrapper are not measured.
+Surface-albedo behavior differs between the tested solver paths, but its mechanism is not established here.
+The blackbody reference must not be extended to arbitrary reflective or nonequilibrium boundaries.
+
+The pydisort wheel reports its release version but no compiled commit. The saved source comparison establishes
+identity of its bundled cdisort text, not of its binary. Full source-pin runtime provenance remains open.
+The full text of @reading08 was unavailable to the evidence preparation; this chapter does not attribute its
+normalization derivation to an unread paper. A complete correlated-k treatment and real-table validation remain open.
+
+<!-- reader glossary notes -->
+[^rg-f705d5fe0070]: solver — the transfer-solver selector
+
+[^rg-082ffa154e1b]: bands — the list of radiation-band configurations
+
+[^rg-11346b87d129]: name — the band identifier
+
+[^rg-593a41923a13]: range — the pair of spectral endpoints, interpreted as wavenumbers by default
+
+[^rg-d1be40df31ac]: nwave — the number of spectral points
+
+[^rg-e099cb0e45b5]: nstr — the discrete-ordinate stream count
+
+[^rg-82c32909bbf2]: flags — the comma-separated solver options
+<!-- end reader glossary notes -->

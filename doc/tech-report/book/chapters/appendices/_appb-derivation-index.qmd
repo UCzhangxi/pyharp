@@ -14,6 +14,7 @@ Every derivation the written chapters carry, read from their Derivation layers: 
 | @sec-ch04 | {{< generated appb ch04.schemes >}} | {{< generated appb ch04.with-eq >}} | {{< generated appb ch04.equations >}} | {{< generated appb ch04.exists >}} | {{< generated appb ch04.re-derived >}} | {{< generated appb ch04.with-check >}} |
 | @sec-ch05 | {{< generated appb ch05.schemes >}} | {{< generated appb ch05.with-eq >}} | {{< generated appb ch05.equations >}} | {{< generated appb ch05.exists >}} | {{< generated appb ch05.re-derived >}} | {{< generated appb ch05.with-check >}} |
 | @sec-ch06 | {{< generated appb ch06.schemes >}} | {{< generated appb ch06.with-eq >}} | {{< generated appb ch06.equations >}} | {{< generated appb ch06.exists >}} | {{< generated appb ch06.re-derived >}} | {{< generated appb ch06.with-check >}} |
+| @sec-ch07 | {{< generated appb ch07.schemes >}} | {{< generated appb ch07.with-eq >}} | {{< generated appb ch07.equations >}} | {{< generated appb ch07.exists >}} | {{< generated appb ch07.re-derived >}} | {{< generated appb ch07.with-check >}} |
 | @sec-ch08 | {{< generated appb ch08.schemes >}} | {{< generated appb ch08.with-eq >}} | {{< generated appb ch08.equations >}} | {{< generated appb ch08.exists >}} | {{< generated appb ch08.re-derived >}} | {{< generated appb ch08.with-check >}} |
 | @sec-ch09 | {{< generated appb ch09.schemes >}} | {{< generated appb ch09.with-eq >}} | {{< generated appb ch09.equations >}} | {{< generated appb ch09.exists >}} | {{< generated appb ch09.re-derived >}} | {{< generated appb ch09.with-check >}} |
 | @sec-ch10 | {{< generated appb ch10.schemes >}} | {{< generated appb ch10.with-eq >}} | {{< generated appb ch10.equations >}} | {{< generated appb ch10.exists >}} | {{< generated appb ch10.re-derived >}} | {{< generated appb ch10.with-check >}} |
@@ -32,6 +33,8 @@ Every derivation the written chapters carry, read from their Derivation layers: 
 {{< include appendices/_appb-ch05.qmd >}}
 
 {{< include appendices/_appb-ch06.qmd >}}
+
+{{< include appendices/_appb-ch07.qmd >}}
 
 {{< include appendices/_appb-ch08.qmd >}}
 

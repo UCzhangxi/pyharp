@@ -1,0 +1,26 @@
+[C1] PASS artifact integrity: 22 files; original/transformed hashes recorded
+[C2] PASS historical assembly: 78/78 cases; 506 scalars; 6/6 metamorphic
+[C2] float64: max_abs=1.110223e-16; max_rel=3.9320399e-16
+[C2] float32: max_abs=1.5278613e-07; max_rel=2.3310547e-07
+[C3] PASS historical width-factor identity: 40 pairs; error=4.4408921e-16 < 1e-12
+[C3] PASS historical width-factor identity: 24 pairs; error=1.110223e-16 < 1e-12
+[C3] width=1 mode=weight flux/reference=0.99998976
+[C3] width=1 mode=wavenumber flux/reference=0.99998976
+[C3] width=1 mode=density flux/reference=1.0000219
+[C3] width=10 mode=weight flux/reference=0.99998411
+[C3] width=10 mode=wavenumber flux/reference=9.9998411
+[C3] width=10 mode=density flux/reference=1.0000219
+[C3] width=200 mode=weight flux/reference=0.9999899
+[C3] width=200 mode=wavenumber flux/reference=199.99798
+[C3] width=200 mode=density flux/reference=1.0000214
+[C3] width=1000 mode=weight flux/reference=0.99999208
+[C3] width=1000 mode=wavenumber flux/reference=999.99208
+[C3] width=1000 mode=density flux/reference=0.99999406
+[C4] PASS failure preservation: 11 Planck assertions pass, 4 FAIL; single-point total=0 with nonzero spectrum
+[C4] recorded FAIL: A1 mono wn=100
+[C4] recorded FAIL: A1 mono wn=700
+[C4] recorded FAIL: A1 mono wn=2000
+[C4] recorded FAIL: A5 B_lambda lam=5um
+[C5] PASS historical normalized-bin controls: 3 rows; max_relative_error=1.0099293e-05 < 1e-4
+[C6] PASS historical Planck bin sums: 4 tilings; relative_error < 1e-4
+[C7] PASS exact rational identities: mixture tau=20 omega=17/50 chi=(3/85,57/425,123/2125); Rayleigh chi2=1/10; trapezoid exact for affine density; repeated integral gains width

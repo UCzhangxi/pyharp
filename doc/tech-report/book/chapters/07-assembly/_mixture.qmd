@@ -1,0 +1,208 @@
+## Combining optical properties (`opacities`) {#sec-ch07-mixture}
+
+<!-- PROVENANCE
+pin: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f
+sources: src/radiation/radiation_band.cpp; src/opacity/scattering_functions.cpp
+status: draft
+-->
+
+### Summary
+
+Several absorbers and scatterers can occupy the same layer. The band adds their extinction but averages their phase
+functions using scattering strength, so a purely absorbing source cannot change the angular distribution of scattering.
+
+::: {.callout-note title="At a glance"}
+**Purpose.** Construct the mixture in @eq-ch07-mixture-average.
+
+**Data.** Extinction in $\mathrm{m^{-1}}$, dimensionless albedo and moments, thickness in $\mathrm{m}$.
+
+**Placement.** Before the selected transfer solver, independently at each spectral point and layer.
+
+**Activation.** Always for the band's `opacities`[^rg-d31dbcab05aa]; there is no mixture switch.
+
+**Guarantee / limits.** Nonnegative physical inputs; the albedo cap perturbs conservative scattering.
+
+**Evidence.** Stored native results and their record audit appear in the Tests layer.
+:::
+
+Local symbols are the source index $a$, extinction $k_a$, scattering $s_a$ and absorption $a_a$, all in
+$\mathrm{m^{-1}}$; the single-scattering albedo $\omega_a$ and moments $\chi_{a,l}$ are dimensionless.
+The Legendre degree is $l$, scattering angle cosine is $x$, and the normalized phase function is $P_a(x)$.
+The geometric layer thickness is $\Delta z$ in $\mathrm{m}$ and its optical thickness is $\Delta\tau$.
+The positive cap distance is $\delta\omega$, distinct from relative error $\epsilon$.
+
+### Derivation
+
+Assume each source provides nonnegative extinction and an albedo between zero and one. Split extinction into
+scattering and absorption before adding sources:
+
+$$
+\begin{aligned}
+s_a &= k_a\omega_a,\\
+a_a &= k_a(1-\omega_a),\\
+k &= \sum_a(a_a+s_a)=\sum_a k_a,\\
+s &= \sum_a s_a.
+\end{aligned}
+$$ {#eq-ch07-mixture-sums}
+
+`RadiationBandImpl::forward` evaluates the extinction and scattering sums in @eq-ch07-mixture-sums
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+The absorption split explains the sum; the implementation adds extinction directly.
+
+Normalize the phase function so that half its integral over angle cosine equals one. Its moments and expansion are
+
+$$
+\begin{aligned}
+\chi_{a,l} &= \frac12\int_{-1}^{1}P_l(x)P_a(x)\,\mathrm{d}x,\\
+P_a(x) &= \sum_{l=0}^{\infty}(2l+1)\chi_{a,l}P_l(x),\\
+\chi_{a,0} &= 1.
+\end{aligned}
+$$
+
+Here $P_l$ is the Legendre polynomial. The definition is unnumbered after Eq. (6d) on p. 2503 of
+@reading01. The Fourier scattering kernel is Eq. (6b), not Eq. (14) or (15).
+Those latter equations on p. 2505 expand bottom bidirectional reflectivity in surface moments.
+There is no Eq. (6e) in that sequence.
+
+For positive total scattering, conservation of the scattered source requires $sP=\sum_a s_aP_a$.
+Multiply this equality by $P_l/2$, integrate and substitute the moment definition:
+
+$$
+\begin{aligned}
+s\chi_l &= \sum_a s_a\frac12\int_{-1}^{1}P_l(x)P_a(x)\,\mathrm{d}x,\\
+s\chi_l &= \sum_a s_a\chi_{a,l},\\
+\chi_l &= \frac{\sum_a s_a\chi_{a,l}}{s},\\
+\omega &= \frac{s}{k}.
+\end{aligned}
+$$ {#eq-ch07-mixture-average}
+
+`RadiationBandImpl::forward` implements @eq-ch07-mixture-average
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+This scattering weighting agrees with Eq. (8) of @reading12.
+If a denominator is nonpositive, `divide_where_positive` returns zero
+({{< code src/radiation/radiation_band.cpp divide_where_positive repo=pyharp >}}).
+For physical inputs this defines the vacuum albedo and zero-scattering moments without dividing by zero.
+
+Assume extinction is constant within a layer. Integrating along the geometric thickness gives
+
+$$
+\begin{aligned}
+\Delta\tau &= \int_{z_{\mathrm{bot}}}^{z_{\mathrm{top}}}k\,\mathrm{d}z,\\
+\Delta\tau &= k\Delta z,\\
+\omega^{\mathrm{solver}} &= \min(\omega,1-\delta\omega).
+\end{aligned}
+$$ {#eq-ch07-mixture-cap}
+
+`RadiationBandImpl::forward` implements @eq-ch07-mixture-cap with $\delta\omega=10^{-12}$ for float64 and
+$10^{-6}$ otherwise ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+The source documents this as regularization of conservative-scattering degeneracies. It changes the solver's
+albedo, not the original sources, optical thickness or moments. It is not delta-Eddington rescaling.
+
+For positive extinction and scattering, the mixture identities are exact before floating-point rounding.
+Finite stored moment arrays truncate the angular representation; the resulting flux error is not measured here.
+The cap changes the albedo by at most $\delta\omega$ for physical inputs.
+The exact worked mixture and Rayleigh normalization are checked by `ch07_evidence_check.py`, line `[C7]`.
+<!-- equation-check: eq-ch07-mixture-sums ch07_evidence_check.py [C7] -->
+<!-- equation-check: eq-ch07-mixture-average ch07_evidence_check.py [C2] -->
+<!-- equation-check: eq-ch07-mixture-cap ch07_evidence_check.py [C2] -->
+
+### Numerical method
+
+The property tensor has shape `(nwave,ncol,nlyr,nprop)`. Each entry belongs to a layer, not a face.
+Assembly is an explicit reduction over opacity sources with no iteration or boundary solve.
+The method clears the destination, adds extinction and scattering numerators, normalizes, multiplies by thickness,
+and caps albedo before calling the solver. @fig-ch07-mixture-flow shows this order.
+
+```{python}
+#| label: fig-ch07-mixture-flow
+#| fig-cap: "Mixture data flow. Blue boxes hold source coefficients; green boxes form layer properties; the orange box receives the capped solver input. Arrows give evaluation order."
+#| fig-alt: "Sources feed sums, normalization, thickness conversion and an albedo cap, then the transfer solver."
+#| echo: false
+from pyharp_report.ch07.figures.fig_mixture_flow import make_fig
+make_fig()
+```
+
+The stored moments start at degree one. `henyey_greenstein` supplies Henyey-Greenstein powers of the asymmetry
+parameter ({{< code src/opacity/scattering_functions.cpp henyey_greenstein repo=pyharp >}}).
+The DISORT adapter inserts the normalized degree-zero moment before copying higher moments
+({{< code src/disort_impl.h repo=pydisort >}}).
+A missing higher moment contributes zero to its numerator while that source still contributes scattering to the denominator.
+This padding convention does not prove the physical moment vanishes.
+
+### Code
+
+| what | code link | symbol | switch |
+|---|---|---|---|
+| sums and cap | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `forward` | always |
+| zero convention | {{< code src/radiation/radiation_band.cpp divide_where_positive repo=pyharp >}} | `divide_where_positive` | always |
+| moment inputs | {{< code src/opacity/scattering_functions.cpp henyey_greenstein repo=pyharp >}} | `henyey_greenstein` | source model |
+| solver layout | {{< code src/disort_impl.h repo=pydisort >}} | `PMOM` | `disort` |
+: Mixture implementation map. {#tbl-ch07-mixture-code}
+
+To use the mixture, list the selected opacity names in the band's `opacities`. The sources return extinction,
+albedo when present, and moments when present. An extinction-only source is purely absorbing.
+The following excerpt maps the accumulation to @eq-ch07-mixture-sums and @eq-ch07-mixture-average;
+`IEX`, `ISS` and `IPM` are the extinction, scattering and first-moment slots:
+
+```cpp
+prop.select(-1, disort::IEX) += kdata.select(-1, disort::IEX);
+prop.select(-1, disort::ISS) +=
+    kdata.select(-1, disort::ISS) * kdata.select(-1, disort::IEX);
+```
+
+The excerpt is from `RadiationBandImpl::forward`
+({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
+That function checks the layer and column counts against `conc`, `dz` and options, and checks the spectral count.
+Thickness may have shape `(nlyr)` or `(ncol,nlyr)`. With `verbose` enabled it prints each accumulation stage.
+It does not impose the physical nonnegativity assumptions used in this derivation.
+
+### Tests
+
+| test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
+|---|---|---|---|
+| record audit `[C2]` (report script) | stored native assembly versus Decimal oracle | float64: $5\,10^{-15}+5\,10^{-14}\lvert q\rvert$ | allowance for reductions and division |
+| record audit `[C2]` (report script) | same, float32 | $3\,10^{-7}+3\,10^{-6}\lvert q\rvert$ | float32 rounding allowance |
+| identity `[C7]` (report script) | mixture and Rayleigh normalization | exact | rational arithmetic |
+: Assembly checks; $q$ is the oracle value. {#tbl-ch07-mixture-tests}
+
+The native record contains 78 passing cases, 506 scalar comparisons and six passing metamorphic checks.
+They cover source reversal, splitting and batch-versus-cell evaluation in both precisions.[^ch07-assembly-run]
+The largest relative errors are below $4\,10^{-16}$ in float64 and $2.4\,10^{-7}$ in float32.
+These are round-off observations, judged against the stated tolerances, not portable last digits.[^ch07-assembly-run]
+The tolerances allow more than one hundred unit round-offs for the short reduction and division chains.
+Tiny nonzero references additionally require relative agreement; an absolute threshold alone would hide their loss.
+
+For sources $(k,\omega,g)=(2,0.5,0.6)$ and $(3,0.8,-0.2)$, plus pure absorption $5\,\mathrm{m^{-1}}$,
+use Henyey-Greenstein moments $\chi_l=g^l$ and thickness $2\,\mathrm{m}$.
+The exact result is $k=10\,\mathrm{m^{-1}}$, $s=3.4\,\mathrm{m^{-1}}$, $\Delta\tau=20$,
+$\omega=0.34$ and $(\chi_1,\chi_2,\chi_3)=(3/85,57/425,123/2125)$.
+Check `[C7]` evaluates these fractions independently; `[C2]` compares the corresponding stored native outputs.
+
+```{python}
+#| label: fig-ch07-mixture-errors
+#| fig-cap: "Stored assembly errors divided by each case's allowed error. Blue circles denote float64 and orange squares float32; the dashed black line is the acceptance threshold. All cases lie below it."
+#| fig-alt: "Two precision series of tolerance fractions remain below one across all 39 fixtures."
+#| echo: false
+from pyharp_report.ch07.figures.fig_mixture_errors import make_fig
+make_fig()
+```
+
+[^ch07-assembly-run]: Historical native run: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f and
+    pydisort@8af15242a265a60ea6fb51c29d48e6688a63ab67, both source-built. Command:
+    `python check_assembly.py`; inputs: `generate()`; output: `assembly/results.json` and `actual.csv`
+    under `derivation-checks/ch07/`. Python 3.11.13, Torch 2.10.0+cu128, GCC 11.5.0, C++11 ABI,
+    CPU float32/float64; Decimal precision 80. Current record audit:
+    `python derivation-checks/ch07_evidence_check.py`, output `ch07_evidence_check.out`, `[C1]`, `[C2]`, `[C7]`.
+    No native campaign is rerun for this manuscript.
+
+### Limits
+
+The capture solver returns zero flux; this experiment validates the properties supplied to a solver, not physical fluxes.
+The test-only property-buffer setup does not validate production allocation policy.
+CUDA, gradients, half precision, negative inputs, real opacity tables and a systematic subnormal campaign are not measured.
+The cap's effect on flux or heating is not measured. The test does not independently demonstrate the degeneracy cited
+in the source comment. Spectral accumulation has separate limitations in @sec-ch07-spectral.
+
+<!-- reader glossary notes -->
+[^rg-d31dbcab05aa]: opacities — the list of opacity-source names used by the band
+<!-- end reader glossary notes -->

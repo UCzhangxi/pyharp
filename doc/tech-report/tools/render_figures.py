@@ -259,7 +259,13 @@ def main(argv=None) -> int:
     index, rows = render(args.out, chapters, REPORT, formats, record)
     errors = [k for k, v in index.items() if "error" in v]
     out = args.out if args.out.is_absolute() else REPORT / args.out
-    print(f"render_figures: drew {len(index) - len(errors)} figure(s) to {out}"
+    # Report the destination relative to the report directory, so the line carries no absolute home path and is
+    # the same on every machine (it can end up in a committed log).
+    try:
+        shown = out.resolve().relative_to(REPORT.resolve()).as_posix()
+    except ValueError:
+        shown = out.as_posix()
+    print(f"render_figures: drew {len(index) - len(errors)} figure(s) to {shown}"
           + (f"; {len(errors)} could not be drawn:" if errors else ""))
     for k in errors:
         print(f"  ✗ {k}: {index[k]['error']}")

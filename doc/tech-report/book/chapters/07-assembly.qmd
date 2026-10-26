@@ -1,3 +1,12 @@
 # Optical-property assembly and spectral integration {#sec-ch07}
 
-pending
+A radiation band first combines opacity sources into one set of layer properties, then solves radiative transfer
+at each spectral point. The final sum must use the same spectral measure as those solver outputs.
+
+@sec-ch07-mixture derives the scattering-weighted mixture and its conservative-scattering cap.
+@sec-ch07-spectral distinguishes spectral densities from interval-integrated fluxes and documents their accumulation.
+The evidence separates native measurements already recorded from the record and algebra checks run for this manuscript.
+
+{{< include 07-assembly/_mixture.qmd >}}
+
+{{< include 07-assembly/_spectral.qmd >}}
