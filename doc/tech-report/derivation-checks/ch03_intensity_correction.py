@@ -60,7 +60,8 @@ def git_head(var):
 
 def run(nstr, nmom, flags, umu, phi, tau=1.0):
     op = DisortOptions().header("ch03").flags(",".join(flags))
-    op.ds().nlyr, op.ds().nstr, op.ds().nmom = 1, nstr, nmom
+    # set: pydisort leaves ds.nphase uninitialised (ch03_run_selftest.sh [T4]); 0 = no phase table
+    op.ds().nlyr, op.ds().nstr, op.ds().nmom, op.ds().nphase = 1, nstr, nmom, 0
     op.user_tau(np.array([0.0, tau]))
     op.user_mu(np.array(umu))
     op.user_phi(np.array(phi))
