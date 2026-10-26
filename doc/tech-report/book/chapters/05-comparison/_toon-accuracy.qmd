@@ -26,7 +26,7 @@ albedo of exactly one.
 
 **Placement.** A measurement on the solver; nothing in pyharp runs it.
 
-**Activation.** `solver: toon` in the band YAML; `flags` for thermal options.
+**Activation.** `solver: toon` in the band YAML; `flags`[^rg-ca30be06d668] for thermal options.
 
 **Guarantee / limits.** Round-off for $\omega < 1$; wrong at $\omega = 1$ exactly.
 
@@ -327,3 +327,7 @@ output `derivation-checks/check_ch05_toon_vs_disort.out`, lines [C1]-[C71]; the 
 Toon et al. 1989, Table 4, in `derivation-checks/check_ch05_gs85.py`; run:
 `python3 derivation-checks/check_ch05_gs85.py`, CPU, double; output `derivation-checks/check_ch05_gs85.out`,
 lines [C9]-[C20].]
+
+<!-- reader glossary notes -->
+[^rg-ca30be06d668]: flags — the comma-separated solver options
+<!-- end reader glossary notes -->

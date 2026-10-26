@@ -118,7 +118,7 @@ The check is `derivation-checks/check_ch02_delta_scaling.py`.
 The scaling is three assignments per layer, before the closure coefficients. The scaled values overwrite the unscaled
 ones under the same names (`w0`, `dtau`, `hg`), and the cumulative optical depth and the direct beam are built from the
 scaled thicknesses. Round-off is that of a few multiplications. The DISORT path does its own delta-M inside cdisort, with
-$f$ the moment whose order equals the number of streams, `nstr`. The figure of this scheme is not provided: its module is
+$f$ the moment whose order equals the number of streams, `nstr`[^rg-151eadc78efe]. The figure of this scheme is not provided: its module is
 not written yet.
 
 ### Code
@@ -173,3 +173,7 @@ asserts the scaled values: missing evidence for the compiled path.
     `python3 derivation-checks/check_ch02_delta_scaling.py`, CPU, exact symbolic arithmetic and 35-digit mpmath quadrature;
     Python 3.13.15, sympy 1.14.0, mpmath 1.3.0, numpy 2.5.4]. Output:
     `derivation-checks/check_ch02_delta_scaling.out`.
+
+<!-- reader glossary notes -->
+[^rg-151eadc78efe]: nstr — the discrete-ordinate stream count
+<!-- end reader glossary notes -->

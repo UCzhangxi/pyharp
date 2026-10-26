@@ -48,7 +48,7 @@ $$ {#eq-ch08-config-weight}
 with $M_e$ from `get_element_weight` ({{< code src/element.cpp get_element_weight overload=1 repo=pyharp >}}), which accepts an
 element's symbol or its name in lower case and refuses an unknown one. The grid size is read, not computed: a band
 gets $L$ = `nx1` layers and $N_{\mathrm{col}}$ = `nx2` $\times$ `nx3` columns, with `nx2` and `nx3` 1 when absent.
-The band's spectral range is copied unchanged into the lower and upper limit of every one of its `nwave` spectral
+The band's spectral range is copied unchanged into the lower and upper limit of every one of its `nwave`[^rg-ed8f8b788ae8] spectral
 points; DISORT reads these limits as wavenumbers in $\mathrm{cm^{-1}}$ (@sec-ch03-band). Nothing here is approximate.
 The check is `ch08_config.py` (the Tests layer below).
 
@@ -72,11 +72,11 @@ make_fig()
    lists `species_names` and `species_weights`, and fills them in file order with @eq-ch08-config-weight.
 2. For every entry of `bands`, in file order, it calls `RadiationBandOptionsImpl::from_yaml`
    ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}) with the band's
-   name. That routine reads the file again and finds the first band of that name. It needs `opacities` (each read
-   by its own options reader, described with the opacity assembly), `range` with lower $\le$ upper
+   name. That routine reads the file again and finds the first band of that name. It needs `opacities`[^rg-ea1a72e978ac] (each read
+   by its own options reader, described with the opacity assembly), `range`[^rg-eb989bb9ddd7] with lower $\le$ upper
    (`parse_wave_range`, {{< code src/utils/parse_yaml_input.cpp parse_wave_range repo=pyharp >}}), `nwave`,
-   `geometry`, `cells`, `nx1` and `solver`. `nstr` defaults to 4.
-3. `solver: disort` builds the DISORT options of @sec-ch03-band with the band's `flags`, trimmed of blanks, through
+   `geometry`, `cells`, `nx1` and `solver`[^rg-a308fce51551]. `nstr` defaults to 4.
+3. `solver: disort` builds the DISORT options of @sec-ch03-band with the band's `flags`[^rg-88d08ef43bf3], trimmed of blanks, through
    `create_disort_config` ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}). That sets
    `nlyr`, `nstr` and `nmom` of the DISORT state but not `nphase` ([P1]).
    `solver: toon` builds the Toon options of @sec-ch04-shortwave and @sec-ch04-longwave, with `flags` and the
@@ -91,7 +91,7 @@ make_fig()
 
 | file key | where | required | default |
 |---|---|---|---|
-| `species`: `name`, `composition` | top level | yes, when `bands` is present | none |
+| `species`: `name`[^rg-96339d1764bc], `composition` | top level | yes, when `bands` is present | none |
 | `geometry`: `cells`: `nx1`, `nx2`, `nx3` | top level | `nx1` | `nx2`, `nx3` 1 |
 | `opacities`: one entry per source | top level | yes | none |
 | `bands`: `name`, `range`, `opacities`, `solver`, `nwave` | top level | yes | none |
@@ -177,3 +177,17 @@ DISORT band's `nphase` differs from its `nstr` in at least one of six reads; its
   no code at the pin uses it.
 - Not tested: CUDA (the reader runs on the host only), a band name used twice (the reader takes the first).
 :::
+
+<!-- reader glossary notes -->
+[^rg-ed8f8b788ae8]: nwave — the number of spectral points
+
+[^rg-ea1a72e978ac]: opacities — the list of opacity-source names used by the band
+
+[^rg-eb989bb9ddd7]: range — the pair of spectral endpoints, interpreted as wavenumbers by default
+
+[^rg-a308fce51551]: solver — the transfer-solver selector
+
+[^rg-88d08ef43bf3]: flags — the comma-separated solver options
+
+[^rg-96339d1764bc]: name — the band identifier
+<!-- end reader glossary notes -->

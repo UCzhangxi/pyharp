@@ -20,8 +20,8 @@ make_fig()
 
 | scheme | YAML key or option | default | order | main test |
 |---|---|---|---|---|
-| @sec-ch08-config | the whole file; `integration` | `nstr` 4, `rk3` | n/a | configuration check |
-| @sec-ch08-radiation | `bands` | always | exact sum | band-sum check |
+| @sec-ch08-config | the whole file; `integration` | `nstr`[^rg-1e0c7cdec8da] 4, `rk3` | n/a | configuration check |
+| @sec-ch08-radiation | `bands`[^rg-c73332f395c7] | always | exact sum | band-sum check |
 | @sec-ch08-spherical | `area` in `atm` | off | n/a | spherical check |
 | @sec-ch08-stepper | `type` of `integration` | `rk3` | 1, 2, 3, 3 | stepper check |
 
@@ -34,3 +34,9 @@ make_fig()
 {{< include 08-api/_spherical.qmd >}}
 
 {{< include 08-api/_stepper.qmd >}}
+
+<!-- reader glossary notes -->
+[^rg-1e0c7cdec8da]: nstr — the discrete-ordinate stream count
+
+[^rg-c73332f395c7]: bands — the list of radiation-band configurations
+<!-- end reader glossary notes -->

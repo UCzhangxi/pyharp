@@ -23,7 +23,7 @@ make_fig()
 
 | scheme | YAML key or option | default | order | main test |
 |---|---|---|---|---|
-| @sec-ch03-band | `solver: disort`, `nstr`, `flags` | `nstr` 4, flags empty | n/a | E3 slab, beam, closure |
+| @sec-ch03-band | `solver: disort`, `nstr`[^rg-3de102ab9f42], `flags`[^rg-f98e9d6ecb29] | `nstr` 4, flags empty | n/a | E3 slab, beam, closure |
 | @sec-ch03-ordinates | always, in a DISORT band | on | streams $2N$ | E3 slab, disotest |
 | @sec-ch03-deltam | none; $\chi_{2N} \neq 0$ | on if $\chi_{2N} \neq 0$ | n/a | delta-M check |
 | @sec-ch03-intcorr | `intensity_correction` | off | n/a | correction check |
@@ -37,3 +37,9 @@ make_fig()
 {{< include 03-disort/_deltam.qmd >}}
 
 {{< include 03-disort/_intcorr.qmd >}}
+
+<!-- reader glossary notes -->
+[^rg-3de102ab9f42]: nstr — the discrete-ordinate stream count
+
+[^rg-f98e9d6ecb29]: flags — the comma-separated solver options
+<!-- end reader glossary notes -->

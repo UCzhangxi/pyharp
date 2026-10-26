@@ -6,6 +6,14 @@
 
 ## YAML keys {.unnumbered .unlisted}
 
+- `bands`: the list of radiation-band configurations. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `flags`: the comma-separated solver options. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `name`: the band identifier. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `nstr`: the discrete-ordinate stream count. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `nwave`: the number of spectral points. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `opacities`: the list of opacity-source names used by the band. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `range`: the pair of spectral endpoints, interpreted as wavenumbers by default. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
+- `solver`: the transfer-solver selector. Defined in [Matching the spectral measure (`weight` or `wavenumber`)](#sec-ch07-spectral).
 
 ## Named concepts {.unnumbered .unlisted}
 

@@ -269,7 +269,7 @@ runs them in parallel through `call_toon89_sw_cpu` ({{< code src/rtsolver/rtsolv
 
 | what | code link | symbol | switch |
 |---|---|---|---|
-| option struct and flags | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}} | `ToonMcKay89OptionsImpl` | `flags` |
+| option struct and flags | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}} | `ToonMcKay89OptionsImpl` | `flags`[^rg-874fa0aa32ca] |
 | input checks, boundary data | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `ToonMcKay89Impl::forward` | always |
 | CPU dispatch | {{< code src/rtsolver/rtsolver_dispatch.cpp call_toon89_sw_cpu repo=pyharp >}} | `call_toon89_sw_cpu` | no `planck` |
 | kernel | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `toon_mckay89_shortwave` | always |
@@ -293,7 +293,7 @@ runs them in parallel through `call_toon89_sw_cpu` ({{< code src/rtsolver/rtsolv
    channels.
 
 A band selects this solver in YAML with `solver: toon` and no `planck` in its `flags`; the band also gives its
-`name`, its `range` and `nwave` in the list `bands`. These keys are parsed in `RadiationBandOptionsImpl::from_yaml`
+`name`[^rg-7e8a04f0c2a7], its `range`[^rg-fb6265aaac2a] and `nwave`[^rg-5116af2cf9ac] in the list `bands`[^rg-a940d44fd1d4]. These keys are parsed in `RadiationBandOptionsImpl::from_yaml`
 ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
 
 
@@ -352,3 +352,15 @@ $\omega = 1$ passed directly to `ToonMcKay89` gives wrong fluxes.
   are double only. GPU results: answered at @sec-ch09.
 
 [^ch04-sw-thick]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch04/toon_pyharp_check.py`, candidates [K5] and [K6], and the sweep of `--data`; run: `python3 derivation-checks/ch04/toon_pyharp_check.py --data src/pyharp_report/ch04/data/shortwave_thick_layer.csv`, CPU, double, one thread; Python 3.11.13, torch 2.10.0+cu128, mpmath 1.3.0, numpy 2.4.6, pyharp 2.7.8 built from source at the pin against pydisort 1.7.1, environment built by `derivation-checks/ch04/setup_env.sh <dir> 1.7.1`; regenerate with `bash derivation-checks/ch04_run.sh <env 1.7.1> <env 1.8.13>`; outputs `derivation-checks/ch04/toon_pyharp_check.pydisort-1.7.1.out` and `src/pyharp_report/ch04/data/shortwave_thick_layer.csv`]
+
+<!-- reader glossary notes -->
+[^rg-874fa0aa32ca]: flags — the comma-separated solver options
+
+[^rg-7e8a04f0c2a7]: name — the band identifier
+
+[^rg-fb6265aaac2a]: range — the pair of spectral endpoints, interpreted as wavenumbers by default
+
+[^rg-5116af2cf9ac]: nwave — the number of spectral points
+
+[^rg-a940d44fd1d4]: bands — the list of radiation-band configurations
+<!-- end reader glossary notes -->

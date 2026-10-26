@@ -1,1 +1,53 @@
-{"version": 1, "entries": []}
+{
+  "version": 1,
+  "entries": [
+    {
+      "kind": "key",
+      "term": "bands",
+      "meaning": "the list of radiation-band configurations",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "name",
+      "meaning": "the band identifier",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "solver",
+      "meaning": "the transfer-solver selector",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "range",
+      "meaning": "the pair of spectral endpoints, interpreted as wavenumbers by default",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "nwave",
+      "meaning": "the number of spectral points",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "nstr",
+      "meaning": "the discrete-ordinate stream count",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "flags",
+      "meaning": "the comma-separated solver options",
+      "section": "sec-ch07-spectral"
+    },
+    {
+      "kind": "key",
+      "term": "opacities",
+      "meaning": "the list of opacity-source names used by the band",
+      "section": "sec-ch07-spectral"
+    }
+  ]
+}

@@ -103,7 +103,7 @@ Each band call runs these steps:
 1. `RadiationBandOptionsImpl::from_yaml`
    ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}) reads `nstr`
    (default 4) and `flags`, and calls `create_disort_config`
-   ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}), which sets `nwave`, `ncol`,
+   ({{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}}), which sets `nwave`[^rg-664b23331a2c], `ncol`,
    `upward`, `nlyr`, `nstr` and `nmom = nstr`. It sets the Planck limits to the band range for every spectral point.
 2. `RadiationBandImpl::reset` ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}})
    sizes the `prop` buffer to $2 + \max(\mathrm{nmom})$ over the band's opacities and builds the solver module,
@@ -134,7 +134,7 @@ direct: there is no iteration.
 
 | what | code link | symbol | switch |
 |---|---|---|---|
-| read band options | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `from_yaml` | `solver`, `nstr`, `flags` |
+| read band options | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `from_yaml` | `solver`[^rg-daff4e08587c], `nstr`, `flags` |
 | solver defaults | {{< code src/radiation/disort_config.cpp create_disort_config repo=pyharp >}} | `create_disort_config` | always |
 | Python helper | {{< code python/disort.py disort_config repo=pyharp >}} | `disort_config` | user call |
 | buffer and solver | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `reset` | always |
@@ -236,3 +236,9 @@ integration treats. The BRDF surface, pseudo-spherical geometry and `general_sou
 band (Code walk-through, step 1); not provided: a BRDF input in pydisort.
 
 [^ch03-band-cand]: [sha: f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `derivation-checks/ch03_candidates.py` [P1]-[P6]; run: `derivation-checks/ch03_run.sh <python> <pydisort source> <pyharp source>`, CPU, double; Python 3.11.13, torch 2.10.0+cu128, numpy 2.4.6, pydisort 1.7.1]. Outputs `derivation-checks/ch03_candidates.pydisort-1.7.1.out` and `.pydisort-1.8.13.out`. Each probe runs in its own interpreter because several end the process.
+
+<!-- reader glossary notes -->
+[^rg-664b23331a2c]: nwave — the number of spectral points
+
+[^rg-daff4e08587c]: solver — the transfer-solver selector
+<!-- end reader glossary notes -->

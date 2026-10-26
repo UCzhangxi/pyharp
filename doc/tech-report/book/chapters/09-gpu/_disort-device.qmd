@@ -27,7 +27,7 @@ one. On the CPU the two versions give bit-identical fluxes, and batching is exac
 
 **Activation.** `solver: disort`; device and precision of the inputs. Default CPU.
 
-**Guarantee / limits.** 1.7.1: no CUDA. 1.8.13: round-off except at `nstr` 8 and thermal $\omega = 1$.
+**Guarantee / limits.** 1.7.1: no CUDA. 1.8.13: round-off except at `nstr`[^rg-7bd767bf2209] 8 and thermal $\omega = 1$.
 
 **Evidence.** See the Tests layer below.
 :::
@@ -179,3 +179,7 @@ wheel (tag `v1.8.13` of zoeyzyhu/pydisort, which ships a CUDA library; not a pin
 float32, versions as in the footnote above; output `derivation-checks/check_ch09_batch_device_pydisort1813.out`, the
 `EXPECTED-FAIL` lines; matrix: `python3 derivation-checks/check_ch09_matrix.py`, output
 `derivation-checks/check_ch09_matrix.out`.]
+
+<!-- reader glossary notes -->
+[^rg-7bd767bf2209]: nstr — the discrete-ordinate stream count
+<!-- end reader glossary notes -->
