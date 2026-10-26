@@ -4,14 +4,16 @@ Every probe runs in its own Python subprocess, because several of them end the p
 from cdisort, or an abort from the C heap checker). Each prints one line
 "[Pn] CANDIDATE reproduced|not reproduced: ..." with the subprocess return code and what it saw.
 None of these is a pass/fail check: the script exits 0 whatever the probes find, and exits 1 only
-if a probe could not be run at all.
+if a probe could not be run at all, or one of [P3]-[P6] did not end within --probe-timeout seconds.
 
   [P1] moment overflow in pydisort: prop carries more moments than ds.nmom (nstr = nmom = 4, eight
        moments supplied, three layers). With upward = 1 (pyharp's setting) the fluxes change and
        the process then ends abnormally; with upward = 0 they do not change, and the process ends
        abnormally. Heap corruption is not deterministic, so [P1] and [P2] run --repeat times (default
        10) and report how many runs ended abnormally and with which return codes (-6 abort, -11
-       segmentation fault).
+       segmentation fault). A run can also deadlock in free() when the corrupted solver is destroyed at
+       interpreter exit, after its result was printed; it is killed after --probe-timeout seconds and
+       counted as an abnormal exit that "hung at exit".
   [P2] the same overflow reached through pyharp: a Rayleigh opacity with nmom: 8 on a 4-stream
        DISORT band.
   [P3] a DISORT band called without 'tempf' or 'temp' raises (pydisort's default for the temperature
@@ -202,28 +204,52 @@ def git_head(var):
     return r.stdout.strip() or "not a git tree"
 
 
+HANG = "hang"  # return code recorded for a probe that did not end within the probe timeout
+TIMEOUT = 120.0  # set from --probe-timeout; a probe takes 1-3 s on one core
+
+
 def probe(work, name, code, *args):
     """run code from a file in a fresh interpreter (TorchScript needs the source of the classes it
-    compiles); return (rc, [RESULT dicts], up to two lines that mention an error)"""
+    compiles); return (rc, [RESULT dicts], up to two lines that mention an error). rc is HANG when the
+    interpreter had not ended after TIMEOUT seconds; it is then killed and what it printed is kept."""
     import json
     path = os.path.join(work, name + ".py")
     with open(path, "w") as f:
         f.write(code)
-    r = subprocess.run([sys.executable, path, *args], capture_output=True, text=True, timeout=600,
-                       env=dict(os.environ, CUDA_VISIBLE_DEVICES=""))
-    out = r.stdout + r.stderr
-    res = [json.loads(line[7:]) for line in r.stdout.splitlines() if line.startswith("RESULT ")]
+    p = subprocess.Popen([sys.executable, path, *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                         env=dict(os.environ, CUDA_VISIBLE_DEVICES=""))
+    try:
+        stdout, stderr = p.communicate(timeout=TIMEOUT)
+        rc = p.returncode
+    except subprocess.TimeoutExpired:
+        p.kill()
+        stdout, stderr = p.communicate()
+        rc = HANG
+    out = stdout + stderr
+    res = [json.loads(line[7:]) for line in stdout.splitlines() if line.startswith("RESULT ")]
     msg = [line.strip() for line in out.splitlines()
            if any(k in line.lower() for k in ("error", "corrupt", "free(", "malloc", "invalid", "abort", "not known"))
            and not line.startswith("RESULT ")]
-    return r.returncode, res, msg[:2]
+    return rc, res, msg[:2]
+
+
+def codes(rcs):
+    """'return codes [..]' of the runs that ended, plus how many hung at exit (HANG) when any did"""
+    hung = rcs.count(HANG)
+    s = f"return codes {sorted(set(r for r in rcs if r != HANG))}"
+    return s + (f", {hung} hung at exit (killed after {TIMEOUT:g} s)" if hung else "")
 
 
 def main():
+    global TIMEOUT
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--work", default=None)
     ap.add_argument("--repeat", type=int, default=10, help="runs of the memory-corruption probes [P1], [P2]")
+    ap.add_argument("--probe-timeout", type=float, default=TIMEOUT,
+                    help="seconds a probe interpreter may take before it is killed and counted as hung")
     a = ap.parse_args()
+    TIMEOUT = a.probe_timeout
+    hung_probes = []
     work = a.work or tempfile.mkdtemp(prefix="ch03_cand_")
     os.makedirs(work, exist_ok=True)
     print(f"python {sys.version.split()[0]}, torch {torch.__version__}, numpy {np.__version__}, "
@@ -244,7 +270,7 @@ def main():
                 if seen_flux else "no fluxes returned")
         bad = sum(r != 0 for r in rcs)
         print(f"[P1] CANDIDATE {tag(bad > 0)}: pydisort upward={up}, 8 moments for nmom 4: {flux}; abnormal exit in "
-              f"{bad} of {len(rcs)} runs, return codes {sorted(set(rcs))}")
+              f"{bad} of {len(rcs)} runs, {codes(rcs)}")
 
     ys = []
     for n in (4, 8):
@@ -261,15 +287,17 @@ def main():
                 diff = f"{r['max_abs_diff']:.1e} of {r['flux_scale']:.3f}"
     bad = sum(r != 0 for r in rcs)
     print(f"[P2] CANDIDATE {tag(bad > 0)}: pyharp Rayleigh nmom 8 on a 4-stream DISORT band: abnormal exit in {bad} of "
-          f"{len(rcs)} runs, return codes {sorted(set(rcs))}; max |dF| against nmom 4 when the fluxes came back: "
+          f"{len(rcs)} runs, {codes(rcs)}; max |dF| against nmom 4 when the fluxes came back: "
           f"{diff or 'never returned'}")
 
     code = f"YAML_SLAB = {YAML_SLAB!r}\n" + P34
     rc, res, msg = probe(work, "p3", code, work, "lamber,quiet,onlyfl", "0")
+    hung_probes += ["P3"] * (rc == HANG)
     err = [r["error"] for r in res if "error" in r]
     print(f"[P3] CANDIDATE {tag(bool(err))}: DISORT band without tempf/temp: rc {rc}; "
           f"{err[0] if err else 'ran without error'}")
     rc, res, msg = probe(work, "p4", code, work, "", "1")
+    hung_probes += ["P4"] * (rc == HANG)
     fl = [r["flags_seen"] for r in res if "flags_seen" in r]
     ran = [r for r in res if "ran" in r]
     print(f"[P4] CANDIDATE {tag(rc != 0 and not ran)}: DISORT band with no 'flags:' key: flags {fl[0]!r} "
@@ -277,6 +305,7 @@ def main():
 
     for nph in (0, 16):
         rc, res, msg = probe(work, f"p5_{nph}", P5, str(nph))
+        hung_probes += [f"P5 nphase {nph}"] * (rc == HANG)
         if res:
             seen = res[0]["finite"] < res[0]["total"]
             print(f"[P5] CANDIDATE {tag(seen)}: Buras path, nphase {nph}: rc {rc}; finite radiances "
@@ -285,9 +314,12 @@ def main():
             print(f"[P5] CANDIDATE {tag(rc != 0)}: Buras path, nphase {nph}: rc {rc}; no result; {msg}")
 
     rc, res, msg = probe(work, "p6", P6)
+    hung_probes += ["P6"] * (rc == HANG)
     r = res[0] if res else {}
     print(f"[P6] CANDIDATE {tag(rc == 0 and r.get('raised') is False and bool(msg))}: user_mu not increasing: "
           f"cdisort message {msg[:1]}; Python exception raised: {r.get('raised')}; rc {rc}")
+    if hung_probes:
+        sys.exit(f"ch03_candidates: no exit within {TIMEOUT:g} s: {', '.join(hung_probes)}")
     sys.exit(0)
 
 
