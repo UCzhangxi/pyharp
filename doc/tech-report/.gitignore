@@ -5,3 +5,6 @@
 !*.png
 !*.svg
 !*.csv
+
+# made by setup.sh
+.report-env/

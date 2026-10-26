@@ -1,0 +1,143 @@
+{
+ "_what": [
+  "Pinned versions and sha256 digests of the tools setup.sh installs to render this report and run its gates.",
+  "Taken from the snapy technical report's tools/env-pins.json (the same Quarto, TinyTeX and Universal Ctags",
+  "releases), which is where the digests were recorded; setup.sh refuses any download whose digest differs."
+ ],
+ "python": {
+  "minimum": "3.11",
+  "below": "3.14",
+  "ci": "3.12",
+  "why": "PYTHON_VERSION of .github/workflows/tech-report.yml is 3.12; 3.11 is what the derivation-check environments use"
+ },
+ "python_packages": {
+  "install": [
+   "-e",
+   "src",
+   "jupyter",
+   "pytest",
+   "pyyaml"
+  ],
+  "why": "the 'Install pyharp-report, Jupyter and pytest' step of .github/workflows/tech-report.yml, unchanged"
+ },
+ "render": {
+  "quarto": {
+   "version": "1.10.19",
+   "why": "QUARTO_VERSION of .github/workflows/tech-report.yml and the version README.md names",
+   "artifacts": {
+    "linux-x86_64": {
+     "url": "https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.19/quarto-1.10.19-linux-amd64.tar.gz",
+     "sha256": "8e38c2b2df6a6dbd369ea16e15acded6894545258d13a02f777f81ad18fd7973",
+     "strip": 1
+    },
+    "linux-aarch64": {
+     "url": "https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.19/quarto-1.10.19-linux-arm64.tar.gz",
+     "sha256": "bba2bb55add74c754c313905df42b0f45a8250aee2110a4fce7f83020bfe1b8f",
+     "strip": 1
+    },
+    "darwin": {
+     "url": "https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.19/quarto-1.10.19-macos.tar.gz",
+     "sha256": "c617db5422824e506750573ea94a1e26a475532adfe18c8fea310816ced97f47",
+     "strip": 1
+    }
+   }
+  },
+  "tinytex": {
+   "version": "v2026.10",
+   "scheme": "TinyTeX-1",
+   "why": "the workflow asks quarto-actions/setup for tinytex: true; scheme 1 carries LuaLaTeX, and setup.sh adds the packages the book loads (KOMA scrreprt among them) with tlmgr from the pinned snapshot",
+   "artifacts": {
+    "linux-x86_64": {
+     "url": "https://github.com/rstudio/tinytex-releases/releases/download/v2026.10/TinyTeX-1-linux-x86_64-v2026.10.tar.xz",
+     "sha256": "4d519d6236ee6798e3ec0d8e2093d1fda01aeb267aa22c2a5586d76bcfce6566",
+     "strip": 1
+    },
+    "linux-aarch64": {
+     "url": "https://github.com/rstudio/tinytex-releases/releases/download/v2026.10/TinyTeX-1-linux-arm64-v2026.10.tar.xz",
+     "sha256": "1bc5465c7a7c6f13e13c1b54a52147577eb3f389033af0444bc097698eb6653f",
+     "strip": 1
+    },
+    "darwin": {
+     "url": "https://github.com/rstudio/tinytex-releases/releases/download/v2026.10/TinyTeX-1-darwin-v2026.10.tar.xz",
+     "sha256": "e40c294efae81026d8cc8d12c09d2dd456d268efe7fe092410478bc1973fd40f",
+     "strip": 1
+    }
+   },
+   "tlnet_repository": "https://www.texlive.info/tlnet-archive/2026/10/17/tlnet",
+   "_why_tlnet_repository": [
+    "Pinning the TinyTeX tarball does NOT pin TeX: scheme 1 ships no koma-script at all, so the",
+    "class the book is built on is fetched at render time from whatever the default repository",
+    "serves that day. That is a rolling mirror, and it broke the report: koma-script 3.49.3",
+    "(2026/10/19) removed \\ifstr, which book/_tex/theme.tex:30 calls, and the PDF died with",
+    "  Undefined control sequence.",
+    "  \\chapterlinesformat #1#2#3->\\ifstr",
+    "on a head written four days earlier against 3.49.2.",
+    "",
+    "www.texlive.info keeps a dated, immutable tlnet snapshot per day, so naming one pins every",
+    "TeX package by date the way requirements.txt pins the Python ones. 2026/10/17 is the last",
+    "snapshot before koma-script 3.49.3 and gives 3.49.2 (2026/02/02), which has \\ifstr.",
+    "",
+    "setup.sh runs `tlmgr update --self` against this same snapshot first, because the tlmgr in",
+    "the TinyTeX tarball is older than the snapshot's and refuses to install until it matches.",
+    "That update is deterministic: the snapshot does not move.",
+    "",
+    "\\ifstr is deprecated in KOMA-Script and gone from 3.49.3. Pinning buys time, it does not fix",
+    "it; book/_tex/theme.tex should move to \\Ifstr, which is its chapter owner's call."
+   ],
+   "tlmgr_packages": [
+    "koma-script",
+    "fontspec",
+    "unicode-math",
+    "lm-math",
+    "amsmath",
+    "amsfonts",
+    "booktabs",
+    "caption",
+    "float",
+    "etoolbox",
+    "fancyvrb",
+    "framed",
+    "geometry",
+    "hyperref",
+    "listings",
+    "longtable",
+    "microtype",
+    "multirow",
+    "pdfcol",
+    "tcolorbox",
+    "titling",
+    "upquote",
+    "xcolor",
+    "environ",
+    "trimspaces",
+    "pdflscape",
+    "footnotehyper",
+    "bookmark",
+    "luatexbase",
+    "luacolor",
+    "luatex85",
+    "colortbl",
+    "fontawesome5",
+    "needspace",
+    "tikzfill"
+   ]
+  },
+  "universal-ctags": {
+   "version": "6.2.1",
+   "why": "CTAGS_VERSION of the workflow and of tools/code_anchors.py",
+   "artifacts": {
+    "source": {
+     "url": "https://github.com/universal-ctags/ctags/releases/download/v6.2.1/universal-ctags-6.2.1.tar.gz",
+     "sha256": "2c63efe9e0e083dc50e6fdd8c5414781cc8873d8c8940cf553c01870ed962f8c",
+     "strip": 1
+    }
+   },
+   "configure": [
+    "--disable-json",
+    "--disable-xml",
+    "--disable-yaml",
+    "--disable-seccomp"
+   ]
+  }
+ }
+}
