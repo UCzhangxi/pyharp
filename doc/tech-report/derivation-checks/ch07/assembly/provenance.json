@@ -1,0 +1,21 @@
+{
+  "pyharp": {
+    "origin": "https://github.com/chengcli/pyharp.git",
+    "head": "f34506f9d14ee7b1f2e1222775baa5093ae6967f",
+    "parent": "4b8172df1a17e871dae9886debc949858ff28ab6",
+    "tree": "f9bedcee953ad8473d4f58dac7c65256033edce5",
+    "branch": "main",
+    "status_porcelain": "",
+    "origin_main": "f34506f9d14ee7b1f2e1222775baa5093ae6967f",
+    "v2.7.8": "f34506f9d14ee7b1f2e1222775baa5093ae6967f"
+  },
+  "pydisort": {
+    "origin": "https://github.com/zoeyzyhu/pydisort.git",
+    "head": "8af15242a265a60ea6fb51c29d48e6688a63ab67",
+    "parent": "f85b0cb8f9837ea7f5e5620ae436de2aaabc4834",
+    "tree": "b2e29db95e60ac40ccda101b7fe86015ab95ccea",
+    "branch": "HEAD",
+    "status_porcelain": "",
+    "v1.7.1": "8af15242a265a60ea6fb51c29d48e6688a63ab67"
+  }
+}

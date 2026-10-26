@@ -58,6 +58,15 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch06-rayleigh-sigma` | `06-opacity/_rayleigh.qmd` | `pyharp_report/ch06/figures/_data.py`<br>`pyharp_report/ch06/figures/fig_rayleigh_sigma.py` | `src/pyharp_report/ch06/data/rayleigh_sigma.json` |
 | `fig-ch06-sources-contract` | `06-opacity/_sources.qmd` | `pyharp_report/ch06/figures/fig_sources_contract.py` | - |
 
+## ch07
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch07-mixture-errors` | `07-assembly/_mixture.qmd` | `pyharp_report/ch07/figures/fig_mixture_errors.py` | `src/pyharp_report/ch07/data/historical.json` |
+| `fig-ch07-mixture-flow` | `07-assembly/_mixture.qmd` | `pyharp_report/ch07/figures/fig_mixture_flow.py` | - |
+| `fig-ch07-spectral-flow` | `07-assembly/_spectral.qmd` | `pyharp_report/ch07/figures/fig_spectral_flow.py` | - |
+| `fig-ch07-spectral-ratios` | `07-assembly/_spectral.qmd` | `pyharp_report/ch07/figures/fig_spectral_ratios.py` | `src/pyharp_report/ch07/data/historical.json` |
+
 ## ch08
 
 | figure | section file | code | data (written by) |

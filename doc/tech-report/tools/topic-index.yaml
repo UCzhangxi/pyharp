@@ -155,6 +155,20 @@ sections:
     - opacity table interpolation in pressure and temperature
   sec-ch06-helios:
     - Helios opacity table, refused
+  sec-ch07-mixture:
+    - optical-property mixing
+    - scattering-weighted moments
+  sec-ch07-spectral:
+    - spectral integration
+    - band flux units
+    - bands
+    - name
+    - solver
+    - range
+    - nwave
+    - nstr
+    - flags
+    - opacities
 unlabeled:
   - file: chapters/appendices/_appb-ch01.qmd
     heading: Overview and quick start (@sec-ch01)
@@ -183,3 +197,6 @@ unlabeled:
   - file: chapters/appendices/_appb-ch06.qmd
     heading: Opacity sources (@sec-ch06)
     covered-by: sec-ch06
+  - file: chapters/appendices/_appb-ch07.qmd
+    heading: Optical-property assembly and spectral integration (@sec-ch07)
+    covered-by: sec-ch07

@@ -10,7 +10,13 @@
 
 ## B {.unnumbered .unlisted}
 
+**band flux units**: Matching the spectral measure, @sec-ch07-spectral.
+
 **band-integrated Planck function, DISORT**: Discrete-ordinate solution of a layered column (cdisort, always on in a DISORT band), @sec-ch03-ordinates.
+
+**`bands`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**bands**: Matching the spectral measure, @sec-ch07-spectral.
 
 **batching, Toon solver**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
 
@@ -80,6 +86,10 @@
 
 ## F {.unnumbered .unlisted}
 
+**`flags`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**flags**: Matching the spectral measure, @sec-ch07-spectral.
+
 **floors and clamps, inventory**: Invariant checks: energy closure, flux positivity, the zero-opacity limit and every floor, @sec-ch10-invariants.
 
 **forward-peak truncation**: Delta scaling of the optical properties, @sec-ch02-delta-scaling; Delta-M truncation of the forward peak (no option; on when $\chi_{2N} \neq 0$), @sec-ch03-deltam.
@@ -132,11 +142,27 @@
 
 ## N {.unnumbered .unlisted}
 
+**`name`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**name**: Matching the spectral measure, @sec-ch07-spectral.
+
 **net_flux_midpt**: Summing the bands, @sec-ch08-radiation.
 
 **net flux, surface and top-of-atmosphere outputs**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
 
+**`nstr`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**nstr**: Matching the spectral measure, @sec-ch07-spectral.
+
+**`nwave`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**nwave**: Matching the spectral measure, @sec-ch07-spectral.
+
 ## O {.unnumbered .unlisted}
+
+**`opacities`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**opacities**: Matching the spectral measure, @sec-ch07-spectral.
 
 **opacities block of the radiation YAML**: How a band selects and builds its opacity sources, @sec-ch06-sources.
 
@@ -145,6 +171,8 @@
 **opacity table interpolation in pressure and temperature**: Pre-mixed correlated-k table, @sec-ch06-picaso.
 
 **optical properties of a band, mixing of opacities**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
+
+**optical-property mixing**: Combining optical properties, @sec-ch07-mixture.
 
 **optical-property tensor of a source (nprop)**: How a band selects and builds its opacity sources, @sec-ch06-sources.
 
@@ -176,6 +204,10 @@
 
 **RadiationModel, column time stepping**: Column time stepping, @sec-ch08-stepper.
 
+**`range`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**range**: Matching the spectral measure, @sec-ch07-spectral.
+
 **Rayleigh phase function and its moments**: Rayleigh scattering by gas molecules, @sec-ch06-rayleigh.
 
 **Rayleigh scattering, gas**: Rayleigh scattering by gas molecules, @sec-ch06-rayleigh.
@@ -190,6 +222,8 @@
 
 ## S {.unnumbered .unlisted}
 
+**scattering-weighted moments**: Combining optical properties, @sec-ch07-mixture.
+
 **shortwave two-stream solver**: Shortwave two-stream solver, quadrature closure with delta-Eddington scaling, @sec-ch04-shortwave.
 
 **single precision on CUDA**: Toon on many columns and on CUDA (device and precision of the inputs), @sec-ch09-toon.
@@ -198,11 +232,17 @@
 
 **single-scattering albedo of one, Toon**: Toon's error against converged DISORT, @sec-ch05-toon-accuracy.
 
+**`solver`**: Matching the spectral measure, @sec-ch07-spectral.
+
+**solver**: Matching the spectral measure, @sec-ch07-spectral.
+
 **solver cost per column**: Cost per column of the two solvers, @sec-ch05-cost.
 
 **source-function technique**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
 
 **species molar mass**: Reading the configuration file, @sec-ch08-config.
+
+**spectral integration**: Matching the spectral measure, @sec-ch07-spectral.
 
 **spectral integration, weights and wavenumbers**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
 

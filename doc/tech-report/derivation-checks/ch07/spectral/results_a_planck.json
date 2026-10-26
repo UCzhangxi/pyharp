@@ -1,0 +1,153 @@
+{
+ "checks": [
+  {
+   "id": "A1 mono wn=100",
+   "measured": 1.5308884775364172e-12,
+   "reference": 0.015308279469926167,
+   "rel_err": 0.9999999998999961,
+   "tol": 0.001,
+   "pass": false,
+   "note": "bbflux(wn,wn,T) vs B_nu [W m^-2 sr^-1 /cm^-1]",
+   "measured_over_reference": 1.0000395410496127e-10
+  },
+  {
+   "id": "A1 mono wn=700",
+   "measured": 7.403600422482264e-12,
+   "reference": 0.0740343848259721,
+   "rel_err": 0.9999999998999978,
+   "tol": 0.001,
+   "pass": false,
+   "note": "bbflux(wn,wn,T) vs B_nu [W m^-2 sr^-1 /cm^-1]",
+   "measured_over_reference": 1.0000218736044656e-10
+  },
+  {
+   "id": "A1 mono wn=2000",
+   "measured": 9.554060840512267e-14,
+   "reference": 0.0009554300664358695,
+   "rel_err": 0.9999999999000024,
+   "tol": 0.001,
+   "pass": false,
+   "note": "bbflux(wn,wn,T) vs B_nu [W m^-2 sr^-1 /cm^-1]",
+   "measured_over_reference": 9.999748988591784e-11
+  },
+  {
+   "id": "A2 band [600,800]",
+   "measured": 14.73031874768358,
+   "reference": 14.730467203839783,
+   "rel_err": 1.0078170240590716e-05,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "bbflux(wn1,wn2,T) vs quad(B_nu) [W m^-2 sr^-1]",
+   "quad_abs_err": 1.6354103853188676e-13
+  },
+  {
+   "id": "A2 band [690,710]",
+   "measured": 1.4805976260104226,
+   "reference": 1.4806127869182881,
+   "rel_err": 1.023961700150524e-05,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "bbflux(wn1,wn2,T) vs quad(B_nu) [W m^-2 sr^-1]",
+   "quad_abs_err": 1.6438104065911043e-14
+  },
+  {
+   "id": "A2 band [699.5,700.5]",
+   "measured": 0.0740336172575632,
+   "reference": 0.07403437546418401,
+   "rel_err": 1.0241278001650457e-05,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "bbflux(wn1,wn2,T) vs quad(B_nu) [W m^-2 sr^-1]",
+   "quad_abs_err": 8.219466825408084e-16
+  },
+  {
+   "id": "A2 band [10,3000]",
+   "measured": 70.50184993990564,
+   "reference": 70.50252637866188,
+   "rel_err": 9.59453215351519e-06,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "bbflux(wn1,wn2,T) vs quad(B_nu) [W m^-2 sr^-1]",
+   "quad_abs_err": 7.827352270233945e-13
+  },
+  {
+   "id": "A2 band [1,100]",
+   "measured": 0.5523498030808406,
+   "reference": 0.5523453979242506,
+   "rel_err": 7.975365788333158e-06,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "bbflux(wn1,wn2,T) vs quad(B_nu) [W m^-2 sr^-1]",
+   "quad_abs_err": 6.132265783212472e-15
+  },
+  {
+   "id": "A3 full-spectrum sigma T^4",
+   "measured": 221.496875,
+   "reference": 221.49900074939185,
+   "rel_err": 9.597106012548095e-06,
+   "tol": 0.0002,
+   "pass": true,
+   "note": "pi*bbflux(0,inf,T) vs sigma T^4 [W m^-2]"
+  },
+  {
+   "id": "A4 dens-overload wn=100",
+   "measured": 0.015313058733168934,
+   "reference": 0.015308279469926167,
+   "rel_err": 0.0003122012014581288,
+   "tol": 0.001,
+   "pass": true,
+   "note": "bbflux_wavenumber(wave,T,ncol) vs B_nu"
+  },
+  {
+   "id": "A4 dens-overload wn=700",
+   "measured": 0.07405418224562343,
+   "reference": 0.0740343848259721,
+   "rel_err": 0.0002674084440340263,
+   "tol": 0.001,
+   "pass": true,
+   "note": "bbflux_wavenumber(wave,T,ncol) vs B_nu"
+  },
+  {
+   "id": "A4 dens-overload wn=2000",
+   "measured": 0.0009555717740175911,
+   "reference": 0.0009554300664358695,
+   "rel_err": 0.0001483181100321649,
+   "tol": 0.001,
+   "pass": true,
+   "note": "bbflux_wavenumber(wave,T,ncol) vs B_nu"
+  },
+  {
+   "id": "A5 B_lambda lam=5um",
+   "measured": 0.37966394079328303,
+   "reference": 0.3821720265743478,
+   "rel_err": 0.006562714188022441,
+   "tol": 0.002,
+   "pass": false,
+   "note": "bbflux_wavelength vs B_nu*nu^2*1e-4 [W m^-2 sr^-1 /um]"
+  },
+  {
+   "id": "A5 B_lambda lam=14.2857um",
+   "measured": 3.622409317877355,
+   "reference": 3.6276848564758915,
+   "rel_err": 0.001454243906859509,
+   "tol": 0.002,
+   "pass": true,
+   "note": "bbflux_wavelength vs B_nu*nu^2*1e-4 [W m^-2 sr^-1 /um]"
+  },
+  {
+   "id": "A5 B_lambda lam=100um",
+   "measured": 0.015315534672617356,
+   "reference": 0.015308279469926167,
+   "rel_err": 0.00047393978568544047,
+   "tol": 0.002,
+   "pass": true,
+   "note": "bbflux_wavelength vs B_nu*nu^2*1e-4 [W m^-2 sr^-1 /um]"
+  }
+ ],
+ "A6_band_over_density": {
+  "1.0": 0.9999896322714006,
+  "10.0": 9.999771134336456,
+  "200.0": 198.96590999316328,
+  "1000.0": 828.6973074585733
+ }
+}

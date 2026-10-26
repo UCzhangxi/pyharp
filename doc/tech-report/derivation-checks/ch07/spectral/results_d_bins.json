@@ -1,0 +1,85 @@
+{
+ "rows": [
+  {
+   "convention": "ck",
+   "nbin": 2,
+   "ng": 1,
+   "dnu_bin": 100.0,
+   "measured": 46.27666018526973,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899007072514
+  },
+  {
+   "convention": "width",
+   "nbin": 2,
+   "ng": 1,
+   "dnu_bin": 100.0,
+   "measured": 4627.666018526974,
+   "reference": 46.277127551528444,
+   "ratio": 99.99899007072514
+  },
+  {
+   "convention": "ckg",
+   "nbin": 2,
+   "ng": 4,
+   "dnu_bin": 100.0,
+   "measured": 46.27666018526973,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899007072514
+  },
+  {
+   "convention": "ck",
+   "nbin": 8,
+   "ng": 1,
+   "dnu_bin": 25.0,
+   "measured": 46.27666018526973,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899007072514
+  },
+  {
+   "convention": "width",
+   "nbin": 8,
+   "ng": 1,
+   "dnu_bin": 25.0,
+   "measured": 1156.9165046317435,
+   "reference": 46.277127551528444,
+   "ratio": 24.999747517681286
+  },
+  {
+   "convention": "ckg",
+   "nbin": 8,
+   "ng": 4,
+   "dnu_bin": 25.0,
+   "measured": 46.27666018526974,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899007072515
+  },
+  {
+   "convention": "ck",
+   "nbin": 200,
+   "ng": 1,
+   "dnu_bin": 1.0,
+   "measured": 46.276661170195766,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899219904658
+  },
+  {
+   "convention": "width",
+   "nbin": 200,
+   "ng": 1,
+   "dnu_bin": 1.0,
+   "measured": 46.276661170195766,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899219904658
+  },
+  {
+   "convention": "ckg",
+   "nbin": 200,
+   "ng": 4,
+   "dnu_bin": 1.0,
+   "measured": 46.27666117019576,
+   "reference": 46.277127551528444,
+   "ratio": 0.9999899219904657
+  }
+ ]
+}
