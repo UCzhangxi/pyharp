@@ -15,7 +15,8 @@
 # NetCDF C library and headers (nc-config); for cuda, the CUDA toolkit with nvcc on PATH (recorded runs: 12.6).
 #
 # Pins: pyharp chengcli/pyharp f34506f9d14ee7b1f2e1222775baa5093ae6967f (v2.7.8); torch 2.10.0+cu126 from the
-# PyTorch index; pydisort wheels from PyPI, checked against the sha256 values below:
+# PyTorch index (2.10.0+cu128 on an sm_120 host, see below); pydisort wheels from PyPI, checked against the sha256
+# values below:
 #   1.7.1   tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67, wheel sha256 4e613790...
 #   1.8.13  tag commit 74f8d7e995545a686b04d503b6f81135af48d87c, wheel sha256 f9470a73...
 #
@@ -24,6 +25,15 @@
 # with nvcc 12.0-12.7 ("Unsupported gpu architecture 'compute_120'"). With such an nvcc, the patch
 # ch09_setup/cuda-arch-sm120.patch moves that condition to >= 12.8. It changes the list of CUDA architectures
 # only, no source file.
+#
+# The torch build of the CUDA leg: torch 2.10.0+cu126 carries kernels for sm_50 ... sm_90 only (no PTX), so on a GPU
+# of compute capability 12.0 (RTX 50xx, sm_120) every CUDA launch fails with "no kernel image is available". On such
+# a host (any visible GPU at 12.0 or above, by nvidia-smi) this script installs the same torch release built for
+# CUDA 12.8, 2.10.0+cu128, which carries sm_70 ... sm_120. That build has no sm_50/sm_60 kernels, which is why it is
+# not the pin everywhere (the recorded runs used an sm_61 GPU). pyharp's sm_120 kernels need nvcc >= 12.8; with an
+# older nvcc the cu126 pin is kept and ch09_run.sh reports the CUDA legs not run, with the reason.
+#   TORCH_CUDA=cu126|cu128   override the choice;  GPU_CAPABILITY=12.0   choose as if that GPU were the newest one;
+#   SETUP_DRY_RUN=1          print the choice and stop (tools/tests/test_ch09_cuda_choice.py runs it)
 set -euo pipefail
 ROOT=$1; PV=$2; MODE=${3:-cuda}; DRIFT=${4:-}
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -33,6 +43,26 @@ declare -A WHEEL_SHA256=(
   [1.8.13]=f9470a736baecac5fbb4660abc57fd0ac45963cca46614d242e5f04d78bc1aa6
 )
 PY=${PYTHON:-python3.11}
+gpu_capability() {  # the highest compute capability among the visible GPUs, or 0
+  if [ -n "${GPU_CAPABILITY:-}" ]; then echo "$GPU_CAPABILITY"; return; fi
+  { nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null || true; } | sort -V | tail -1 | grep . || echo 0
+}
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
+CAP=$(gpu_capability); NVV=0
+[ "$MODE" = cuda ] && NVV=$(nvcc --version | sed -n 's/.*release \([0-9]*\.[0-9]*\).*/\1/p')
+if [ -n "${TORCH_CUDA:-}" ]; then TCU=$TORCH_CUDA
+elif [ "$MODE" = cuda ] && version_ge "$CAP" 12.0 && version_ge "$NVV" 12.8; then TCU=cu128
+else
+  TCU=cu126
+  if [ "$MODE" = cuda ] && version_ge "$CAP" 12.0; then
+    echo "note: a GPU of compute capability $CAP needs sm_120 kernels in torch and in pyharp; nvcc $NVV cannot" \
+         "build pyharp's (12.8 or newer can), so this keeps the cu126 pin and ch09_run.sh reports the CUDA legs" \
+         "not run, with the reason. Put nvcc >= 12.8 on PATH to run them."
+  fi
+fi
+case $TCU in cu126|cu128) ;; *) echo "TORCH_CUDA must be cu126 or cu128" >&2; exit 2 ;; esac
+echo "torch 2.10.0+$TCU (highest GPU compute capability: $CAP)"
+[ -n "${SETUP_DRY_RUN:-}" ] && exit 0
 NAME=$PV${DRIFT:+-drift-$DRIFT}
 mkdir -p "$ROOT"; ROOT=$(cd "$ROOT" && pwd)
 V=$ROOT/venv-$NAME; S=$ROOT/pyharp-$NAME; WH=$ROOT/wheels
@@ -46,7 +76,7 @@ os.symlink = lambda *a, **k: None
 venv.EnvBuilder(with_pip=True, symlinks=False).create(sys.argv[1])" "$V"
 VP=$V/bin/python
 "$VP" -m pip -q install --upgrade pip
-"$VP" -m pip -q install 'torch==2.10.0' --index-url https://download.pytorch.org/whl/cu126
+"$VP" -m pip -q install 'torch==2.10.0' --index-url "https://download.pytorch.org/whl/$TCU"
 "$VP" -m pip -q install numpy scipy mpmath pytest netCDF4 matplotlib xarray hitran-api \
   'cmake>=3.20' ninja setuptools setuptools-scm wheel build
 
@@ -67,7 +97,6 @@ for l in harp python/harp; do   # git writes symlinks as plain files where the f
   [ -L "$S/$l" ] || { rm -f "$S/$l"; cp -r "$S/src" "$S/$l"; }
 done
 if [ "$MODE" = cuda ]; then
-  NVV=$(nvcc --version | sed -n 's/.*release \([0-9]*\.[0-9]*\).*/\1/p')
   if [ "$(printf '%s\n12.8\n' "$NVV" | sort -V | head -1)" != 12.8 ]; then
     git -C "$S" apply "$HERE/ch09_setup/cuda-arch-sm120.patch"
     echo "applied ch09_setup/cuda-arch-sm120.patch (nvcc $NVV < 12.8)"
