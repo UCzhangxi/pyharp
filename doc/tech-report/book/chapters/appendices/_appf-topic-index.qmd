@@ -32,6 +32,8 @@
 
 **continuous integration**: Test suite and continuous integration, @sec-ch10-test-suite.
 
+**correlated-k table, pre-mixed (PICASO)**: Pre-mixed correlated-k table, @sec-ch06-picaso.
+
 **ctest registration**: Test suite and continuous integration, @sec-ch10-test-suite.
 
 **CUDA architecture list (sm_120)**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
@@ -43,6 +45,8 @@
 ## D {.unnumbered .unlisted}
 
 **D1, abort after test_rayleigh**: Building pyharp against pydisort and CUDA, @sec-ch09-build.
+
+**Dalgarno-Williams H2 cross section**: Rayleigh scattering by gas molecules, @sec-ch06-rayleigh.
 
 *delta-Eddington*, see **delta scaling**.
 
@@ -94,9 +98,13 @@
 
 ## H {.unnumbered .unlisted}
 
+**Helios opacity table, refused**: The Helios table (`type: helios`): refused when the band is built, @sec-ch06-helios.
+
 **hemispheric mean**: Two-stream closures: the Meador-Weaver coefficients, @sec-ch02-closures.
 
 **hemispheric mean closure**: Longwave two-stream source-function solver, hemispheric mean, @sec-ch04-longwave.
+
+**Henyey-Greenstein moments from the Mie asymmetry parameter**: Liquid-water droplets by Lorenz-Mie theory, @sec-ch06-mie.
 
 ## I {.unnumbered .unlisted}
 
@@ -120,6 +128,8 @@
 
 **mean intensity, DISORT**: Summing the bands, @sec-ch08-radiation.
 
+**Mie scattering, liquid-water droplets**: Liquid-water droplets by Lorenz-Mie theory, @sec-ch06-mie.
+
 ## N {.unnumbered .unlisted}
 
 **net_flux_midpt**: Summing the bands, @sec-ch08-radiation.
@@ -128,7 +138,15 @@
 
 ## O {.unnumbered .unlisted}
 
+**opacities block of the radiation YAML**: How a band selects and builds its opacity sources, @sec-ch06-sources.
+
+**opacity sources, selection by type**: How a band selects and builds its opacity sources, @sec-ch06-sources.
+
+**opacity table interpolation in pressure and temperature**: Pre-mixed correlated-k table, @sec-ch06-picaso.
+
 **optical properties of a band, mixing of opacities**: From a column to fluxes: what pyharp computes, @sec-ch01-pipeline.
+
+**optical-property tensor of a source (nprop)**: How a band selects and builds its opacity sources, @sec-ch06-sources.
 
 ## P {.unnumbered .unlisted}
 
@@ -158,7 +176,13 @@
 
 **RadiationModel, column time stepping**: Column time stepping, @sec-ch08-stepper.
 
+**Rayleigh phase function and its moments**: Rayleigh scattering by gas molecules, @sec-ch06-rayleigh.
+
+**Rayleigh scattering, gas**: Rayleigh scattering by gas molecules, @sec-ch06-rayleigh.
+
 **reference stream count (nstr)**: Converged DISORT as the reference, @sec-ch05-reference.
+
+**refractive index of water (Segelstein table)**: Liquid-water droplets by Lorenz-Mie theory, @sec-ch06-mie.
 
 **report navigation**: [Report navigation](#sec-navigation).
 

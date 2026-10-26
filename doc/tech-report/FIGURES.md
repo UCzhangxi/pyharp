@@ -48,6 +48,16 @@ Regenerate every figure: `python3 tools/render_figures.py` (to `build/figures/<c
 | `fig-ch05-reference-convergence` | `05-comparison/_reference.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_reference_convergence.py` | `src/pyharp_report/ch05/data/convergence.json`<br>`src/pyharp_report/ch05/data/gs85.json` |
 | `fig-ch05-toon-accuracy-split` | `05-comparison/_toon-accuracy.qmd` | `pyharp_report/ch05/figures/_data.py`<br>`pyharp_report/ch05/figures/fig_toon_error_split.py` | `src/pyharp_report/ch05/data/toon_vs_disort.json` |
 
+## ch06
+
+| figure | section file | code | data (written by) |
+|---|---|---|---|
+| `fig-ch06-map` | `06-opacity.qmd` | `pyharp_report/ch06/figures/fig_chapter_map.py` | - |
+| `fig-ch06-mie-accuracy` | `06-opacity/_mie.qmd` | `pyharp_report/ch06/figures/_data.py`<br>`pyharp_report/ch06/figures/fig_mie_accuracy.py` | `src/pyharp_report/ch06/data/mie_accuracy.json` |
+| `fig-ch06-picaso-table` | `06-opacity/_picaso.qmd` | `pyharp_report/ch06/figures/fig_picaso_table.py` | - |
+| `fig-ch06-rayleigh-sigma` | `06-opacity/_rayleigh.qmd` | `pyharp_report/ch06/figures/_data.py`<br>`pyharp_report/ch06/figures/fig_rayleigh_sigma.py` | `src/pyharp_report/ch06/data/rayleigh_sigma.json` |
+| `fig-ch06-sources-contract` | `06-opacity/_sources.qmd` | `pyharp_report/ch06/figures/fig_sources_contract.py` | - |
+
 ## ch08
 
 | figure | section file | code | data (written by) |

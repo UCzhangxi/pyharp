@@ -1,0 +1,10 @@
+versions: python 3.11.13, torch 2.10.0+cu126, numpy 2.4.6, pyharp 2.7.8, pydisort 1.8.13, scipy 1.17.1, mpmath 1.3.0
+environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.8.13 tag commit 74f8d7e995545a686b04d503b6f81135af48d87c; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen Threadripper PRO 5975WX 32-Cores, 64 logical; GPU none visible; gcc 8.5.0; nvcc not found
+device: CPU, precision: float64, threads: 1
+[C1] PASS H2, 41 wavenumbers 1000-50000 cm-1: k / (c sigma_DW N_A 1e-4) - 1 below 1e-14
+[C2] PASS He, H2O, CH4, N2, O2, CO2, NH3: k_s / k_H2 / scale - 1 below 1e-15; mixture of 8 / sum of parts - 1 below 1e-15
+[C3] PASS sympy moments l = 0..5 of 3/4 (1 + mu^2): ['1', '0', '1/10', '0', '0', '0']; module albedo 1, moments [0.0, 0.1, 0.0, 0.0]
+[C4] PASS wavelength [0.3, 0.55, 1.0, 2.5] um against wavenumber 1e4 / wavelength: relative difference below 1e-15
+[C5] PASS refused: "Rayleigh opacity requires nmom >= 2 to represent the P2 phase-function moment; got 1"; "Rayleigh opacity does not support species 'Ar'. Supported species: H2, He, H2O, CH4, N2, O2, CO2, NH3"; "Rayleigh opacity requires at least one species"
+[C6] INFO N_A in pyharp 6.02214179e23, SI 6.02214076e23: relative excess 1.71e-07
+check_ch06_rayleigh: 6 of 6 claims pass
