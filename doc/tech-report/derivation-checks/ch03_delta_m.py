@@ -50,7 +50,8 @@ def run(dtau, ssa, moms, nstr, umu0=0.5, fbeam=math.pi):
     """one layer; moms = chi_1..chi_nmom; returns (rfldir, rfldn, flup) at top and bottom"""
     nmom = len(moms)
     op = DisortOptions().header("ch03").flags("usrtau,lamber,quiet,onlyfl")
-    op.ds().nlyr, op.ds().nstr, op.ds().nmom = 1, nstr, nmom
+    # set: pydisort leaves ds.nphase uninitialised (ch03_run_selftest.sh [T4]); 0 = no phase table
+    op.ds().nlyr, op.ds().nstr, op.ds().nmom, op.ds().nphase = 1, nstr, nmom, 0
     op.user_tau(np.array([0.0, dtau]))
     op.accur(0.0)
     ds = Disort(op)
@@ -178,6 +179,7 @@ def check_p1(work):
         with open(yp, "w") as fh:
             fh.write(PYHARP_YAML.format(nmom=nmom, pt=pt))
         bo = pyharp.RadiationOptions.from_yaml(yp).bands()[0]
+        bo.disort().ds().nphase = 0  # set: pyharp leaves ds.nphase uninitialised (ch03_run_selftest.sh [T4])
         bo.weight([1.0])
         band = pyharp.RadiationBand(bo)
         flx = band.forward(torch.ones((1, 4, 1), dtype=torch.float64), torch.full((4,), 250.0, dtype=torch.float64),

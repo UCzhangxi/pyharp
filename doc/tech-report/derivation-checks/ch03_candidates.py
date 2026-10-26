@@ -15,7 +15,8 @@ if a probe could not be run at all, or one of [P3]-[P6] did not end within --pro
        interpreter exit, after its result was printed; it is killed after --probe-timeout seconds and
        counted as an abnormal exit that "hung at exit".
   [P2] the same overflow reached through pyharp: a Rayleigh opacity with nmom: 8 on a 4-stream
-       DISORT band.
+       DISORT band. [P2]-[P4] keep the band options as pyharp builds them, so ds.nphase is whatever
+       pyharp leaves there (it does not set it); the fluxes [P2] gets back depend on it on 1.8.13.
   [P3] a DISORT band called without 'tempf' or 'temp' raises (pydisort's default for the temperature
        argument has the wrong type).
   [P4] a DISORT band whose YAML has no 'flags:' key: cdisort is called with lamber off and BRDF type
@@ -53,7 +54,8 @@ P1 = PRE + """
 keep = []
 def run(upward, nprop_mom):
     op = DisortOptions().header("ch03").flags("lamber,quiet,onlyfl")
-    op.ds().nlyr, op.ds().nstr, op.ds().nmom = 3, 4, 4
+    # set: pydisort leaves ds.nphase uninitialised (ch03_run_selftest.sh [T4]); 0 = no phase table
+    op.ds().nlyr, op.ds().nstr, op.ds().nmom, op.ds().nphase = 3, 4, 4, 0
     op.upward(upward)
     ds = Disort(op)
     prop = torch.zeros((1, 1, 3, 2 + nprop_mom), dtype=torch.float64)
@@ -181,7 +183,8 @@ say(nphase=nphase, finite=int(torch.isfinite(r).sum()), total=r.numel())
 
 P6 = PRE + """
 op = DisortOptions().header("ch03").flags("usrtau,usrang,lamber,quiet")
-op.ds().nlyr, op.ds().nstr, op.ds().nmom = 1, 8, 8
+# set: pydisort leaves ds.nphase uninitialised (ch03_run_selftest.sh [T4]); 0 = no phase table
+op.ds().nlyr, op.ds().nstr, op.ds().nmom, op.ds().nphase = 1, 8, 8, 0
 op.user_tau(np.array([0.0, 1.0])); op.user_mu(np.array([0.5, -0.5])); op.user_phi(np.array([0.0]))
 ds = Disort(op)
 prop = torch.zeros((1, 1, 1, 10), dtype=torch.float64)

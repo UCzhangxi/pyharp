@@ -8,6 +8,13 @@
 #   [T3] a [P1] probe that never exits after printing its result (as a probe whose heap it corrupted can do,
 #        deadlocked in free() at interpreter exit) is killed after the probe timeout: ch03_candidates.py --repeat 1
 #        exits 0 well inside 400 s and the [P1] line counts the hang. Before, the harness waited 600 s and died.
+#   [T4] no ch03 check builds a DISORT solver (pydisort.Disort or pyharp.RadiationBand) whose ds.nphase it left unset.
+#        pydisort's DisortOptions and pyharp's YAML band options leave ds.nphase uninitialised (about 5% of new objects
+#        carry garbage); a large value overflows nlyr*nphase in cdisort's allocation and the check exits 1. Here every
+#        new DisortOptions and YAML band gets a sentinel nphase, and building a solver while it is still there is
+#        logged with the calling file and line. The real ch03_run.sh runs on a copy of the scripts; the log must be
+#        empty and the run must exit 0. Probes [P2]-[P4] of ch03_candidates.py are exempt: they test a pyharp band
+#        as pyharp builds it, ds.nphase included, and their outcome does not set any exit status.
 # Exit status: 0 when every test passes, 1 otherwise.
 set -u
 D=$(cd "$(dirname "$0")" && pwd)
@@ -51,4 +58,36 @@ pkill -KILL -f "$T/t3/work/p1_1.py"  # a probe left behind when the harness itse
   && grep -q "^\[P6\]" "$T/t3.out"; ok=$?
 verdict $ok T3 "[P1] probe hanging at exit: ch03_candidates exit $rc after $w s; [P1] upward=1 line:" \
   "$(grep "^\[P1\] .*upward=1" "$T/t3.out" | sed 's/.*abnormal exit/abnormal exit/')"
+
+mkdir "$T/t4" "$T/t4/site"; cp "$D"/ch03_*.py "$D/ch03_run.sh" "$T/t4/"; cp -r "$D/ch03_disotest" "$T/t4/"
+cat > "$T/t4/site/sitecustomize.py" <<'EOF'
+import os, sys
+SENTINEL, LOG = 1000003, os.environ["CH03_NPHASE_LOG"]
+import pydisort, pyharp
+def _log(kind, nphase):
+    f = sys._getframe(2)
+    if nphase == SENTINEL and os.path.basename(f.f_code.co_filename) not in ("p2.py", "p3.py", "p4.py"):
+        with open(LOG, "a") as fh:
+            fh.write(f"{kind} built with ds.nphase unset at {os.path.basename(f.f_code.co_filename)}:{f.f_lineno}\n")
+_DO, _D, _RB, _FY = pydisort.DisortOptions, pydisort.Disort, pyharp.RadiationBand, pyharp.RadiationOptions.from_yaml
+def DisortOptions(*a, **k):
+    op = _DO(*a, **k); op.ds().nphase = SENTINEL; return op
+def Disort(op, *a, **k):
+    _log("pydisort.Disort", op.ds().nphase); return _D(op, *a, **k)
+def RadiationBand(bo, *a, **k):
+    _log("pyharp.RadiationBand", bo.disort().ds().nphase); return _RB(bo, *a, **k)
+def from_yaml(*a, **k):
+    ro = _FY(*a, **k)
+    for b in ro.bands():
+        b.disort().ds().nphase = SENTINEL
+    return ro
+pydisort.DisortOptions, pydisort.Disort, pyharp.RadiationBand = DisortOptions, Disort, RadiationBand
+pyharp.RadiationOptions.from_yaml = staticmethod(from_yaml)
+EOF
+: > "$T/t4.log"
+PYTHONPATH="$T/t4/site" CH03_NPHASE_LOG="$T/t4.log" bash "$T/t4/ch03_run.sh" "$PY" "$S" "$H" > "$T/t4.out" 2> "$T/t4.err"
+rc=$?; n=$(sort -u "$T/t4.log" | wc -l)
+[ $rc = 0 ] && [ "$n" = 0 ]; ok=$?
+verdict $ok T4 "ds.nphase left unset: ch03_run.sh exit $rc, $n distinct call sites" \
+  "$(sort -u "$T/t4.log" | sed 's/.* at //' | tr '\n' ' ')"
 exit $fail
