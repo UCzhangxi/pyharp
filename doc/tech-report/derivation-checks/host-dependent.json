@@ -1,0 +1,63 @@
+{
+ "_what": [
+  "Check values that measure the machine rather than the code, so a run on other hardware reproduces their labels,",
+  "verdicts and tolerances but not their digits. tools/compare_outputs.py masks exactly these values (see its",
+  "docstring for the masks) and keeps everything else on the line, including the tolerance: a value that crosses",
+  "its tolerance flips the verdict and the comparison fails. Every entry gives the evidence: the committed run",
+  "(AMD Ryzen 9 7950X, NVIDIA GeForce GTX 1080 Ti) against a rerun on an Intel Xeon E-2236 with a Quadro RTX 4000,",
+  "same pins. Both hosts reproduce their own values run to run, except check_ch09_d1.out, which is chance by design.",
+  "Add an entry only with that kind of evidence; the maintainers decide what belongs here."
+ ],
+ "files": {
+  "check_ch05_analytic.out": [
+   {
+    "lines": "max rel err of dn: ",
+    "mask": ["roundoff"],
+    "why": "an exact solution reproduced to the last bit or not: the residual is one rounding of the CPU's exp, below 1e-15 (masked only below 1e-15)",
+    "evidence": "[C1] [C4] [C6] [C11]: 1.931e-16 committed, 0.000e+00 rerun; tolerance 1.0e-12"
+   }
+  ],
+  "check_ch09_batch_device_pydisort*.out": [
+   {
+    "lines": "CUDA vs CPU",
+    "mask": ["values"],
+    "why": "the GPU's exp/log and fused multiply-add differ by a few roundings from the CPU's; the size depends on the GPU (check_ch09_batch_device.py, Tolerances)",
+    "evidence": "1.8.13 [C22] EXPECTED-FAIL 8.291e-05 committed, 1.259e-04 rerun (defect present when > 1.0e-12); [C12] 1.688e-14 vs 1.044e-14 (tol 1.0e-12); [C46] 9.003e-08 vs 1.637e-07"
+   },
+   {
+    "lines": "float32 floor, CPU float32 vs CPU float64",
+    "mask": ["values"],
+    "why": "the float32 floor (and the tolerance derived from it) depends on the CPU's vector unit",
+    "evidence": "[C16] Toon LW 8.464e-06 -> 1.69e-05 committed, 8.258e-06 -> 1.65e-05 rerun"
+   },
+   {
+    "lines": "bitwise-equal fraction",
+    "mask": ["fraction"],
+    "why": "which entries of a batch and a per-column loop agree to the bit depends on the CPU's vector unit; the difference itself is compared",
+    "evidence": "[C10] 0.9821 committed, 0.9971 rerun (difference 3.517e-16 on both); [C14] 0.9653 vs 0.9656"
+   },
+   {
+    "lines": "^\\[C\\d+\\] INFO cell [^|]+\\|CUDA f(32|64): ",
+    "mask": ["values"],
+    "why": "the support-matrix cell repeats the CUDA vs CPU values above; pass/fail/unsupported and 'fails at [...]' are compared",
+    "evidence": "1.8.13 [C75] DISORT SW|CUDA f64: 8: 8.3e-05/3.3e-10 committed, 1.3e-04/2.9e-10 rerun, fails at [8] on both"
+   }
+  ],
+  "check_ch09_matrix.out": [
+   {
+    "lines": "\\| CUDA f(32|64) \\|",
+    "mask": ["values"],
+    "why": "the matrix prints the CUDA cells of check_ch09_batch_device; the states are compared",
+    "evidence": "[C9] Toon LW | CUDA f64: pass (1.7e-14) committed, pass (1.0e-14) rerun"
+   }
+  ],
+  "check_ch09_d1.out": [
+   {
+    "lines": " run \\d+: exit ",
+    "mask": ["counts", "abort"],
+    "why": "D1 records crashes that vary from run to run (ch09_run.sh); which tests fail and which heap check fires is chance, whether the run aborts (exit 134, EXPECTED-FAIL) is the result",
+    "evidence": "committed: env 171 full runs 10, 10, 11 failed; env 171b-1813-drift aborts 'corrupted size vs. prev_size' x3; rerun: 9, 9, 9 failed; aborts 'double free or corruption (!prev)', 'free(): invalid pointer', 'corrupted size vs. prev_size'"
+   }
+  ]
+ }
+}
