@@ -11,14 +11,32 @@
 #         TREE_171, TREE_1813, TREE_171D, TREE_1813D (a venv directory holding env.sh; a pyharp source tree).
 # Needs a CUDA GPU for the CUDA comparisons (without one they are reported "not run"), g++ and readelf.
 # check_ch09_d1.out records crashes that vary from run to run (see the chapter).
+# Without a GPU, or with one the environment's torch has no kernels for (sm_120 under the cu126 pin;
+# cuda_capability.py says why), the CUDA legs are reported "not run" with the reason, every leg runs with
+# CUDA_VISIBLE_DEVICES=, and the comparison leaves out the CUDA lines and check_ch09_d1.out. ch09_setup.sh installs a torch with sm_120 kernels on
+# such a host, so this happens only when that was not done.
+# Afterwards the regenerated outputs are compared with the committed ones (compare.sh, tools/compare_outputs.py):
+# version, host, timing and date lines are normalised, everything else must match. Exit status 0 when the chapter
+# is REPRODUCED (or REPRODUCED WITHOUT CUDA, with the reason), 1 when any check output differs.
 set -u
 D=$(cd "$(dirname "$0")" && pwd)
 R=${1:-}
+source "$D/compare.sh"
 DATA=$D/../src/pyharp_report/ch09/data
 V171=${VENV_171:-$R/venv-1.7.1};   T171=${TREE_171:-$R/pyharp-1.7.1}
 V1813=${VENV_1813:-$R/venv-1.8.13}; T1813=${TREE_1813:-$R/pyharp-1.8.13}
 V171D=${VENV_171D:-$R/venv-1.7.1-drift-1.8.13};  T171D=${TREE_171D:-$R/pyharp-1.7.1-drift-1.8.13}
 V1813D=${VENV_1813D:-$R/venv-1.8.13-drift-1.7.1}; T1813D=${TREE_1813D:-$R/pyharp-1.8.13-drift-1.7.1}
+CUDA_SKIP=$(source "$V171/env.sh" && python "$D/cuda_capability.py"); CUDA_RC=$?
+echo "CUDA ($(basename "$V171")): $CUDA_SKIP"
+CMP_OPTS=()
+if [ $CUDA_RC = 3 ]; then
+  export CUDA_VISIBLE_DEVICES= CUDA_SKIP_REASON="${CUDA_SKIP#skip: }"
+  CMP_OPTS=(--exclude-cuda "$CUDA_SKIP_REASON" --not-compared check_ch09_d1.out)
+  echo "ch09: CUDA legs not run: $CUDA_SKIP_REASON"
+fi
+snapshot_outputs check_ch09_batch_device_pydisort171.out check_ch09_batch_device_pydisort1813.out \
+  check_ch09_matrix.out check_ch09_abi.out check_ch09_d1.out
 run() {  # $1 venv, $2 output name, rest: command
   local v=$1 out=$2; shift 2
   local w; w=$(mktemp -d)
@@ -41,3 +59,4 @@ SETUP
 run "$V171" check_ch09_d1.out env D1_SETUP="$M" N=3 bash "$D/check_ch09_d1.sh" 171="$T171/tests" \
   1813="$T1813/tests" 171b-1813-drift="$T171D/tests" 1813b-171-drift="$T1813D/tests"
 rm -f "$M"
+compare_outputs ch09 "${CMP_OPTS[@]}"

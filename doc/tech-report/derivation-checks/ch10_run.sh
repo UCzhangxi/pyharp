@@ -6,9 +6,16 @@
 # The mixed pairings install the other environment's checksum-verified pydisort wheel with --no-deps for the run,
 # then restore the environment's own wheel. ctest runs once with the GPUs visible and once with
 # CUDA_VISIBLE_DEVICES= ([S1], [S2]); everything else runs on CPU.
+# Afterwards the regenerated outputs are compared with the committed ones (compare.sh, tools/compare_outputs.py):
+# version, host, timing and date lines are normalised, everything else must match. Exit status 0 when the chapter
+# is REPRODUCED, 1 when any check output differs.
 set -u
 D=$(cd "$(dirname "$0")" && pwd); C="$D/ch10"; R=$(cd "$D/.." && pwd)
 A=$(cd "$1" && pwd); B=$(cd "$2" && pwd); S=$(mkdir -p "$3" && cd "$3" && pwd)
+source "$D/compare.sh"
+snapshot_outputs ch10/{test_inventory,abi_matrix,header_diff,flaky_rerun,invariants,opacity_probe,model_probe}.out \
+  ch10/{floor_inventory,break_tests}.out ch10/run_suite.{pydisort-1.7.1,pydisort-1.8.13}.out \
+  ch10/run_suite.{built-1.7.1.run-1.8.13,built-1.8.13.run-1.7.1}.out ch10/bindings_diff.pydisort-{1.7.1,1.8.13}.out
 whl() { ls "$1"/wheels/pydisort-*.whl; }
 swap() { "$1/venv/bin/python" -m pip install -q --no-deps --force-reinstall "$2" > /dev/null; }
 suite() { (PATH="$1/venv/bin:$PATH" bash "$C/run_suite.sh" "$1/pyharp" "$S/$2" > "$C/run_suite.$2.out" 2>&1); echo "run_suite $2: exit $?"; }
@@ -41,3 +48,4 @@ python3 "$C/floor_inventory.py" "$A/pyharp" "$S/pydisort" --csv "$R/src/pyharp_r
   > "$C/break_tests.out"; echo "break_tests: exit $?"
 (cd "$R" && PYTHONPATH="$R/src" MPLCONFIGDIR=$(mktemp -d) "$A/venv/bin/python" tools/render_figures.py --chapters ch10 > /dev/null)
 echo "figures (tools/render_figures.py --chapters ch10): exit $?"
+compare_outputs ch10
