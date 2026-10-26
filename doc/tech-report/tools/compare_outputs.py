@@ -34,11 +34,12 @@ kept, as are the label, the verdict and the rest of the line: a measurement that
 the verdict and fails. The comparison reports how many declared lines differed.
 
 Without CUDA (--exclude-cuda REASON, used by ch09_run.sh when the GPU cannot run this torch build's kernels):
-lines that mention CUDA are left out on both sides, `[Cn]` label numbers and `== ...: N labels` totals are not
+lines that mention CUDA (or match --cuda-lines REGEX, for lines a check prints only with its CUDA legs) are left
+out on both sides, `[Cn]` label numbers and `== ...: N labels` totals are not
 compared (the CUDA labels are absent, so the numbering shifts), files named by --not-compared are reported as not
 compared, and the verdict says `REPRODUCED WITHOUT CUDA` with the reason. Every CPU line is still compared verbatim.
 
-usage: compare_outputs.py [--host-dependent JSON] [--exclude-cuda REASON [--not-compared FILE]...] CHAPTER EXPECTED_DIR ACTUAL_DIR FILE...
+usage: compare_outputs.py [--host-dependent JSON] [--exclude-cuda REASON [--cuda-lines REGEX] [--not-compared FILE]...] CHAPTER EXPECTED_DIR ACTUAL_DIR FILE...
   FILE is a path relative to both directories. Prints one line per file and a final `CHAPTER: REPRODUCED` or
   `CHAPTER: NOT REPRODUCED`, with the normalised diff of every file that differs. Exit 0 when all files agree,
   1 when any differs or is missing, 2 on a usage error.
@@ -80,7 +81,7 @@ VALUE_RULES = [  # (pattern, replacement, applies to timing lines only)
 ]
 
 
-CUDA_LINE = re.compile(r"\bCUDA\b")
+CUDA_LINES = r"\bCUDA\b"
 NO_CUDA_RULES = [(re.compile(r"^\[C\d+\]"), "[C]"), (re.compile(r"^(== \S+: )\d+ labels"), r"\1<n> labels")]
 
 
@@ -132,11 +133,12 @@ def mask_host(line, rules):
     return line, n
 
 
-def normalise(text, without_cuda=False, host=()):
+def normalise(text, without_cuda=False, host=(), cuda_lines=CUDA_LINES):
     """(normalised lines, dropped line count, masked value count)"""
     out, dropped, masked = [], 0, 0
+    cuda_line = re.compile(cuda_lines)
     for line in text.splitlines():
-        if any(p.search(line) for p in VOLATILE_LINES) or (without_cuda and CUDA_LINE.search(line)):
+        if any(p.search(line) for p in VOLATILE_LINES) or (without_cuda and cuda_line.search(line)):
             dropped += 1
             continue
         if without_cuda:
@@ -156,7 +158,8 @@ def normalise(text, without_cuda=False, host=()):
     return out, dropped, masked
 
 
-def compare(chapter, expected, actual, files, stream=sys.stdout, exclude_cuda=None, not_compared=(), host_rules=None):
+def compare(chapter, expected, actual, files, stream=sys.stdout, exclude_cuda=None, not_compared=(), host_rules=None,
+            cuda_lines=CUDA_LINES):
     """Print the comparison; return the number of files that differ or are missing."""
     bad = host_diff = 0
     host_rules = host_rules or {}
@@ -164,7 +167,7 @@ def compare(chapter, expected, actual, files, stream=sys.stdout, exclude_cuda=No
     print(f"compare {chapter}: {len(files)} outputs, committed copy vs regenerated "
           f"(version, host, timing and date lines normalised)", file=stream)
     if nc:
-        print(f"  CUDA legs not run: {exclude_cuda}; lines that mention CUDA are not compared", file=stream)
+        print(f"  CUDA legs not run: {exclude_cuda}; lines matching {cuda_lines} are not compared", file=stream)
     for rel in files:
         if rel in not_compared:
             print(f"  not compared  {rel} (needs the CUDA legs)", file=stream)
@@ -176,12 +179,13 @@ def compare(chapter, expected, actual, files, stream=sys.stdout, exclude_cuda=No
             continue
         et, at = e.read_text(errors="replace"), a.read_text(errors="replace")
         host = rules_for(host_rules, rel)
-        el, ed, em = normalise(et, nc, host)
-        al, ad, am = normalise(at, nc, host)
+        el, ed, em = normalise(et, nc, host, cuda_lines)
+        al, ad, am = normalise(at, nc, host, cuda_lines)
         if el == al:
             note = ""
             if host:
-                strict = difflib.unified_diff(normalise(et, nc)[0], normalise(at, nc)[0], lineterm="", n=0)
+                strict = difflib.unified_diff(normalise(et, nc, (), cuda_lines)[0], normalise(at, nc, (), cuda_lines)[0],
+                                              lineterm="", n=0)
                 k = sum(1 for d in strict if d.startswith("+") and not d.startswith("+++"))
                 host_diff += k
                 note = f"; {k} line(s) with declared host-dependent values differ" if k else ""
@@ -211,6 +215,7 @@ def main(argv):
     ap = argparse.ArgumentParser(usage=__doc__.split("usage: ")[1].split("\n")[0])
     ap.add_argument("--exclude-cuda", metavar="REASON")
     ap.add_argument("--not-compared", action="append", default=[], metavar="FILE")
+    ap.add_argument("--cuda-lines", default=CUDA_LINES, metavar="REGEX")
     ap.add_argument("--host-dependent", metavar="JSON")
     ap.add_argument("--normalise", metavar="FILE")
     ap.add_argument("--as", dest="as_rel", metavar="REL")
@@ -223,14 +228,14 @@ def main(argv):
     host_rules = load_host_dependent(a.host_dependent)
     if a.normalise:
         host = rules_for(host_rules, a.as_rel or Path(a.normalise).name)
-        print("\n".join(normalise(Path(a.normalise).read_text(errors="replace"), nc, host)[0]))
+        print("\n".join(normalise(Path(a.normalise).read_text(errors="replace"), nc, host, a.cuda_lines)[0]))
         return 0
     if len(a.args) < 4 or (a.not_compared and not nc):
         ap.print_usage(sys.stderr)
         return 2
     chapter, expected, actual, files = a.args[0], a.args[1], a.args[2], a.args[3:]
     return 1 if compare(chapter, expected, actual, files, exclude_cuda=a.exclude_cuda,
-                        not_compared=set(a.not_compared), host_rules=host_rules) else 0
+                        not_compared=set(a.not_compared), host_rules=host_rules, cuda_lines=a.cuda_lines) else 0
 
 
 if __name__ == "__main__":

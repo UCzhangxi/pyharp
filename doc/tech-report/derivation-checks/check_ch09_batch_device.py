@@ -212,6 +212,7 @@ def band_checks(ck, cells, cuda):
         cells[f"RadiationBand DISORT|forward {dn}"] = ["pass" if bool(torch.isfinite(ref).all()) else "fail",
                                                        f"shape {tuple(ref.shape)}"]
         if not cuda:
+            cells[f"RadiationBand DISORT|CUDA {dn}"] = ["not run", NOT_RUN]
             continue
         gpu = C.attempt(lambda: run("cuda", dt))
         if isinstance(gpu, str):
