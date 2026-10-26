@@ -151,7 +151,7 @@ every step.
 |---|---|---|---|
 | column | {{< code src/radiation/radiation.cpp RadiationImpl::forward repo=pyharp >}} | `bands`, `spectra` | always |
 | band | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}} | `prop`, `spectrum` | always |
-| solver choice | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `rtsolver` | `solver` |
+| solver choice | {{< code src/radiation/radiation_band.cpp RadiationBandImpl::reset repo=pyharp >}} | `rtsolver` | `solver`[^rg-db0bbd7ba948] |
 | band sum | {{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}} | `weight`, `wavenumber` | which is set |
 | pydisort dependency | {{< code pyproject.toml repo=pyharp >}} | `pydisort>=1.7.1` | always |
 
@@ -210,3 +210,7 @@ themselves are tested in @sec-ch03, @sec-ch04 and @sec-ch05; pyharp's own tests 
 - **Spherical scaling.** The scaling applied when `area` is given: answered at @sec-ch08-spherical.
 - **Opacity types.** The opacity modules a band can use are the types `RadiationBandImpl::reset` creates; their
   physics: not provided: it belongs to the opacity chapter, not to this overview.
+
+<!-- reader glossary notes -->
+[^rg-db0bbd7ba948]: solver — the transfer-solver selector
+<!-- end reader glossary notes -->

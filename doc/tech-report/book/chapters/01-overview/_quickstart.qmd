@@ -186,7 +186,7 @@ make_fig()
 
 1. `RadiationOptionsImpl::from_yaml` reads each band of `bands`
    ({{< code src/radiation/radiation.cpp RadiationOptionsImpl::from_yaml repo=pyharp >}}), and
-   `RadiationBandOptionsImpl::from_yaml` its opacities, its `nwave` spectral points and its `range`, which sets the
+   `RadiationBandOptionsImpl::from_yaml` its opacities, its `nwave`[^rg-be82b9471d53] spectral points and its `range`[^rg-f9724bc574fb], which sets the
    Planck integration limits of a Toon band
    ({{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}}).
 2. `RadiationBandImpl::reset` creates the opacity modules and the solver and refuses a band whose `weight` and
@@ -234,3 +234,9 @@ in @sec-ch01-pipeline.
   chapter, not to this overview.
 - **The spectral grid is set in Python.** The YAML reader reads no weights or wavenumbers; the band options must be
   given them before `Radiation` is built, as in the third block.
+
+<!-- reader glossary notes -->
+[^rg-be82b9471d53]: nwave — the number of spectral points
+
+[^rg-f9724bc574fb]: range — the pair of spectral endpoints, interpreted as wavenumbers by default
+<!-- end reader glossary notes -->

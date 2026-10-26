@@ -41,7 +41,7 @@ None: this section compares interfaces and has no equations.
 ### Numerical method
 
 Each option of a struct is declared with the macro `ADD_ARG(type, name)`, which generates a getter and a setter of
-that name; some solver structs add boolean accessors that test a comma-separated `flags` string
+that name; some solver structs add boolean accessors that test a comma-separated `flags`[^rg-6e83b1e17f97] string
 (`ToonMcKay89OptionsImpl`, {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl repo=pyharp >}}). The
 bindings expose an option by naming it once more with the macro `ADD_OPTION` of `python/csrc/pyoptions.hpp`, for
 example in `bind_rtsolver` ({{< code python/csrc/pyrtsolver.cpp bind_rtsolver repo=pyharp >}}); the stubs declare
@@ -105,3 +105,7 @@ versions. The outline's target, zero missing, is not met.
   declared in the stubs[^ch10-bind]; no test or CI step compares the three.
 - **Method coverage.** The comparison covers options (`ADD_ARG` and flag accessors) only, not methods, functions or
   the shapes of `forward`; those are not compared here.
+
+<!-- reader glossary notes -->
+[^rg-6e83b1e17f97]: flags — the comma-separated solver options
+<!-- end reader glossary notes -->

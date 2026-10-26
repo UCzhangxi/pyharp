@@ -16,7 +16,7 @@ make_fig()
 
 | section | YAML key or option | default | order | main test |
 |---|---|---|---|---|
-| @sec-ch01-pipeline | `bands` | none | exact sums | `check_ch01_quickstart.py` `[C2]`-`[C5]` |
+| @sec-ch01-pipeline | `bands`[^rg-316911565e12] | none | exact sums | `check_ch01_quickstart.py` `[C2]`-`[C5]` |
 | @sec-ch01-quickstart | none | none | none | `check_ch01_quickstart.py` `[C1]` |
 
 : Sections of the overview. {#tbl-ch01-sections}
@@ -24,3 +24,7 @@ make_fig()
 {{< include 01-overview/_pipeline.qmd >}}
 
 {{< include 01-overview/_quickstart.qmd >}}
+
+<!-- reader glossary notes -->
+[^rg-316911565e12]: bands — the list of radiation-band configurations
+<!-- end reader glossary notes -->

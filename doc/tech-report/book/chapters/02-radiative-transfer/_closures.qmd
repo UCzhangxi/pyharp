@@ -222,7 +222,7 @@ exception is $\omega = 1$, where $\lambda$ is a difference of equal numbers (@se
 | shortwave coefficients | {{< code src/rtsolver/toon_mckay89_shortwave_impl.h toon_mckay89_shortwave repo=pyharp >}} | `g1`..`g4`, `lam`, `gam` | always |
 | longwave coefficients | {{< code src/rtsolver/toon_mckay89_longwave_impl.h toon_mckay89_longwave repo=pyharp >}} | `alp`, `lam`, `gam`, `term` | `planck` |
 | path selection | {{< code src/rtsolver/toon_mckay89.cpp ToonMcKay89Impl::forward repo=pyharp >}} | `options->planck()` | `planck` |
-| flag | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::planck repo=pyharp >}} | `has_flag("planck")` | `flags` |
+| flag | {{< code src/rtsolver/toon_mckay89.hpp ToonMcKay89OptionsImpl::planck repo=pyharp >}} | `has_flag("planck")` | `flags`[^rg-c3c1bd9e5fbe] |
 | YAML | {{< code src/radiation/radiation_band.cpp RadiationBandOptionsImpl::from_yaml repo=pyharp >}} | `flags`, `toon` | `solver: toon` |
 
 : Code map of the two-stream closures. {#tbl-ch02-closures-code}
@@ -277,3 +277,7 @@ device independent. The pyharp test was read at the pin, not run; no pyharp test
     `bash derivation-checks/ch02_run.sh <env 1.7.1> <env 1.8.13>`; mutation runs of the derived $\gamma_4$ in
     `derivation-checks/ch02_mutations.out`]. Outputs:
     `derivation-checks/check_ch02_closures.out`, `derivation-checks/check_ch02_toon_coefficients.out`.
+
+<!-- reader glossary notes -->
+[^rg-c3c1bd9e5fbe]: flags — the comma-separated solver options
+<!-- end reader glossary notes -->

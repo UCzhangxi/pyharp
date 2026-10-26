@@ -22,7 +22,7 @@ the band sizes the buffer that receives it. The sections after this one describe
 
 **Placement.** Built when the band is built; evaluated at every band forward call.
 
-**Activation.** `opacities: <name>: {type: ...}`, listed in the band's `opacities`; `type` is required.
+**Activation.** `opacities: <name>: {type: ...}`, listed in the band's `opacities`[^rg-c220527222e2]; `type` is required.
 
 **Guarantee / limits.** Unknown types and unknown species are refused before any computation.
 
@@ -186,3 +186,7 @@ regenerate with `derivation-checks/ch06_run.sh <venv 1.7.1> <venv 1.8.13>`; outp
 [^ch06-src-pytest]: [sha: pyharp@f34506f9d14ee7b1f2e1222775baa5093ae6967f; deck: `tests/test_opacity_options.py`;
 run: `python3 -m pytest -q test_opacity_options.py` in the `tests/` directory of the source tree that
 `derivation-checks/ch06_setup.sh` builds, CPU; Python 3.11.13, torch 2.10.0+cu126, pydisort 1.7.1.]
+
+<!-- reader glossary notes -->
+[^rg-c220527222e2]: opacities — the list of opacity-source names used by the band
+<!-- end reader glossary notes -->

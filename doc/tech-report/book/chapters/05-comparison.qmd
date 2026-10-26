@@ -40,8 +40,8 @@ pyharp and pydisort commits, the torch build, the CPU, the GPU and the compilers
 
 | section | option | default | main check |
 |---|---|---|---|
-| @sec-ch05-reference | `nstr` | 4 | `check_ch05_convergence.py`, `check_ch05_gs85.py` |
-| @sec-ch05-analytic | `solver` | none (required) | `check_ch05_analytic.py` |
+| @sec-ch05-reference | `nstr`[^rg-43a121bbd288] | 4 | `check_ch05_convergence.py`, `check_ch05_gs85.py` |
+| @sec-ch05-analytic | `solver`[^rg-32a3bdfbd1ac] | none (required) | `check_ch05_analytic.py` |
 | @sec-ch05-toon-accuracy | `solver: toon` | none (required) | `check_ch05_toon_vs_disort.py` |
 | @sec-ch05-cost | `solver`, `nstr` | `nstr` 4 | `check_ch05_cost.py` |
 
@@ -54,3 +54,9 @@ pyharp and pydisort commits, the torch build, the CPU, the GPU and the compilers
 {{< include 05-comparison/_toon-accuracy.qmd >}}
 
 {{< include 05-comparison/_cost.qmd >}}
+
+<!-- reader glossary notes -->
+[^rg-43a121bbd288]: nstr — the discrete-ordinate stream count
+
+[^rg-32a3bdfbd1ac]: solver — the transfer-solver selector
+<!-- end reader glossary notes -->
