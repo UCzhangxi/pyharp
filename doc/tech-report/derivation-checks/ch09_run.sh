@@ -32,7 +32,9 @@ echo "CUDA ($(basename "$V171")): $CUDA_SKIP"
 CMP_OPTS=()
 if [ $CUDA_RC = 3 ]; then
   export CUDA_VISIBLE_DEVICES= CUDA_SKIP_REASON="${CUDA_SKIP#skip: }"
-  CMP_OPTS=(--exclude-cuda "$CUDA_SKIP_REASON" --not-compared check_ch09_d1.out)
+  # the float32 floor lines set the tolerance of a CUDA float32 comparison and are printed only with it
+  CMP_OPTS=(--exclude-cuda "$CUDA_SKIP_REASON" --cuda-lines '\bCUDA\b|float32 floor, CPU float32 vs CPU float64'
+            --not-compared check_ch09_d1.out)
   echo "ch09: CUDA legs not run: $CUDA_SKIP_REASON"
 fi
 snapshot_outputs check_ch09_batch_device_pydisort171.out check_ch09_batch_device_pydisort1813.out \

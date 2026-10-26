@@ -130,6 +130,7 @@ def test_timing_masks_apply_only_on_timing_lines():
 # --- without CUDA (ch09 on a GPU torch has no kernels for) ----------------------------------------------------
 WITH_CUDA = """[C1] PASS Toon SW f64 batch vs per-column loop, CPU: 0.000e+00 (tol <= 1.0e-14)
 [C2] PASS Toon SW f64 CUDA vs CPU: 4.235e-14 (tol <= 1.0e-12)
+[C2] INFO Toon SW float32 floor, CPU float32 vs CPU float64: 1.283e-05 -> tolerance 2.57e-05
 [C3] PASS Toon SW f32 batch vs per-column loop, CPU: 0.000e+00 (tol <= 1.0e-06)
 [C4] INFO cell Toon SW|CUDA f64: pass (4.2e-14)
 == check_ch09_batch_device: 4 labels, 0 FAIL
@@ -143,7 +144,9 @@ WITHOUT_CUDA = """CUDA legs not run: torch 2.10.0+cu126 has no kernels for NVIDI
 
 
 def test_without_cuda_the_cpu_lines_are_compared_and_the_verdict_says_so(tmp_path):
-    bad, out = run(tmp_path, WITH_CUDA, WITHOUT_CUDA, exclude_cuda="no kernels for sm_120")
+    assert run(tmp_path, WITH_CUDA, WITHOUT_CUDA, exclude_cuda="r")[0] == 1      # the floor line is CUDA-only
+    bad, out = run(tmp_path, WITH_CUDA, WITHOUT_CUDA, exclude_cuda="no kernels for sm_120",
+                   cuda_lines=r"\bCUDA\b|float32 floor")
     assert bad == 0, out
     assert out.rstrip().endswith("chXX: REPRODUCED WITHOUT CUDA (CUDA legs not run: no kernels for sm_120)")
     assert run(tmp_path, WITH_CUDA, WITHOUT_CUDA)[0] == 1          # and never without the option
