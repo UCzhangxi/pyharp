@@ -35,8 +35,11 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ch09_common as C  # noqa: E402
+import cuda_capability  # noqa: E402
 import pyharp  # noqa: E402
 import pydisort  # noqa: E402
+
+NOT_RUN = "no CUDA device"  # the reason a CUDA cell is "not run"; main() sets it
 
 WLO = [500.0, 1000.0, 1500.0]
 WHI = [1000.0, 1500.0, 2000.0]
@@ -86,7 +89,7 @@ def toon_checks(ck, cells, cuda):
             ok2 = ck.check(f"{name} {dn} batch vs per-wavelength loop, CPU", d2, TOL["batch" + dn[1:]])
             cells[f"{name}|batch {dn}"] = ["pass" if ok1 and ok2 else "fail", f"{max(d1, d2):.1e}"]
             if not cuda:
-                cells[f"{name}|CUDA {dn}"] = ["not run", "no CUDA device"]
+                cells[f"{name}|CUDA {dn}"] = ["not run", NOT_RUN]
                 continue
             gpu = C.attempt(lambda: toon(x, lw, dt, "cuda"))
             if isinstance(gpu, str):
@@ -168,7 +171,7 @@ def disort_checks(ck, cells, cuda):
                 per[nstr] = (a1 and a2, d_nc, d_c)
             cells[f"{name}|batch {dn}"] = ["pass" if ok_b else "fail", f"{worst_b:.1e}"]
             if not cuda:
-                cells[f"{name}|CUDA {dn}"] = ["not run", "no CUDA device"]
+                cells[f"{name}|CUDA {dn}"] = ["not run", NOT_RUN]
             elif not per:
                 cells[f"{name}|CUDA {dn}"] = ["unsupported", msg]
             else:
@@ -228,7 +231,13 @@ def main():
     a = ap.parse_args()
     print(C.version_line())
     print(C.env_line())
-    cuda = torch.cuda.is_available()
+    global NOT_RUN
+    skip, _ = cuda_capability.probe()  # a GPU this torch build has no kernels for (sm_120 on cu126) is not run
+    cuda = skip is None
+    if not cuda:
+        NOT_RUN = skip
+        if skip != "no CUDA device":
+            print(f"CUDA legs not run: {skip}", flush=True)
     ck = C.Checker()
     cells = {}
     toon_checks(ck, cells, cuda)
