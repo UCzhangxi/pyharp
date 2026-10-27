@@ -7,8 +7,12 @@
 #   PYHARP_WT     the pyharp source tree that pyharp was built from (for the record)
 # Outputs: ch03_<check>.pydisort-<version>.out and ch03_ordinates_algebra.out. Runs on CPU
 # (CUDA_VISIBLE_DEVICES is emptied), each check from a fresh temporary directory, as DERIVATION_SPEC.md asks.
-# Exit status: 0 when every check exits 0; 1 when one does not (its name and the end of its stderr are printed, and
-# its previous output is left in place); 2 on a usage error. ch03_run_selftest.sh tests this.
+# Afterwards the regenerated outputs are compared with the committed ones (compare.sh, tools/compare_outputs.py):
+# version, host and date lines are normalised and the ch03 values declared in host-dependent.json (round-off below
+# 64 eps, the crash record of the overflow probes) are masked; everything else must match.
+# Exit status: 0 when every check exits 0 and the chapter is REPRODUCED for this pydisort version; 1 when a check
+# fails (its name and the end of its stderr are printed, and its previous output is left in place) or an output
+# differs; 2 on a usage error. ch03_run_selftest.sh tests this.
 set -u
 D=$(cd "$(dirname "$0")" && pwd)
 usage() { echo "usage: $(basename "$0") PYTHON PYDISORT_SRC PYHARP_WT" >&2; exit 2; }
@@ -19,6 +23,9 @@ usage() { echo "usage: $(basename "$0") PYTHON PYDISORT_SRC PYHARP_WT" >&2; exit
 PY=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 export PYDISORT_SRC=$(cd "$2" && pwd) PYHARP_WT=$(cd "$3" && pwd) CUDA_VISIBLE_DEVICES=
 V=$("$PY" -c 'import pydisort; print(pydisort.__version__)') || { echo "ch03_run.sh: $PY cannot import pydisort" >&2; exit 1; }
+source "$D/compare.sh"
+OUTS=(ch03_{e3_slab,beam_closure,delta_m,intensity_correction,candidates,disotest}.pydisort-$V.out ch03_ordinates_algebra.out)
+snapshot_outputs "${OUTS[@]}"
 failed=()
 # check SCRIPT LABEL OUTPUT [ARGS...]: run SCRIPT from a fresh temporary directory (also its TMPDIR); OUTPUT is
 # replaced only when the check exits 0
@@ -44,4 +51,6 @@ for c in e3_slab beam_closure delta_m intensity_correction candidates disotest; 
 done
 # the algebra check needs neither pydisort nor pyharp: one output, whatever the version
 check ch03_ordinates_algebra ch03_ordinates_algebra "$D/ch03_ordinates_algebra.out"
+compare_outputs "ch03 (pydisort $V)"; rc=$?
 [ ${#failed[@]} = 0 ] || { echo "ch03_run.sh: failed: ${failed[*]}" >&2; exit 1; }
+exit $rc
