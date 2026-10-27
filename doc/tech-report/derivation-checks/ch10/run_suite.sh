@@ -15,6 +15,10 @@
 SRC=$(cd "$1" && pwd); SCR=$(mkdir -p "$2" && cd "$2" && pwd)
 HERE=$(cd "$(dirname "$0")" && pwd)
 FLAKY="tests/spectra/test_hitemp_lines.py::test_prepare_reads_zip_and_bz2_and_reuses_cache"
+# first 140 characters of each line: `cut -c` counts characters only where coreutils carries the i18n patch (RHEL) and
+# bytes elsewhere (Ubuntu), which splits gcc's UTF-8 quotes differently
+trunc140() { python3 -c 'import sys
+for l in sys.stdin.buffer.read().decode("utf-8", "replace").splitlines(): sys.stdout.buffer.write((l[:140] + "\n").encode())'; }
 clean() { sed -E -e "s#$SRC#<src>#g" -e "s#$SCR#<scratch>#g" -e 's/ in [0-9.]+s( \([0-9:]+\))?//' -e 's/ +[0-9.]+ sec$//'; }
 python -c "import pyharp, pydisort, torch, sys; print(f'[S0] pyharp {pyharp.__version__}, pydisort {pydisort.__version__}, torch {torch.__version__}, Python {sys.version.split()[0]}')"
 
@@ -38,7 +42,7 @@ for t in ${EXTRA//;/ }; do
     first=$(grep -m1 -E 'Failed to open|Failure$' -A0 "$SCR/extra_run_$t.txt" | head -1)
     echo "[S3] $t: built, exit $rc ${res:-no gtest summary} ${first:+| first failure: $first}" | clean
   else
-    echo "[S3] $t: does not compile | $(grep -m1 -E 'error' "$SCR/extra_build_$t.txt" | sed 's/^.*tests\///' | cut -c1-140)" | clean
+    echo "[S3] $t: does not compile | $(grep -m1 -E 'error' "$SCR/extra_build_$t.txt" | sed 's/^.*tests\///' | trunc140)" | clean
   fi
 done
 
