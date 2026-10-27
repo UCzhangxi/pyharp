@@ -1,42 +1,38 @@
 versions: per line below (pydisort as imported in each environment); pytest pytest 9.1.1
-env 171: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
-[C1] PASS env 171 (pydisort 1.7.1) rayleigh run 1: exit 0; 2 passed in 3.22s; abort: none
-[C2] PASS env 171 (pydisort 1.7.1) full run 1: exit 1; 10 failed, 187 passed in 18.03s; abort: none
-[C3] PASS env 171 (pydisort 1.7.1) rayleigh run 2: exit 0; 2 passed in 2.16s; abort: none
-[C4] PASS env 171 (pydisort 1.7.1) full run 2: exit 1; 10 failed, 187 passed in 10.40s; abort: none
-[C5] PASS env 171 (pydisort 1.7.1) rayleigh run 3: exit 0; 2 passed in 1.63s; abort: none
-[C6] PASS env 171 (pydisort 1.7.1) full run 3: exit 1; 11 failed, 186 passed in 8.21s; abort: none
-env 1813: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.8.13 tag commit 74f8d7e995545a686b04d503b6f81135af48d87c; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
-[C7] PASS env 1813 (pydisort 1.8.13) rayleigh run 1: exit 0; 2 passed in 1.67s; abort: none
-[C8] PASS env 1813 (pydisort 1.8.13) full run 1: exit 1; 11 failed, 186 passed in 18.04s; abort: none
-[C9] PASS env 1813 (pydisort 1.8.13) rayleigh run 2: exit 0; 2 passed in 1.12s; abort: none
-[C10] PASS env 1813 (pydisort 1.8.13) full run 2: exit 1; 11 failed, 186 passed in 8.47s; abort: none
-[C11] PASS env 1813 (pydisort 1.8.13) rayleigh run 3: exit 0; 2 passed in 1.79s; abort: none
-[C12] PASS env 1813 (pydisort 1.8.13) full run 3: exit 1; 12 failed, 185 passed in 7.28s; abort: none
-env 171b-1813-drift: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.8.13 tag commit 74f8d7e995545a686b04d503b6f81135af48d87c; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
-[C13] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 1: exit 134; 2 passed in 1.21s; abort: double free or corruption (!prev)
-[C14] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) full run 1: exit 134; 10 failed, 187 passed in 8.73s; abort: corrupted size vs. prev_size
-[C15] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 2: exit 134; 2 passed in 0.89s; abort: double free or corruption (!prev)
-[C16] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) full run 2: exit 134; no summary; abort: corrupted size vs. prev_size
-[C17] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 3: exit 134; 2 passed in 0.87s; abort: double free or corruption (!prev)
-[C18] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) full run 3: exit 134; 10 failed, 187 passed in 6.15s; abort: corrupted size vs. prev_size
-env 1813b-171-drift: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU AMD Ryzen 9 7950X 16-Core Processor, 32 logical; GPU NVIDIA GeForce GTX 1080 Ti; gcc 11.5.0; nvcc release 12.6
-[C19] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 1: exit 0; 2 passed in 0.86s; abort: none
-[C20] PASS env 1813b-171-drift (pydisort 1.7.1) full run 1: exit 1; 10 failed, 187 passed in 7.08s; abort: none
-[C21] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 2: exit 0; 2 passed in 0.85s; abort: none
-[C22] PASS env 1813b-171-drift (pydisort 1.7.1) full run 2: exit 1; 11 failed, 186 passed in 6.20s; abort: none
-[C23] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 3: exit 0; 2 passed in 0.86s; abort: none
-[C24] PASS env 1813b-171-drift (pydisort 1.7.1) full run 3: exit 1; 11 failed, 186 passed in 6.10s; abort: none
-[C25] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 1: exit 134; 1 passed in 0.90s; abort: double free or corruption (!prev)
-[C26] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 2: exit 134; 1 passed in 0.90s; abort: double free or corruption (!prev)
-[C27] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 3: exit 134; 1 passed in 0.89s; abort: double free or corruption (!prev)
-[C28] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 1: exit 0; 1 passed in 0.92s; abort: none
-[C29] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 2: exit 0; 1 passed in 0.90s; abort: none
-[C30] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 3: exit 0; 1 passed in 0.91s; abort: none
-[C31] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 1: exit 0; 1 passed in 0.86s; abort: none
-[C32] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 2: exit 0; 1 passed in 0.86s; abort: none
-[C33] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 3: exit 0; 1 passed in 0.86s; abort: none
-[C34] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 1: exit 0; 1 passed in 0.86s; abort: none
-[C35] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 2: exit 0; 1 passed in 0.87s; abort: none
-[C36] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 3: exit 0; 1 passed in 0.86s; abort: none
-== check_ch09_d1: 36 labels, 0 FAIL
+env 171: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz, 12 logical; GPU Quadro RTX 4000; gcc 11.5.0; nvcc release 12.9
+[C1] PASS env 171 (pydisort 1.7.1) rayleigh run 1: exit 0; 2 passed in 1.03s; abort: none
+[C2] PASS env 171 (pydisort 1.7.1) full run 1: exit 1; 9 failed, 188 passed in 37.09s; abort: none
+[C3] PASS env 171 (pydisort 1.7.1) rayleigh run 2: exit 0; 2 passed in 1.03s; abort: none
+[C4] PASS env 171 (pydisort 1.7.1) full run 2: exit 1; 9 failed, 188 passed in 33.90s; abort: none
+[C5] PASS env 171 (pydisort 1.7.1) rayleigh run 3: exit 0; 2 passed in 1.03s; abort: none
+[C6] PASS env 171 (pydisort 1.7.1) full run 3: exit 1; 9 failed, 188 passed in 34.63s; abort: none
+env 1813: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.8.13 tag commit 74f8d7e995545a686b04d503b6f81135af48d87c; torch 2.10.0+cu126 (CUDA 12.6); CPU Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz, 12 logical; GPU Quadro RTX 4000; gcc 11.5.0; nvcc release 12.9
+[C7] PASS env 1813 (pydisort 1.8.13) rayleigh run 1: exit 0; 2 passed in 1.04s; abort: none
+[C8] PASS env 1813 (pydisort 1.8.13) full run 1: exit 1; 9 failed, 188 passed in 23.27s; abort: none
+[C9] PASS env 1813 (pydisort 1.8.13) rayleigh run 2: exit 0; 2 passed in 1.04s; abort: none
+[C10] PASS env 1813 (pydisort 1.8.13) full run 2: exit 1; 9 failed, 188 passed in 34.22s; abort: none
+[C11] PASS env 1813 (pydisort 1.8.13) rayleigh run 3: exit 0; 2 passed in 1.06s; abort: none
+[C12] PASS env 1813 (pydisort 1.8.13) full run 3: exit 1; 9 failed, 188 passed in 34.58s; abort: none
+env 171b-1813-drift: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.8.13 tag commit 74f8d7e995545a686b04d503b6f81135af48d87c; torch 2.10.0+cu126 (CUDA 12.6); CPU Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz, 12 logical; GPU Quadro RTX 4000; gcc 11.5.0; nvcc release 12.9
+[C13] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 1: exit 134; 2 passed in 1.03s; abort: double free or corruption (!prev)
+[C14] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 2: exit 134; 2 passed in 1.04s; abort: double free or corruption (!prev)
+[C15] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) rayleigh run 3: exit 134; 2 passed in 1.04s; abort: double free or corruption (!prev)
+[C16] EXPECTED-FAIL env 171b-1813-drift (pydisort 1.8.13) full suite, 10 runs: ended abnormally (abort, crash or hung) in 10 of 10; exit codes [134, 134, 134, 134, 134, 134, 134, 134, 134, 134]; aborts: corrupted size vs. prev_size x4, double free or corruption (!prev) x5, free(): invalid pointer x1
+env 1813b-171-drift: environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.7.1 tag commit 8af15242a265a60ea6fb51c29d48e6688a63ab67; torch 2.10.0+cu126 (CUDA 12.6); CPU Intel(R) Xeon(R) E-2236 CPU @ 3.40GHz, 12 logical; GPU Quadro RTX 4000; gcc 11.5.0; nvcc release 12.9
+[C17] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 1: exit 0; 2 passed in 1.03s; abort: none
+[C18] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 2: exit 0; 2 passed in 1.03s; abort: none
+[C19] PASS env 1813b-171-drift (pydisort 1.7.1) rayleigh run 3: exit 0; 2 passed in 1.03s; abort: none
+[C20] PASS env 1813b-171-drift (pydisort 1.7.1) full suite, 10 runs: ended abnormally (abort, crash or hung) in 0 of 10; exit codes [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; aborts: none
+[C21] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 1: exit 134; 1 passed in 1.04s; abort: double free or corruption (!prev)
+[C22] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 2: exit 134; 1 passed in 1.04s; abort: double free or corruption (!prev)
+[C23] EXPECTED-FAIL env 171b-1813-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 3: exit 134; 1 passed in 1.05s; abort: double free or corruption (!prev)
+[C24] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 1: exit 0; 1 passed in 1.04s; abort: none
+[C25] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 2: exit 0; 1 passed in 1.04s; abort: none
+[C26] PASS env 171b-1813-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 3: exit 0; 1 passed in 1.04s; abort: none
+[C27] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 1: exit 0; 1 passed in 1.04s; abort: none
+[C28] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 2: exit 0; 1 passed in 1.04s; abort: none
+[C29] PASS env 1813b-171-drift, test_radiation_band_regularizes_conservative_ssa_for_disort alone, run 3: exit 0; 1 passed in 1.05s; abort: none
+[C30] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 1: exit 0; 1 passed in 1.04s; abort: none
+[C31] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 2: exit 0; 1 passed in 1.05s; abort: none
+[C32] PASS env 1813b-171-drift, test_rayleigh_python_binding_matches_reference_cross_section alone, run 3: exit 0; 1 passed in 1.04s; abort: none
+== check_ch09_d1: 32 labels, 0 FAIL

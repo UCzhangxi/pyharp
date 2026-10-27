@@ -38,7 +38,10 @@ double operations, whose own threshold is at least 7 times larger), `fraction` (
 `counts` (`N failed, M passed` and `no summary`), `abort` (the abort message, except `none`), `crashes` (the crash
 record of a probe that ends its process on purpose, `return codes [...]` and `, k hung at exit (killed after T s)`:
 which signal ends a corrupted heap, and whether the process aborts or deadlocks at exit, is chance; the number of
-runs that ended abnormally, crashed or hung, is the result and is compared), `floor` (every number below the
+runs that ended abnormally, crashed or hung, is the result and is compared), `abnormal_runs` (an intermittent
+defect run N times, `ended abnormally (abort, crash or hung) in k of N; exit codes [...]; aborts: ...`: k and the
+per-run record are chance and masked; N and the verdict, EXPECTED-FAIL for k >= 1 and PASS for k = 0, are
+compared, so a defect that no longer shows in any of the N runs fails), `floor` (every number below the
 entry's `floor`, a tolerance the chapter states: two values that both meet it compare equal, a value at or above
 it is compared verbatim). Masks apply before the check's own tolerance, `(tol <= T)` or `(defect present when >
 T)`, which is kept, as are the label, the verdict and the rest of the line: a measurement that crosses its
@@ -129,6 +132,9 @@ HOST_MASKS = {
     "fraction": (re.compile(r"(?<=fraction )\d\.\d+"), lambda m: "<host>"),
     "crashes": (re.compile(r"(?<=runs, )return codes \[[^\]]*\](?:, \d+ hung at exit \(killed after [^)]*\))?"),
                 lambda m: "<crashed or hung>"),
+    "abnormal_runs": (re.compile(r"(?<=ended abnormally \(abort, crash or hung\) in )\d+(?= of \d+)"
+                                 r"|(?<=; )exit codes \[[^\]]*\]; aborts: .*$"),
+                      lambda m: "<k>" if m.group().isdigit() else "<runs>"),
     "counts": (re.compile(r"\b\d+ failed, \d+ passed(?: in <time>)?|\bno summary\b"), lambda m: "<counts>"),
     "abort": (re.compile(r"(?<=abort: )(?!none\b).+$"), lambda m: "<abort>"),
     "floor": (_NUMBER, None),   # the replacement depends on the entry's "floor", see mask_host

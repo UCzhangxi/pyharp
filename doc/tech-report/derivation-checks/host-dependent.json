@@ -96,6 +96,12 @@
     "mask": ["counts", "abort"],
     "why": "D1 records crashes that vary from run to run (ch09_run.sh); which tests fail and which heap check fires is chance, whether the run aborts (exit 134, EXPECTED-FAIL) is the result",
     "evidence": "committed: env 171 full runs 10, 10, 11 failed; env 171b-1813-drift aborts 'corrupted size vs. prev_size' x3; rerun: 9, 9, 9 failed; aborts 'double free or corruption (!prev)', 'free(): invalid pointer', 'corrupted size vs. prev_size'"
+   },
+   {
+    "lines": " full suite, \\d+ runs: ended abnormally \\(abort, crash or hung\\) in ",
+    "mask": ["abnormal_runs"],
+    "why": "D1 in a drifted build is an intermittent heap corruption, like the ch03 overflow probes: whether a given run of the whole suite aborts, crashes or hangs is chance. The verdict is EXPECTED-FAIL when at least one of the N runs ends abnormally (the defect is present) and PASS when none does; N and the verdict are compared, the number k and the per-run exit codes and abort messages are not",
+    "evidence": "RTX 5090 host (Ubuntu), 909cf37c: the drift full run 2 ran clean (exit 1, abort none) where the committed run aborted, so 2 of 3 runs ended abnormally; committed run (AMD Ryzen 9 7950X, GTX 1080 Ti): 3 of 3; Intel Xeon E-2236 with Quadro RTX 4000: 7 of 9 in three ch09_run.sh runs and 20 of 20 in a separate series (19 SIGABRT exit 134, 1 SIGSEGV exit 139; 23.7-35.8 s per run, mean 32.3 s) and 10 of 10 in the committed rerun, 37 of 39 together; the reverse drift environment (1813b-171-drift) 0 of 10"
    }
   ]
  }

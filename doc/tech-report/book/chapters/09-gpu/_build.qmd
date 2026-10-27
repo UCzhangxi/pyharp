@@ -126,7 +126,7 @@ exact version pyharp was built against, as pyharp's CI does with `pip install --
 | test (ctest name) | what it asserts | tolerance | where the tolerance comes from |
 |---|---|---|---|
 | `check_ch09_d1.sh` | no heap-corruption abort in matched builds | none allowed | D1 is the abort |
-| `check_ch09_d1.sh` | the abort in a drifted build is reported, not hidden | `EXPECTED-FAIL` | D1, candidate |
+| `check_ch09_d1.sh` | the abort in a drifted build is reported, not hidden | `EXPECTED-FAIL` when 1 or more of 10 runs ends abnormally | D1, candidate; the abort is intermittent |
 | `check_ch09_abi.py` | type sizes per pydisort version; pyharp's search path | reported | a measurement |
 | `test_rayleigh.py` (pytest) | the Rayleigh band with DISORT returns finite fluxes | as in the test | set in the test |
 
@@ -135,9 +135,12 @@ exact version pyharp was built against, as pyharp's CI does with `pip install --
 In the two matched environments, `test_rayleigh.py` passes 3 times out of 3 and the full suite finishes 3 times
 out of 3 without an abort. Built against 1.7.1 and run with 1.8.13, `test_rayleigh.py` reports its 2 tests passed
 and then aborts with `double free or corruption (!prev)` and exit status 134, 3 times out of 3. The full suite
-aborts too, 3 times out of 3, with `corrupted size vs. prev_size` or `free(): invalid pointer`; the check also
-counts an exit by segmentation fault (status 139) as a crash. Built against
-1.8.13 and run with 1.7.1, nothing aborts in 6 runs.[^ch09-build-d1] The abort comes from the DISORT test of
+aborts too, but not every time: the abort is a corrupted heap, and whether a given run ends with
+`corrupted size vs. prev_size`, `free(): invalid pointer`, a segmentation fault (status 139) or cleanly is chance (one
+of 3 runs was clean on another host). The check therefore runs the full suite of a drifted build 10 times and
+reports one verdict, `EXPECTED-FAIL` when at least one run ends abnormally (abort, crash, or killed after a time
+limit); in the committed rerun it ended abnormally in 10 of 10 runs. Built against 1.8.13 and run with 1.7.1, nothing aborts in
+13 runs.[^ch09-build-d1] The abort comes from the DISORT test of
 `test_rayleigh.py`, `test_radiation_band_regularizes_conservative_ssa_for_disort`: run alone it aborts, and the
 other test of the file does not.[^ch09-build-iso]
 
@@ -162,12 +165,13 @@ missing data file, and test code that calls functions the package at the pin doe
 4e61379008c1769b7ec2c61e08b2d9441eb4385db08e08f47c69abef79d77843) and the 1.8.13 wheel (tag `v1.8.13`, file sha256
 f9470a736baecac5fbb4660abc57fd0ac45963cca46614d242e5f04d78bc1aa6; not a pin of this report); deck: pyharp's
 `tests/` at the pin, in the four environments 171, 1813, 171b-1813-drift and 1813b-171-drift given as NAME=TESTS
-arguments; run: `bash derivation-checks/ch09_run.sh <setup root>`, which calls `check_ch09_d1.sh` with N=3 and
+arguments; run: `bash derivation-checks/ch09_run.sh <setup root>`, which calls `check_ch09_d1.sh` with N=3 (the full suite of a drifted build: 10 runs) and
 the four environments of `derivation-checks/ch09_setup.sh`; Python 3.11.13, torch 2.10.0+cu126, pytest 9.1.1,
 CUDA 12.6, nvcc 12.6, gcc 11.5.0, AMD Ryzen 9 7950X, GTX 1080 Ti; output
-`derivation-checks/check_ch09_d1.out`, lines [C1]-[C24]; type sizes: `python3 derivation-checks/check_ch09_abi.py`
+`derivation-checks/check_ch09_d1.out`, lines [C1]-[C20] (D1 rerun on an Intel Xeon E-2236 with a Quadro RTX 4000);
+type sizes: `python3 derivation-checks/check_ch09_abi.py`
 with the two site-packages directories as arguments, output `derivation-checks/check_ch09_abi.out`.]
 
 [^ch09-build-iso]: [sha, environments and versions as in the footnote above; run:
 `N=3 bash derivation-checks/check_ch09_d1.sh`, whose last part runs the two tests of `test_rayleigh.py` one at a
-time in each drifted environment; output `derivation-checks/check_ch09_d1.out`, lines [C25]-[C36].]
+time in each drifted environment; output `derivation-checks/check_ch09_d1.out`, lines [C21]-[C32].]
