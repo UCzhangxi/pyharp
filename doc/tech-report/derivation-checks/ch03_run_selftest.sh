@@ -15,6 +15,10 @@
 #        logged with the calling file and line. The real ch03_run.sh runs on a copy of the scripts; the log must be
 #        empty and the run must exit 0. Probes [P2]-[P4] of ch03_candidates.py are exempt: they test a pyharp band
 #        as pyharp builds it, ds.nphase included, and their outcome does not set any exit status.
+#   [T5] ch03_disotest.py survives non-finite values in cdisort fields the driver leaves unset. The driver's
+#        disort_state is an uninitialised local, so wvnmlo/wvnmhi (no planck) and radius can hold any bit pattern,
+#        and printf writes a NaN as nan/-nan, which is not JSON. On a copy of PYDISORT_SRC, the driver sets those
+#        fields to -NAN after every c_disort_state_alloc; the check must exit 0 with the committed verdict labels.
 # Exit status: 0 when every test passes, 1 otherwise.
 set -u
 D=$(cd "$(dirname "$0")" && pwd)
@@ -90,4 +94,19 @@ rc=$?; n=$(sort -u "$T/t4.log" | wc -l)
 [ $rc = 0 ] && [ "$n" = 0 ]; ok=$?
 verdict $ok T4 "ds.nphase left unset: ch03_run.sh exit $rc, $n distinct call sites" \
   "$(sort -u "$T/t4.log" | sed 's/.* at //' | tr '\n' ' ')"
+
+mkdir "$T/t5"; cp "$D/ch03_disotest.py" "$T/t5/"; cp -r "$D/ch03_disotest" "$T/t5/"
+mkdir "$T/t5/src"; (cd "$S" && tar --exclude=.git -cf - .) | (cd "$T/t5/src" && tar -xf -)
+C="$T/t5/src/tests/cdisort213/test_cdisort.c"
+sed -i -e '1i #include <math.h>' -e 's/^\( *\)c_disort_state_alloc(&ds);/&\n\1ds.radius = -NAN; if (!ds.flag.planck) ds.wvnmlo = ds.wvnmhi = -NAN;/' "$C"
+n=$(grep -c "ds.radius = -NAN" "$C")
+(cd "$T/t5" && CUDA_VISIBLE_DEVICES= "$PY" ch03_disotest.py "$T/t5/src" --work "$T/t5/work" > "$T/t5.out" 2> "$T/t5.err")
+rc=$?; V=$("$PY" -c 'import pydisort; print(pydisort.__version__)')
+nonfinite=$(grep -c '"radius":null' "$T/t5/work/dump.jsonl" 2>/dev/null); nonfinite=${nonfinite:-0}
+labels() { grep '^\[' "$1" | cut -d: -f1; }
+[ $rc = 0 ] && [ "$n" -gt 0 ] && [ -n "$(labels "$T/t5.out")" ] \
+  && [ "$(labels "$T/t5.out")" = "$(labels "$D/ch03_disotest.pydisort-$V.out")" ]; ok=$?
+verdict $ok T5 "-NAN in $n unset-field sites: ch03_disotest exit $rc, $nonfinite dump lines with radius null," \
+  "verdict labels as committed: $([ "$(labels "$T/t5.out")" = "$(labels "$D/ch03_disotest.pydisort-$V.out")" ] \
+  && echo yes || echo no); $(grep -m1 -o 'JSONDecodeError.*' "$T/t5.err")"
 exit $fail

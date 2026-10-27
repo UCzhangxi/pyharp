@@ -3,7 +3,11 @@
  * with this file instead of print_test.c. Every c_disort() call is written as a "run" record (inputs before
  * the call, outputs after); every print_test() call is written as a "check" record holding the
  * reference ("good") values the test compares against and the ids of the runs involved.
- * Output: JSON lines to the file named by env DUMP_FILE (default dump.jsonl). */
+ * Output: JSON lines to the file named by env DUMP_FILE (default dump.jsonl).
+ * A non-finite double is written as null (printf's nan/inf are not JSON). The driver's disort_state is an
+ * uninitialised local, so fields cdisort does not read under the flags (wvnmlo/wvnmhi without planck, radius
+ * without spher) are written as null too: the dump then does not depend on stack contents. */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,9 +33,20 @@ static FILE *dump(void) {
   return fp;
 }
 
+static void num(FILE *f, double x) {
+  if (isfinite(x)) fprintf(f, "%.17g", x);
+  else fputs("null", f);
+}
+
+/* <sep>"name":x, or <sep>"name":null when the field is not used (use == 0) */
+static void field(FILE *f, const char *sep, const char *name, double x, int use) {
+  fprintf(f, "%s\"%s\":", sep, name);
+  num(f, use ? x : NAN);
+}
+
 static void arr(FILE *f, const char *name, const double *a, int n) {
   fprintf(f, "\"%s\":[", name);
-  for (int i = 0; a && i < n; i++) fprintf(f, "%s%.17g", i ? "," : "", a[i]);
+  for (int i = 0; a && i < n; i++) { if (i) fputc(',', f); num(f, a[i]); }
   fprintf(f, "]");
 }
 
@@ -55,14 +70,19 @@ static void dump_in(FILE *f, disort_state *ds) {
           g->quiet, g->intensity_correction, g->old_intensity_correction, g->general_source,
           g->output_uum);
   fprintf(f, ",\"nlyr\":%d,\"nmom\":%d,\"nstr\":%d,\"nmom_nstr\":%d,\"ntau\":%d,\"numu\":%d,"
-             "\"nphi\":%d,\"nphase\":%d,\"wvnmlo\":%.17g,\"wvnmhi\":%.17g,\"accur\":%.17g,"
-             "\"radius\":%.17g",
-          ds->nlyr, ds->nmom, ds->nstr, ds->nmom_nstr, ds->ntau, ds->numu, ds->nphi, ds->nphase,
-          ds->wvnmlo, ds->wvnmhi, ds->accur, ds->radius);
-  fprintf(f, ",\"bc\":{\"fbeam\":%.17g,\"umu0\":%.17g,\"phi0\":%.17g,\"fisot\":%.17g,\"fluor\":%.17g,"
-             "\"ttemp\":%.17g,\"btemp\":%.17g,\"temis\":%.17g,\"albedo\":%.17g},",
-          ds->bc.fbeam, ds->bc.umu0, ds->bc.phi0, ds->bc.fisot, ds->bc.fluor, ds->bc.ttemp,
-          ds->bc.btemp, ds->bc.temis, ds->bc.albedo);
+             "\"nphi\":%d,\"nphase\":%d",
+          ds->nlyr, ds->nmom, ds->nstr, ds->nmom_nstr, ds->ntau, ds->numu, ds->nphi, ds->nphase);
+  field(f, ",", "wvnmlo", ds->wvnmlo, g->planck);
+  field(f, ",", "wvnmhi", ds->wvnmhi, g->planck);
+  field(f, ",", "accur", ds->accur, 1);
+  field(f, ",", "radius", ds->radius, g->spher);
+  fprintf(f, ",\"bc\":{");
+  field(f, "", "fbeam", ds->bc.fbeam, 1); field(f, ",", "umu0", ds->bc.umu0, 1);
+  field(f, ",", "phi0", ds->bc.phi0, 1); field(f, ",", "fisot", ds->bc.fisot, 1);
+  field(f, ",", "fluor", ds->bc.fluor, 1); field(f, ",", "ttemp", ds->bc.ttemp, 1);
+  field(f, ",", "btemp", ds->bc.btemp, 1); field(f, ",", "temis", ds->bc.temis, 1);
+  field(f, ",", "albedo", ds->bc.albedo, 1);
+  fprintf(f, "},");
   arr(f, "dtauc", ds->dtauc, ds->nlyr); fputc(',', f);
   arr(f, "ssalb", ds->ssalb, ds->nlyr); fputc(',', f);
   arr(f, "pmom", ds->pmom, (ds->nmom_nstr + 1) * ds->nlyr); fputc(',', f);
@@ -71,9 +91,10 @@ static void dump_in(FILE *f, disort_state *ds) {
   arr(f, "umu", (g->usrang || g->ibcnd) ? ds->umu : NULL, ds->numu); fputc(',', f);
   arr(f, "phi", ds->phi, ds->nphi); fputc(',', f);
   arr(f, "zd", g->spher ? ds->zd : NULL, ds->nlyr + 1);
-  if (g->brdf_type == BRDF_RPV && ds->brdf.rpv)
-    fprintf(f, ",\"rpv\":[%.17g,%.17g,%.17g,%.17g]", ds->brdf.rpv->rho0, ds->brdf.rpv->k,
-            ds->brdf.rpv->theta, ds->brdf.rpv->scale);
+  if (g->brdf_type == BRDF_RPV && ds->brdf.rpv) {
+    fputs(",\"rpv\":[", f); num(f, ds->brdf.rpv->rho0); fputc(',', f); num(f, ds->brdf.rpv->k);
+    fputc(',', f); num(f, ds->brdf.rpv->theta); fputc(',', f); num(f, ds->brdf.rpv->scale); fputc(']', f);
+  }
   fprintf(f, "}");
 }
 
@@ -83,8 +104,10 @@ static void dump_out(FILE *f, disort_state *ds, disort_output *out, int is_disor
   fprintf(f, "\"rad\":[");
   for (int i = 0; i < ds->ntau; i++) {
     disort_radiant *r = &out->rad[i];
-    fprintf(f, "%s[%.17g,%.17g,%.17g,%.17g,%.17g]", i ? "," : "", r->rfldir, r->rfldn, r->flup,
-            r->dfdt, r->uavg);
+    const double v[5] = {r->rfldir, r->rfldn, r->flup, r->dfdt, r->uavg};
+    fputs(i ? ",[" : "[", f);
+    for (int k = 0; k < 5; k++) { if (k) fputc(',', f); num(f, v[k]); }
+    fputc(']', f);
   }
   fprintf(f, "],");
   arr(f, "uu", (ds->flag.onlyfl || !is_disort) ? NULL : out->uu, nu * ds->ntau * ds->nphi); fputc(',', f);

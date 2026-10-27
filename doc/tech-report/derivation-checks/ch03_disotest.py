@@ -52,6 +52,18 @@ def unsupported(inp):
     return None
 
 
+def null_to_nan(x):
+    """the dump writes non-finite doubles, and fields cdisort does not read under the flags (wvnmlo/wvnmhi
+    without planck, radius without spher), as null (dump_shim.c); they are read back as nan"""
+    if x is None:
+        return float("nan")
+    if isinstance(x, list):
+        return [null_to_nan(v) for v in x]
+    if isinstance(x, dict):
+        return {k: null_to_nan(v) for k, v in x.items()}
+    return x
+
+
 PYD_VER = tuple(int(x) for x in pydisort.__version__.split(".")[:2])
 
 
@@ -203,7 +215,7 @@ def main():
     dump = os.path.join(work, "dump.jsonl")
     clog = subprocess.run([os.path.join(work, "test_cdisort")], cwd=work, capture_output=True, text=True,
                           env=dict(os.environ, DUMP_FILE=dump)).stdout
-    recs = [json.loads(line) for line in open(dump)]
+    recs = [null_to_nan(json.loads(line)) for line in open(dump)]
     runs = {r["id"]: r for r in recs if r["kind"] == "run"}
     py = {}
     for i, r in runs.items():
