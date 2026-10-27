@@ -35,28 +35,35 @@ case "$*" in
   *env_line*) echo "environment: stub $STUB_ENV"; exit 0 ;;
 esac
 defect=0; [ "$STUB_ENV" = 171b-1813-drift ] && [ "${STUB_DEFECT:-1}" = 1 ] && defect=1
+patterned=$defect; [ -n "${STUB_PATTERN_ENV:-}" ] && { patterned=0; [ "$STUB_ENV" = "$STUB_PATTERN_ENV" ] && patterned=1; }
 abort() { echo "$1" >&2; exit 134; }
 case "$*" in
   *"test_rayleigh.py::test_radiation_band"*) echo "1 passed in 0.10s"; [ $defect = 1 ] && abort "double free or corruption (!prev)"; exit 0 ;;
   *"test_rayleigh.py::"*) echo "1 passed in 0.10s"; exit 0 ;;
   *test_rayleigh.py*) echo "2 passed in 0.20s"; [ $defect = 1 ] && abort "double free or corruption (!prev)"; exit 0 ;;
 esac
-# the whole suite: in the defective environment, abort or not by the next character of the pattern (1 = abort,
-# h = hang until killed); elsewhere never
-echo "9 failed, 188 passed in 1.00s"
-if [ $defect = 1 ]; then
+# the whole suite: in the patterned environment (the defective one, or STUB_PATTERN_ENV), the next character of the
+# pattern decides (1 = abort, h = hang until killed, m = the run's shell is killed before it records an exit code,
+# n = a clean exit whose last output line has no newline); elsewhere a clean exit
+if [ $patterned = 1 ]; then
   i=$(cat "$STUB_COUNTER" 2>/dev/null || echo 0); echo $((i + 1)) > "$STUB_COUNTER"
   c=${STUB_PATTERN:$((i % ${#STUB_PATTERN})):1}
+  [ "$c" = n ] && { echo "9 failed, 188 passed in 1.00s"; printf 'teardown message without a newline'; exit 1; }
+  echo "9 failed, 188 passed in 1.00s"
   [ "$c" = 1 ] && abort "corrupted size vs. prev_size"
   [ "$c" = h ] && exec sleep 30
+  [ "$c" = m ] && { kill -KILL "$(ps -o ppid= -p "$PPID" | tr -d ' ')"; sleep 5; }
+else
+  echo "9 failed, 188 passed in 1.00s"
+  [ $defect = 1 ] && abort "corrupted size vs. prev_size"   # the defective build, when the pattern is elsewhere
 fi
 exit 1
 '''
 
 
-def run_check(tmp_path, pattern, defect=True, full_runs=10, timeout=600):
+def run_check(tmp_path, pattern, defect=True, full_runs=10, timeout=600, pattern_env=""):
     """Run check_ch09_d1.sh with the stub; return its stdout."""
-    d = tmp_path / f"run-{pattern}-{int(defect)}-{full_runs}-{timeout}"
+    d = tmp_path / f"run-{pattern}-{int(defect)}-{full_runs}-{timeout}-{pattern_env}"
     (d / "bin").mkdir(parents=True)
     (d / "bin" / "python").write_text(STUB)
     (d / "bin" / "python").chmod(0o755)
@@ -67,7 +74,7 @@ def run_check(tmp_path, pattern, defect=True, full_runs=10, timeout=600):
         envs.append(f"{name}={d / name}")
     env = dict(os.environ, PATH=f"{d / 'bin'}:/usr/bin:/bin", D1_SETUP=str(d / "setup.sh"), N="3",
                D1_FULL_RUNS=str(full_runs), D1_TIMEOUT=str(timeout), STUB_PATTERN=pattern,
-               STUB_DEFECT="1" if defect else "0", STUB_COUNTER=str(d / "counter"))
+               STUB_DEFECT="1" if defect else "0", STUB_COUNTER=str(d / "counter"), STUB_PATTERN_ENV=pattern_env)
     r = subprocess.run(["bash", str(CHECKS / "check_ch09_d1.sh"), *envs], env=env, capture_output=True, text=True,
                        timeout=300)
     return r.stdout
@@ -174,3 +181,24 @@ def test_the_declaration_matches_the_committed_line_and_carries_evidence():
     assert "of" in entry["evidence"] and entry["why"]
     committed = (CHECKS / "check_ch09_d1.out").read_text().splitlines()
     assert sum(bool(re.search(entry["lines"], l)) for l in committed) == 2
+
+
+# a run that records no exit code (its output cut off before the exit-code line) is not a clean run
+def test_a_drift_run_without_an_exit_code_counts_as_abnormal(tmp_path):
+    [line] = full_line(run_check(tmp_path, "m000000000"))
+    assert "] EXPECTED-FAIL " in line and "in 1 of 10" in line and "no exit code" in line, line
+
+
+def test_a_reverse_drift_run_without_an_exit_code_is_not_pass(tmp_path):
+    out = run_check(tmp_path, "0m00000000", pattern_env="1813b-171-drift")
+    [line] = full_line(out, "1813b-171-drift")
+    assert "] PASS " not in line and "in 1 of 10" in line, line
+    bad, report = compare(tmp_path, run_check(tmp_path, "1111111111"), out)
+    assert bad == 1 and "[C20]" in report
+
+
+def test_a_clean_run_whose_output_lacks_a_final_newline_keeps_its_exit_code(tmp_path):
+    out = run_check(tmp_path, "nnnnnnnnnn", pattern_env="1813b-171-drift")
+    [line] = full_line(out, "1813b-171-drift")
+    assert "] PASS " in line and "in 0 of 10" in line and "exit codes [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]" in line, line
+    assert compare(tmp_path, run_check(tmp_path, "1111111111"), out)[0] == 0
