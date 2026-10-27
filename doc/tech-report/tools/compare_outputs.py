@@ -32,9 +32,13 @@ Host-dependent measurements (--host-dependent JSON, derivation-checks/host-depen
 measurements of the hardware, not of the code: CUDA-vs-CPU differences depend on the GPU, float32 floors and
 bitwise-equal fractions on the CPU's vector unit, round-off-level errors on the CPU, and the crash counts of the
 D1 check on chance. That file names each such line by a regex, with the reason and the evidence, and the mask to
-apply: `values` (every number in scientific notation), `roundoff` (only those below 1e-15), `fraction` (a
-`fraction 0.98` value), `counts` (`N failed, M passed` and `no summary`), `abort` (the abort message, except
-`none`). Masks apply before the check's own tolerance, `(tol <= T)` or `(defect present when > T)`, which is
+apply: `values` (every number in scientific notation), `roundoff` (only those below 1e-15), `roundoff64eps` (only
+those below 64 eps = 64 * 2**-52 = 1.42e-14, ROUNDOFF_64EPS; for check values computed from at most a few dozen
+double operations, whose own threshold is at least 7 times larger), `fraction` (a `fraction 0.98` value),
+`counts` (`N failed, M passed` and `no summary`), `abort` (the abort message, except `none`), `crashes` (the crash
+record of a probe that ends its process on purpose, `return codes [...]` and `, k hung at exit (killed after T s)`:
+which signal ends a corrupted heap, and whether the process aborts or deadlocks at exit, is chance; the number of
+runs that ended abnormally, crashed or hung, is the result and is compared). Masks apply before the check's own tolerance, `(tol <= T)` or `(defect present when > T)`, which is
 kept, as are the label, the verdict and the rest of the line: a measurement that crosses its tolerance flips
 the verdict and fails. The comparison reports how many declared lines differed.
 
@@ -109,11 +113,15 @@ NO_CUDA_RULES = [(re.compile(r"^\[C\d+\]"), "[C]"), (re.compile(r"^(== \S+: )\d+
 
 
 _SCI = re.compile(r"[-+]?\d\.\d+e[-+]\d+")
+ROUNDOFF_64EPS = 64 * 2.0 ** -52   # 1.42e-14: round-off of a few dozen double operations, with a margin
 _TOLERANCE = re.compile(r" \((?:tol <=|defect present when >) [^)]*\)")
 HOST_MASKS = {
     "values": (_SCI, lambda m: "<host>"),
     "roundoff": (_SCI, lambda m: "<roundoff>" if abs(float(m.group())) < 1e-15 else m.group()),
+    "roundoff64eps": (_SCI, lambda m: "<roundoff>" if abs(float(m.group())) < ROUNDOFF_64EPS else m.group()),
     "fraction": (re.compile(r"(?<=fraction )\d\.\d+"), lambda m: "<host>"),
+    "crashes": (re.compile(r"(?<=runs, )return codes \[[^\]]*\](?:, \d+ hung at exit \(killed after [^)]*\))?"),
+                lambda m: "<crashed or hung>"),
     "counts": (re.compile(r"\b\d+ failed, \d+ passed(?: in <time>)?|\bno summary\b"), lambda m: "<counts>"),
     "abort": (re.compile(r"(?<=abort: )(?!none\b).+$"), lambda m: "<abort>"),
 }

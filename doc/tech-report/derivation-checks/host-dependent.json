@@ -9,6 +9,30 @@
   "Add an entry only with that kind of evidence; the maintainers decide what belongs here."
  ],
  "files": {
+  "ch03_beam_closure.pydisort-*.out": [
+   {
+    "lines": "^\\[C[12]\\] \\w+ Beer-Lambert via ",
+    "mask": ["roundoff64eps"],
+    "why": "Beer-Lambert reproduced to the last bit or to one rounding of the CPU's exp: values below 64 eps (1.42e-14) are round-off and masked; the check's own tolerance is 1e-12, so a value between 64 eps and it is compared digit for digit and one above it flips PASS",
+    "evidence": "fresh-clone audit at 88e75c95, both pins: [C1] and [C2] max rel dev F_dn 0.0e+00 committed, 2.2e-16 rerun"
+   }
+  ],
+  "ch03_ordinates_algebra.out": [
+   {
+    "lines": "^\\[C[26]\\] ",
+    "mask": ["roundoff64eps"],
+    "why": "an eigen-decomposition of matrices up to 16 x 16 (N = 8) in double precision: its relative error is a few eps and its last digits follow the CPU's LAPACK/BLAS kernels; masked below 64 eps (1.42e-14), 7 times below [C6]'s tolerance 1e-13 and 7000 times below [C2]'s 1e-10",
+    "evidence": "fresh-clone audit at 88e75c95: [C2] max rel dev 2.7e-15 committed, 2.1e-15 rerun; [C6] (2.4e-15 committed) differed at the same level"
+   }
+  ],
+  "ch03_candidates.pydisort-*.out": [
+   {
+    "lines": "^\\[P[12]\\] CANDIDATE ",
+    "mask": ["crashes"],
+    "why": "[P1] and [P2] overflow pydisort's moment buffer on purpose; each run then ends abnormally, by SIGABRT (-6) or SIGSEGV (-11) or by a deadlock in free() at interpreter exit that the harness kills (the stack of #23): which one is chance. Crashed and hung are one verdict, 'ended abnormally'; the number of such runs of the 10, the CANDIDATE verdict and the flux values on the line are compared, so a run that ends cleanly fails the comparison",
+    "evidence": "fresh-clone audit at 88e75c95: [P2] 'abnormal exit in 10 of 10 runs, return codes [-6]' committed, '[-11, -6]' with 1 hung at exit rerun; on one host over 20 runs at 81994fd6 [P2] gave [-6] 9 times and [-11, -6] 11 times"
+   }
+  ],
   "check_ch05_analytic.out": [
    {
     "lines": "max rel err of dn: ",

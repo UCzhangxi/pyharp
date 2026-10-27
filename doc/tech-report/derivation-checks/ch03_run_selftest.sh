@@ -13,12 +13,18 @@
 #        carry garbage); a large value overflows nlyr*nphase in cdisort's allocation and the check exits 1. Here every
 #        new DisortOptions and YAML band gets a sentinel nphase, and building a solver while it is still there is
 #        logged with the calling file and line. The real ch03_run.sh runs on a copy of the scripts; the log must be
-#        empty and the run must exit 0. Probes [P2]-[P4] of ch03_candidates.py are exempt: they test a pyharp band
+#        empty and every check must exit 0 (the sentinel changes [P2]'s fluxes, so the comparison is left to [T6]). Probes [P2]-[P4] of ch03_candidates.py are exempt: they test a pyharp band
 #        as pyharp builds it, ds.nphase included, and their outcome does not set any exit status.
 #   [T5] ch03_disotest.py survives non-finite values in cdisort fields the driver leaves unset. The driver's
 #        disort_state is an uninitialised local, so wvnmlo/wvnmhi (no planck) and radius can hold any bit pattern,
 #        and printf writes a NaN as nan/-nan, which is not JSON. On a copy of PYDISORT_SRC, the driver sets those
 #        fields to -NAN after every c_disort_state_alloc; the check must exit 0 with the committed verdict labels.
+#   [T6] ch03_run.sh compares every output with the committed one (compare.sh, tools/compare_outputs.py and the ch03
+#        entries of host-dependent.json). Stub checks print the committed outputs of this pydisort version, edited:
+#        unedited, and with the differences a fresh-clone audit on another host reported (round-off in beam_closure
+#        [C1]/[C2] and ordinates_algebra [C2]/[C6], [P2] return codes [-11, -6] with one hang at exit), the run must
+#        exit 0 and say REPRODUCED; with one [P1] run ending cleanly (abnormal exit in 9 of 10), or ordinates_algebra
+#        [C6] at 5.0e-14 (above the 64 eps round-off band, below its tolerance 1e-13), it must exit 1.
 # Exit status: 0 when every test passes, 1 otherwise.
 set -u
 D=$(cd "$(dirname "$0")" && pwd)
@@ -27,13 +33,15 @@ PY=$(cd "$(dirname "$1")" && pwd)/$(basename "$1"); S=$(cd "$2" && pwd); H=$(cd 
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 fail=0
 verdict() { local ok=$1 t=$2; shift 2; if [ "$ok" = 0 ]; then echo "[$t] PASS: $*"; else echo "[$t] FAIL: $*"; fail=1; fi; }
+mkdir "$T/tools"; cp "$D/../tools/compare_outputs.py" "$T/tools/"
+runner() { cp "$D/ch03_run.sh" "$D/compare.sh" "$D/host-dependent.json" "$1/"; }   # its compare finds ../tools
 
 mkdir "$T/t1"; cp "$D/ch03_run.sh" "$T/t1/"
 bash "$T/t1/ch03_run.sh" > "$T/t1.out" 2> "$T/t1.err"; rc=$?
 [ $rc = 2 ] && grep -q "^usage: ch03_run.sh PYTHON PYDISORT_SRC PYHARP_WT" "$T/t1.err"; ok=$?
 verdict $ok T1 "no arguments: exit $rc, stderr '$(head -1 "$T/t1.err")'"
 
-mkdir "$T/t2"; cp "$D/ch03_run.sh" "$T/t2/"
+mkdir "$T/t2"; runner "$T/t2"
 for c in e3_slab beam_closure delta_m intensity_correction candidates disotest ordinates_algebra; do
   echo 'print("stub")' > "$T/t2/ch03_$c.py"
 done
@@ -63,7 +71,7 @@ pkill -KILL -f "$T/t3/work/p1_1.py"  # a probe left behind when the harness itse
 verdict $ok T3 "[P1] probe hanging at exit: ch03_candidates exit $rc after $w s; [P1] upward=1 line:" \
   "$(grep "^\[P1\] .*upward=1" "$T/t3.out" | sed 's/.*abnormal exit/abnormal exit/')"
 
-mkdir "$T/t4" "$T/t4/site"; cp "$D"/ch03_*.py "$D/ch03_run.sh" "$T/t4/"; cp -r "$D/ch03_disotest" "$T/t4/"
+mkdir "$T/t4" "$T/t4/site"; cp "$D"/ch03_*.py "$T/t4/"; runner "$T/t4"; cp -r "$D/ch03_disotest" "$T/t4/"
 cat > "$T/t4/site/sitecustomize.py" <<'EOF'
 import os, sys
 SENTINEL, LOG = 1000003, os.environ["CH03_NPHASE_LOG"]
@@ -90,9 +98,9 @@ pyharp.RadiationOptions.from_yaml = staticmethod(from_yaml)
 EOF
 : > "$T/t4.log"
 PYTHONPATH="$T/t4/site" CH03_NPHASE_LOG="$T/t4.log" bash "$T/t4/ch03_run.sh" "$PY" "$S" "$H" > "$T/t4.out" 2> "$T/t4.err"
-rc=$?; n=$(sort -u "$T/t4.log" | wc -l)
-[ $rc = 0 ] && [ "$n" = 0 ]; ok=$?
-verdict $ok T4 "ds.nphase left unset: ch03_run.sh exit $rc, $n distinct call sites" \
+n=$(sort -u "$T/t4.log" | wc -l); k=$(grep -c ": exit 0$" "$T/t4.out")
+[ "$k" = 7 ] && [ "$n" = 0 ]; ok=$?
+verdict $ok T4 "ds.nphase left unset: $k of 7 checks exit 0, $n distinct call sites" \
   "$(sort -u "$T/t4.log" | sed 's/.* at //' | tr '\n' ' ')"
 
 mkdir "$T/t5"; cp "$D/ch03_disotest.py" "$T/t5/"; cp -r "$D/ch03_disotest" "$T/t5/"
@@ -109,4 +117,29 @@ labels() { grep '^\[' "$1" | cut -d: -f1; }
 verdict $ok T5 "-NAN in $n unset-field sites: ch03_disotest exit $rc, $nonfinite dump lines with radius null," \
   "verdict labels as committed: $([ "$(labels "$T/t5.out")" = "$(labels "$D/ch03_disotest.pydisort-$V.out")" ] \
   && echo yes || echo no); $(grep -m1 -o 'JSONDecodeError.*' "$T/t5.err")"
+
+V=$("$PY" -c 'import pydisort; print(pydisort.__version__)')
+OUTS="ch03_e3_slab.pydisort-$V.out ch03_beam_closure.pydisort-$V.out ch03_delta_m.pydisort-$V.out
+  ch03_intensity_correction.pydisort-$V.out ch03_candidates.pydisort-$V.out ch03_disotest.pydisort-$V.out
+  ch03_ordinates_algebra.out"
+t6() {  # t6 CASE SED-ARGS...: ch03_run.sh with stub checks printing the committed outputs edited by sed; prints the rc
+  local d="$T/t6$1" c o; shift; mkdir -p "$d/fix"; runner "$d"
+  for o in $OUTS; do cp "$D/$o" "$d/"; sed "$@" "$D/$o" > "$d/fix/$o"; done
+  for c in e3_slab beam_closure delta_m intensity_correction candidates disotest ordinates_algebra; do
+    o=ch03_$c.pydisort-$V.out; [ $c = ordinates_algebra ] && o=ch03_ordinates_algebra.out
+    printf 'import sys\nsys.stdout.write(open("%s").read())\n' "$d/fix/$o" > "$d/ch03_$c.py"
+  done
+  bash "$d/ch03_run.sh" "$PY" "$S" "$H" > "$d.out" 2>&1; echo $?
+}
+said() { grep -q "^ch03 (pydisort $V): $2" "$T/t6$1.out" && echo yes || echo no; }
+ra=$(t6 a -e '')
+rb=$(t6 b -e 's/F_dn 0\.0e+00/F_dn 2.2e-16/' -e 's/max rel dev 2\.7e-15 (tol 1e-10)/max rel dev 2.1e-15 (tol 1e-10)/' \
+  -e 's/residual 2\.4e-15/residual 2.1e-15/' \
+  -e '/^\[P2\]/s/return codes \[[^]]*\]/return codes [-11, -6], 1 hung at exit (killed after 120 s)/')
+rc_=$(t6 c -e '/^\[P1\] .*upward=1/s/abnormal exit in 10 of 10 runs/abnormal exit in 9 of 10 runs/')
+rd=$(t6 d -e 's/residual 2\.4e-15/residual 5.0e-14/')
+[ "$ra" = 0 ] && [ "$(said a REPRODUCED)" = yes ] && [ "$rb" = 0 ] && [ "$(said b REPRODUCED)" = yes ] \
+  && [ "$rc_" = 1 ] && [ "$(said c 'NOT REPRODUCED')" = yes ] && [ "$rd" = 1 ] && [ "$(said d 'NOT REPRODUCED')" = yes ]; ok=$?
+verdict $ok T6 "compare: committed exit $ra (REPRODUCED $(said a REPRODUCED)), audit-host differences exit $rb" \
+  "(REPRODUCED $(said b REPRODUCED)), one [P1] run clean exit $rc_, [C6] 5.0e-14 exit $rd"
 exit $fail
