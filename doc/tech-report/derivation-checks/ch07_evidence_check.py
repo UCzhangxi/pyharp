@@ -122,6 +122,9 @@ def check_C7_exact_identities():
     scattering = Q(2)*Q(1,2)+Q(3)*Q(4,5)
     moments = [(Q(1)*Q(3,5)**l+Q(12,5)*Q(-1,5)**l)/scattering for l in [1,2,3]]
     assert scattering==Q(17,5) and moments==[Q(3,85),Q(57,425),Q(123,2125)]
+    # tau and omega are printed below, so assert them too: k = 2+3+5, dz = 2.
+    extinction, thickness = Q(2)+Q(3)+Q(5), Q(2)
+    assert extinction*thickness==Q(20) and scattering/extinction==Q(17,50)
     # P2(x)=(3x^2-1)/2: integral P2^2 dx = (9*2/5-6*2/3+2)/4.
     norm = (Q(18,5)-4+2)/4
     assert norm/4 == Q(1,10)  # half moment integral of P=1+P2/2
