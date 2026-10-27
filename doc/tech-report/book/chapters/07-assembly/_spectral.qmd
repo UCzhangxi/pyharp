@@ -45,6 +45,7 @@ An interval-integrated radiance is
 $$
 \mathcal B(T)=\int_{\nu_{\mathrm{lo}}}^{\nu_{\mathrm{hi}}}B_\nu(T)\,\mathrm{d}\nu.
 $$ {#eq-ch07-spectral-planck}
+<!-- equation-check: eq-ch07-spectral-planck ch07_evidence_check.py [C6] -->
 
 `bbflux_wavenumber` evaluates @eq-ch07-spectral-planck for unequal endpoints on the Toon path
 ({{< code src/radiation/bbflux.cpp bbflux_wavenumber overload=3 repo=pyharp >}}).
@@ -64,6 +65,7 @@ F_\nu(\nu) &\simeq F_{\nu,j}
 F &\simeq \sum_j\frac{\nu_{j+1}-\nu_j}{2}(F_{\nu,j}+F_{\nu,j+1}).
 \end{aligned}
 $$ {#eq-ch07-spectral-trapezoid}
+<!-- equation-check: eq-ch07-spectral-trapezoid ch07_evidence_check.py [C7] -->
 
 `sum_spectrum` selects the trapezoid in @eq-ch07-spectral-trapezoid
 ({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}), implemented by `trapezoid`
@@ -94,6 +96,7 @@ $$
 F &\simeq \sum_j w_j\mathcal F_j.
 \end{aligned}
 $$ {#eq-ch07-spectral-weight}
+<!-- equation-check: eq-ch07-spectral-weight ch07_evidence_check.py [C5] -->
 
 `sum_spectrum` computes the final sum in @eq-ch07-spectral-weight
 ({{< code src/radiation/flux_utils.cpp sum_spectrum repo=pyharp >}}); it does not normalize or validate the weights.
@@ -111,15 +114,15 @@ F^{\mathrm{repeated}} &= (\nu_{\mathrm{hi}}-\nu_{\mathrm{lo}})\mathcal F,\\
 F^{\mathrm{repeated}} &= \Delta\nu\mathcal F.
 \end{aligned}
 $$ {#eq-ch07-spectral-width}
+<!-- equation-check: eq-ch07-spectral-width ch07_evidence_check.py [C3] -->
+
+The second line telescopes, so it holds only because the grid endpoints are the band limits,
+$\nu_0=\nu_{\mathrm{lo}}$ and $\nu_{N-1}=\nu_{\mathrm{hi}}$; the interior spacing may be arbitrary.
 
 The selection in `RadiationBandImpl::forward` causes @eq-ch07-spectral-width when weights are empty and each point
 retains the same band limits ({{< code src/radiation/radiation_band.cpp RadiationBandImpl::forward repo=pyharp >}}).
 The numerical width factor has units $\mathrm{cm^{-1}}$; this is a dimensional inconsistency, not a physical flux gain.
 Check `[C7]` proves the constant and affine identities exactly; `[C3]` tests the width identity in stored native outputs.
-<!-- equation-check: eq-ch07-spectral-planck ch07_evidence_check.py [C6] -->
-<!-- equation-check: eq-ch07-spectral-trapezoid ch07_evidence_check.py [C7] -->
-<!-- equation-check: eq-ch07-spectral-weight ch07_evidence_check.py [C5] -->
-<!-- equation-check: eq-ch07-spectral-width ch07_evidence_check.py [C3] -->
 
 ### Numerical method
 
