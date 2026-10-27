@@ -38,9 +38,15 @@ double operations, whose own threshold is at least 7 times larger), `fraction` (
 `counts` (`N failed, M passed` and `no summary`), `abort` (the abort message, except `none`), `crashes` (the crash
 record of a probe that ends its process on purpose, `return codes [...]` and `, k hung at exit (killed after T s)`:
 which signal ends a corrupted heap, and whether the process aborts or deadlocks at exit, is chance; the number of
-runs that ended abnormally, crashed or hung, is the result and is compared). Masks apply before the check's own tolerance, `(tol <= T)` or `(defect present when > T)`, which is
-kept, as are the label, the verdict and the rest of the line: a measurement that crosses its tolerance flips
-the verdict and fails. The comparison reports how many declared lines differed.
+runs that ended abnormally, crashed or hung, is the result and is compared), `floor` (every number below the
+entry's `floor`, a tolerance the chapter states: two values that both meet it compare equal, a value at or above
+it is compared verbatim). Masks apply before the check's own tolerance, `(tol <= T)` or `(defect present when >
+T)`, which is kept, as are the label, the verdict and the rest of the line: a measurement that crosses its
+tolerance flips the verdict and fails. The comparison reports how many declared lines differed.
+
+Figure data (FILE ending in .json): the document is compared as one `path: value` line per scalar, in file order
+(`cases[0].qext_rel_err[8]: 7.351e-09`), so a declaration in host-dependent.json can name one field of it; the
+rules above then apply to those lines. A file that is not valid JSON is compared as it is, and so differs.
 
 Without CUDA (--exclude-cuda REASON, used by ch09_run.sh when the GPU cannot run this torch build's kernels):
 lines that mention CUDA (or match --cuda-lines REGEX, for lines a check prints only with its CUDA legs) are left
@@ -114,6 +120,7 @@ NO_CUDA_RULES = [(re.compile(r"^\[C\d+\]"), "[C]"), (re.compile(r"^(== \S+: )\d+
 
 _SCI = re.compile(r"[-+]?\d\.\d+e[-+]\d+")
 ROUNDOFF_64EPS = 64 * 2.0 ** -52   # 1.42e-14: round-off of a few dozen double operations, with a margin
+_NUMBER = re.compile(r"(?<![\w.\[])[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?(?![\w.\]])")   # not the 8 of `err[8]`
 _TOLERANCE = re.compile(r" \((?:tol <=|defect present when >) [^)]*\)")
 HOST_MASKS = {
     "values": (_SCI, lambda m: "<host>"),
@@ -124,11 +131,17 @@ HOST_MASKS = {
                 lambda m: "<crashed or hung>"),
     "counts": (re.compile(r"\b\d+ failed, \d+ passed(?: in <time>)?|\bno summary\b"), lambda m: "<counts>"),
     "abort": (re.compile(r"(?<=abort: )(?!none\b).+$"), lambda m: "<abort>"),
+    "floor": (_NUMBER, None),   # the replacement depends on the entry's "floor", see mask_host
 }
 
 
+def below(floor):
+    """The replacement of the `floor` mask: `<below FLOOR>` for a number under the floor, the number otherwise."""
+    return lambda m: f"<below {floor:g}>" if abs(float(m.group())) < floor else m.group()
+
+
 def load_host_dependent(path):
-    """{file pattern: [(compiled line regex, [mask names])]} from a host-dependent.json"""
+    """{file pattern: [(compiled line regex, [mask names], floor or None)]} from a host-dependent.json"""
     if not path:
         return {}
     spec = json.loads(Path(path).read_text())["files"]
@@ -139,7 +152,10 @@ def load_host_dependent(path):
             bad = [m for m in e["mask"] if m not in HOST_MASKS]
             if bad or not e.get("why"):
                 raise ValueError(f"{path}: {pattern}: unknown mask {bad} or no 'why'")
-            rules[pattern].append((re.compile(e["lines"]), list(e["mask"])))
+            floor = e.get("floor")
+            if ("floor" in e["mask"]) != (floor is not None) or (floor is not None and not floor > 0):
+                raise ValueError(f"{path}: {pattern}: the 'floor' mask needs a positive 'floor', and only it takes one")
+            rules[pattern].append((re.compile(e["lines"]), list(e["mask"]), floor))
     return rules
 
 
@@ -150,18 +166,45 @@ def rules_for(host_rules, rel):
 def mask_host(line, rules):
     """Apply the declared masks of every rule whose regex matches; the tolerance part is never masked."""
     n = 0
-    for rx, masks in rules:
+    for rx, masks, floor in rules:
         if not rx.search(line):
             continue
         tol = _TOLERANCE.search(line)
         head, tail = (line[:tol.start()], line[tol.start():]) if tol else (line, "")
         for m in masks:
             pat, rep = HOST_MASKS[m]
+            if m == "floor":
+                rep = below(floor)
             new = pat.sub(rep, head)
             n += new != head
             head = new
         line = head + tail
     return line, n
+
+
+def flatten_json(text):
+    """A JSON document as one `path: value` line per scalar, in file order; text that is not JSON is returned as is."""
+    try:
+        doc = json.loads(text)
+    except ValueError:
+        return text
+
+    def walk(v, path):
+        if isinstance(v, dict):
+            for k, x in v.items():
+                yield from walk(x, f"{path}.{k}" if path else k)
+        elif isinstance(v, list):
+            for i, x in enumerate(v):
+                yield from walk(x, f"{path}[{i}]")
+        else:
+            yield f"{path}: {json.dumps(v)}"
+    return "\n".join(walk(doc, "")) + "\n"
+
+
+def read_output(path, rel):
+    """The text of an output as the comparison reads it: figure data (.json) flattened, see flatten_json."""
+    text = Path(path).read_text(errors="replace")
+    return flatten_json(text) if str(rel).endswith(".json") else text
 
 
 def normalise(text, without_cuda=False, host=(), cuda_lines=CUDA_LINES):
@@ -217,7 +260,7 @@ def compare(chapter, expected, actual, files, stream=sys.stdout, exclude_cuda=No
             bad += 1
             print(f"  MISSING  {rel} ({'no committed copy' if not e.is_file() else 'not regenerated'})", file=stream)
             continue
-        et, at = e.read_text(errors="replace"), a.read_text(errors="replace")
+        et, at = read_output(e, rel), read_output(a, rel)
         host = rules_for(host_rules, rel)
         el, ed, em = normalise(et, nc, host, cuda_lines)
         al, ad, am = normalise(at, nc, host, cuda_lines)
@@ -267,8 +310,9 @@ def main(argv):
     nc = a.exclude_cuda is not None
     host_rules = load_host_dependent(a.host_dependent)
     if a.normalise:
-        host = rules_for(host_rules, a.as_rel or Path(a.normalise).name)
-        print("\n".join(normalise(Path(a.normalise).read_text(errors="replace"), nc, host, a.cuda_lines)[0]))
+        rel = a.as_rel or Path(a.normalise).name
+        host = rules_for(host_rules, rel)
+        print("\n".join(normalise(read_output(a.normalise, rel), nc, host, a.cuda_lines)[0]))
         return 0
     if len(a.args) < 4 or (a.not_compared and not nc):
         ap.print_usage(sys.stderr)
