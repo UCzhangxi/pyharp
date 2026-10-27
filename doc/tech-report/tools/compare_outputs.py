@@ -12,9 +12,14 @@ Rules (each one is a regex in VOLATILE_LINES or VALUE_RULES; tools/tests/test_co
   dropped lines   the environment description a check prints before its labelled lines: `versions: ...`,
                   `environment: ...` (also `env NAME: environment: ...`), `host: ...`, the bare
                   `python X.Y.Z, torch ...` version line and the `pyharp source <sha>, pydisort source <sha>` line.
-  versions        `torch`, `numpy`, `scipy`, `mpmath`, `sympy`, `pytest`, `Python`, `gcc`, `g++`, `cmake` followed
-                  by a version become `<name> <ver>`; the newest release a check looked up on PyPI becomes `<ver>`.
-                  pyharp and pydisort versions are kept: they name the configuration under test.
+                  What such a line says about the configuration under test is kept and compared: it is replaced by
+                  `<provenance> ` and its pydisort version(s), pyharp source sha and pydisort tag-commit or source
+                  sha (prefixed by `env NAME:` where the line has one). The rest (CPU, GPU, compilers, toolchain
+                  versions) is dropped.
+  versions        on an environment line (unlabelled, or labelled `[X0]`), `torch`, `numpy`, `scipy`, `mpmath`,
+                  `sympy`, `pytest`, `Python`, `gcc`, `g++`, `cmake` followed by a version become `<name> <ver>`; on
+                  a check line (`[I4]`, `[C3]`, ...) a version is a result and is compared. The newest release a check
+                  looked up on PyPI becomes `<ver>`. pyharp and pydisort versions are kept everywhere.
   host            the filesystem a check's temporary directory was on, `(temporary directory on tmpfs)`, becomes
                   `(temporary directory on <fs>)`.
   dates           the `.dYYYYMMDD` of a local version string and ISO dates/times become `<date>`.
@@ -63,13 +68,31 @@ VOLATILE_LINES = [
     re.compile(r"^pyharp source [0-9a-f]{40}, pydisort source [0-9a-f]{40}\s*$"),
 ]
 
+PROVENANCE = [  # (regex, label): what a dropped environment line says about the configuration under test
+    (re.compile(r"\bpydisort (\d[\w.]*(?:, \d[\w.]*)*)"), "pydisort"),
+    (re.compile(r"\bpyharp source ([0-9a-f]{40})"), "pyharp source"),
+    (re.compile(r"\bpydisort (?:\S+ )?(?:tag commit|source) ([0-9a-f]{40}|unknown)\b"), "pydisort commit"),
+]
+_ENV_PREFIX = re.compile(r"^(env \S+:) ")
+CHECK_LINE = re.compile(r"^\[[A-Za-z]+(?:[1-9]\d*|0\d+)\]")   # [I4], [C12]; not [S0], [I0] (environment lines)
+
+
+def provenance(line):
+    """`<provenance> ...` for a dropped environment line that names pydisort or pyharp sources, else None."""
+    found = [f"{label} {m.group(1)}" for rx, label in PROVENANCE for m in rx.finditer(line)]
+    if not found:
+        return None
+    env = _ENV_PREFIX.match(line)
+    return "<provenance> " + (env.group(1) + " " if env else "") + "; ".join(found)
+
+
 _NUM = r"\d+(?:\.\d+)?(?:[eE][-+]?\d+)?"
 _TIME_UNIT = r"(?:ns|us|µs|ms|s|sec|min)"
 TIMING_LINE = re.compile(rf"\b{_NUM}\s?{_TIME_UNIT}/\w+")
 
+VERSION_RULE = (re.compile(r"\b(torch|numpy|scipy|mpmath|sympy|pytest|[Pp]ython|gcc|g\+\+|cmake) "
+                           r"\d+\.\d+(?:\.\d+)?(?:[-+.\w]*\w)?"), r"\1 <ver>")   # environment lines only
 VALUE_RULES = [  # (pattern, replacement, applies to timing lines only)
-    (re.compile(r"\b(torch|numpy|scipy|mpmath|sympy|pytest|[Pp]ython|gcc|g\+\+|cmake) "
-                r"\d+\.\d+(?:\.\d+)?(?:[-+.\w]*\w)?"), r"\1 <ver>", False),
     (re.compile(r"\b(newest \S+ on PyPI: ).*$"), r"\1<ver>", False),
     (re.compile(r"\.d20\d{6}\b"), ".d<date>", False),
     (re.compile(r"(\(temporary directory on )[^)]+\)"), r"\1<fs>)", False),
@@ -138,9 +161,18 @@ def normalise(text, without_cuda=False, host=(), cuda_lines=CUDA_LINES):
     out, dropped, masked = [], 0, 0
     cuda_line = re.compile(cuda_lines)
     for line in text.splitlines():
-        if any(p.search(line) for p in VOLATILE_LINES) or (without_cuda and cuda_line.search(line)):
+        if without_cuda and cuda_line.search(line):
             dropped += 1
             continue
+        if any(p.search(line) for p in VOLATILE_LINES):
+            dropped += 1
+            prov = provenance(line)
+            if prov:
+                out.append(prov)
+            continue
+        if not CHECK_LINE.match(line):
+            line, n = VERSION_RULE[0].subn(VERSION_RULE[1], line)
+            masked += n
         if without_cuda:
             for pat, rep in NO_CUDA_RULES:
                 line, n = pat.subn(rep, line)

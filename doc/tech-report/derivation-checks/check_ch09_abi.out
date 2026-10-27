@@ -4,5 +4,6 @@ environment: pyharp source f34506f9d14ee7b1f2e1222775baa5093ae6967f; pydisort 1.
 [C2] INFO sizeof(DisortImpl): pydisort 1.7.1 488 bytes, pydisort 1.8.13 496 bytes, difference +8
 [C3] INFO sizeof(DisortOptionsImpl): pydisort 1.7.1 1576 bytes, pydisort 1.8.13 1584 bytes, difference +8
 [C4] INFO the two pydisort versions lay out the types pyharp allocates differently: True
-[C5] INFO pyharp libharp_release.so: NEEDED ['libdisort_release.so']; search path entries: RPATH absolute ending in pydisort/lib, RPATH absolute ending in torch/lib
+host: libharp_release.so stores its search path as RPATH
+[C5] INFO pyharp libharp_release.so: NEEDED ['libdisort_release.so']; search path entries (DT_RPATH or DT_RUNPATH): absolute ending in pydisort/lib, absolute ending in torch/lib
 == check_ch09_abi: 5 labels, 0 FAIL
