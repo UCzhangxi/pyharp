@@ -200,12 +200,13 @@ def test_every_declaration_has_a_reason_and_evidence_and_matches_a_committed_lin
     import json
     spec = json.loads(HOST_DEPENDENT.read_text())["files"]
     for pattern, entries in spec.items():
-        files = [p for p in CHECKS.glob(pattern)]
+        files = [p for p in CHECKS.glob(pattern)] or [p for p in CHECKS.parent.glob(pattern)]   # figure data in src/
         assert files, pattern
+        lines = [l for f in files for l in co.read_output(f, f.name).splitlines()]   # a .json as the compare reads it
         for e in entries:
             assert e["why"] and e["evidence"], (pattern, e["lines"])
             rx = co.re.compile(e["lines"])
-            assert any(rx.search(l) for f in files for l in f.read_text().splitlines()), (pattern, e["lines"])
+            assert any(rx.search(l) for l in lines), (pattern, e["lines"])
 
 
 GPU = ("[C22] EXPECTED-FAIL DISORT SW f64 nstr=8 CUDA vs CPU, omega<1 columns: 8.291e-05 (defect present when > 1.0e-12)\n"

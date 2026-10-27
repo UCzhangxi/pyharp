@@ -75,6 +75,21 @@
     "evidence": "[C9] Toon LW | CUDA f64: pass (1.7e-14) committed, pass (1.0e-14) rerun"
    }
   ],
+  "src/pyharp_report/ch06/data/mie_accuracy.json": [
+   {
+    "lines": "^cases\\[0\\]\\.qext_rel_err\\[8\\]: ",
+    "mask": ["values"],
+    "why": "k = 1e-8, x = 0.1: the upper end of the range where the series computes Re(a_1) by cancellation (_mie.qmd, Limits); the error is the round-off of that cancellation and lands on either side of 1e-9. Listed before the floor entry so that both sides mask alike",
+    "evidence": "7.351e-09 committed (Threadripper PRO 5975WX, gcc 8.5.0), 2.905e-10 rerun (Ryzen 9 7950X, gcc 11.5.0; the same value in the fresh-clone audit at 88e75c95), each host the same run to run"
+   },
+   {
+    "lines": "^cases\\[\\d+\\]\\.qext_rel_err\\[\\d+\\]: ",
+    "mask": ["floor"],
+    "floor": 1e-9,
+    "why": "a relative error of Q_ext below 1e-9, the tolerance of check [C1] (check_ch06_mie.py docstring; tbl-ch06-mie-tests; the dotted line of fig-ch06-mie-accuracy), is round-off at the convergence floor of the series and meets the chapter's claim on any host; values at or above it are compared",
+    "evidence": "6 values below 1e-9: k=1e-8 x=0.75 9.259e-14 committed, 4.33e-14 rerun; x=5.6 1.11e-16 vs 0.0; k=1e-4 x=0.75 3.553e-15 vs 6.95e-14; x=5.6 2.665e-15 vs 2.554e-15; k=0.1 x=0.056 9.226e-13 vs 1.262e-12; x=0.75 8.53e-13 vs 8.585e-13"
+   }
+  ],
   "check_ch09_d1.out": [
    {
     "lines": " run \\d+: exit ",
