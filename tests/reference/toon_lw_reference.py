@@ -78,7 +78,15 @@ def toon_lw_reference(prop, be, albedo, hard_surface=True, top_emission_flag=0, 
         Btop = (1 - mp.exp(-tautop / ubari)) * BE[0]
     else:
         Btop = top_emission_flag * BE[0]
-    bsurf_flux = (1 - a_surf) * Bsurf if hard_surface else Bsurf + B1[nlay - 1] * ubari
+    # gas-giant bottom: dB/dtau at the bottom LEVEL (quadratic in tau through the bottom three levels), limited to
+    # [0.5, 1.5] x the bottom-layer mean gradient; the layer mean when a layer is thin or the gradient changes sign
+    B1_bot = B1[nlay - 1]
+    if not hard_surface and nlay >= 2:
+        g0, g1, d0, d1 = B1[nlay - 1], B1[nlay - 2], dtau[nlay - 1], dtau[nlay - 2]
+        if d0 > f("1e-6") and d1 > f("1e-6") and g0 * g1 > 0:
+            r = 1 + (1 - g1 / g0) * d0 / (d0 + d1)
+            B1_bot = min(max(r, f("0.5")), f("1.5")) * g0
+    bsurf_flux = (1 - a_surf) * Bsurf if hard_surface else Bsurf + B1_bot * ubari
 
     n = 2 * nlay
     A, B, C, D = [f(0)] * n, [f(0)] * n, [f(0)] * n, [f(0)] * n
@@ -158,7 +166,7 @@ def toon_lw_reference(prop, be, albedo, hard_surface=True, top_emission_flag=0, 
     up, up_mid = [f(0)] * nlev, [f(0)] * nlay
     for m in range(5):
         u = uarr[m]
-        I = lam_up if hard_surface else twopi * (Bsurf + B1[nlay - 1] * u)
+        I = lam_up if hard_surface else twopi * (Bsurf + B1_bot * u)
         up[nlev - 1] += I * wuarr[m]
         for k in range(nlay - 1, -1, -1):
             a, b = dtau[k] / u, lam[k] * dtau[k]

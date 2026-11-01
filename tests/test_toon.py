@@ -466,10 +466,11 @@ def test_toon_lw_deep_bottom_matches_continued_column():
 
     The column is cut at an optically thick bottom where T still rises with p. The
     truth is the SAME column continued downward (same tau(p), T(p) laws) until it is
-    opaque, solved exactly; the cut column's bottom net flux must match it. The
-    diffusion source B_b + mu dB/dtau with the bottom-LAYER mean gradient is up to
-    20 % high here (tau ~ p^2 on 30 layers); the gradient at the bottom LEVEL is
-    within 3.5 %. An isotropic B(T_b) bottom (DISORT lamber) would give ~0.55x.
+    opaque, solved exactly with each continuation layer split into 30 sublayers
+    (converged: 30 and 100 sublayers agree to 2e-3). The cut column's bottom net
+    flux must match it. On 60 layers the diffusion source B_b + mu dB/dtau with the
+    bottom-LAYER mean gradient is 2-6 % high; the gradient at the bottom LEVEL is
+    within 1.3 %. An isotropic B(T_b) bottom (DISORT lamber) would give ~0.5x.
     Interior fluxes do not depend on the lower boundary.
     """
     import numpy as np
@@ -490,12 +491,14 @@ def test_toon_lw_deep_bottom_matches_continued_column():
             pe = (extend / tau_b) ** (1.0 / nexp)
             d = 3.0 / nlay
             k = int(math.ceil(math.log10(pe) / d))
-            p = np.concatenate([10 ** (d * np.arange(k, 0, -1)), p])
+            lp = d * np.arange(k, -1, -1)  # continuation levels, log10(p), down to p = 1
+            fine = np.concatenate([np.linspace(lp[i], lp[i + 1], 31)[:-1] for i in range(k)])
+            p = np.concatenate([10**fine, p])
         tau = tau_b * p**nexp
         return tau[:-1] - tau[1:], 140.0 * p**kappa, len(p) - nlay - 1
 
     for tau_b, nexp, kappa in [(100.0, 2, 0.1), (10.0, 2, 0.3), (100.0, 1, 0.1)]:
-        nlay = 30
+        nlay = 60
         dtau, tlev, _ = column(tau_b, nexp, kappa, nlay)
         prop = torch.zeros(1, 1, nlay, 3)
         prop[0, 0, :, 0] = torch.tensor(dtau)
@@ -516,7 +519,7 @@ def test_toon_lw_deep_bottom_matches_continued_column():
         mid = nlay // 2
         r_mid = net[mid] / ref[mid]
         print(f"  tau_b={tau_b:g} tau~p^{nexp} kappa={kappa}: bottom net/truth={r_bot:.4f}, mid={r_mid:.6f}")
-        assert abs(r_bot - 1.0) < 0.05, (
+        assert abs(r_bot - 1.0) < 0.03, (
             f"Toon LW bottom net flux off the continued column by {r_bot - 1:+.3f} "
             f"(tau_b={tau_b}, tau~p^{nexp}, kappa={kappa})"
         )
