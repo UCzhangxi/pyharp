@@ -167,6 +167,25 @@ DISPATCH_MACRO void toon_mckay89_longwave(
     Em[k] = exp(-lam[k] * dtau[k]);
   }
 
+  // Gas-giant lower boundary (hard_surface = false): the diffusion source
+  // I_up(mu) = B_b + mu dB/dtau needs dB/dtau AT the bottom level. B1 of the
+  // bottom layer is its mean (mid-layer) gradient; where dB/dtau changes with
+  // depth (tau ~ p^n, T ~ p^kappa) that misstates the flux from below, by up
+  // to 20 % on a 30-layer column against the same column continued downward.
+  // Extrapolate linearly in tau from the two bottom layers' gradients (the
+  // derivative of the quadratic through the three bottom levels), limited to
+  // [0.5, 1.5] x B1; fall back to B1 when a layer is thin or the gradients
+  // differ in sign. An isothermal bottom (B1 = 0) is unchanged.
+  T B1_bot = B1[nlay - 1];
+  if (!hard_surface && nlay >= 2) {
+    T const g0 = B1[nlay - 1], g1 = B1[nlay - 2];
+    T const d0 = dtau[nlay - 1], d1 = dtau[nlay - 2];
+    if (d0 > 1.0e-6 && d1 > 1.0e-6 && g0 * g1 > 0.0) {
+      T const r = 1.0 + (1.0 - g1 / g0) * d0 / (d0 + d1);
+      B1_bot = fmin(fmax(r, static_cast<T>(0.5)), static_cast<T>(1.5)) * g0;
+    }
+  }
+
   // Top boundary: controlled by top_emission_flag
   // top_emission_flag = 0: no incoming radiation at TOA (Toon 1989 default)
   // top_emission_flag = 1: full Planck at TOA (infinite isothermal slab above)
@@ -193,7 +212,7 @@ DISPATCH_MACRO void toon_mckay89_longwave(
   if (hard_surface) {
     bsurf_flux = (1.0 - a_surf_in) * Bsurf;
   } else {
-    bsurf_flux = Bsurf + B1[nlay - 1] * ubari;
+    bsurf_flux = Bsurf + B1_bot * ubari;
   }
 
   // --- Matrix Construction ---
@@ -359,13 +378,13 @@ DISPATCH_MACRO void toon_mckay89_longwave(
     T u = uarr[m];
 
     // Upward loop
-    // Gas giant: I_up = 2*pi*(B_surf + B1*u) [Planck + gradient]
+    // Gas giant: I_up = 2*pi*(B_surf + B1_bot*u) [Planck + bottom-level gradient]
     // Terrestrial: isotropic emission plus the reflected downwelling flux
     T lw_up;
     if (hard_surface) {
       lw_up = lw_up_lambert;
     } else {
-      lw_up = twopi * (Bsurf + B1[nlay - 1] * u);
+      lw_up = twopi * (Bsurf + B1_bot * u);
     }
     facc[nlev - 1] += lw_up * wuarr[m];
     for (int k = nlay - 1; k >= 0; k--) {

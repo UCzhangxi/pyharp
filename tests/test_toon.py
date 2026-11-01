@@ -437,6 +437,92 @@ def test_toon_lw_isothermal_scattering():
                 f"toon={up_t:.4f}, disort={up_d:.4f}, rel_diff={rel_diff:.3f}"
             )
 
+
+def _exact_lw_flux(dtau, B, nmu=64):
+    """Absorption-only formal solution (independent reference): B linear in tau within each layer, Gauss-Legendre in mu.
+    Level 0 = bottom, I_up(bottom) = B[0] (isotropic, at the base of a deep column), no TOA downwelling.
+    Returns (up, down) fluxes per level in the units of pi * B."""
+    import numpy as np
+    x, w = np.polynomial.legendre.leggauss(nmu)
+    mu, w = 0.5 * (x + 1.0), 0.5 * w
+    n = len(dtau)
+    s = (B[1:] - B[:-1]) / dtau  # dB/dtau going up through layer k
+    up, dn = np.zeros(n + 1), np.zeros(n + 1)
+    for m, wm in zip(mu, w):
+        e = np.exp(-dtau / m)
+        Id, Iu = np.zeros(n + 1), np.zeros(n + 1)
+        for k in range(n - 1, -1, -1):
+            Id[k] = Id[k + 1] * e[k] + B[k] - B[k + 1] * e[k] + s[k] * m * (1 - e[k])
+        Iu[0] = B[0]
+        for k in range(n):
+            Iu[k + 1] = Iu[k] * e[k] + B[k + 1] - B[k] * e[k] - s[k] * m * (1 - e[k])
+        up += 2 * math.pi * wm * m * Iu
+        dn += 2 * math.pi * wm * m * Id
+    return up, dn
+
+
+def test_toon_lw_deep_bottom_matches_continued_column():
+    """Gas-giant lower boundary (hard_surface off) on a lapse-rate column.
+
+    The column is cut at an optically thick bottom where T still rises with p. The
+    truth is the SAME column continued downward (same tau(p), T(p) laws) until it is
+    opaque, solved exactly; the cut column's bottom net flux must match it. The
+    diffusion source B_b + mu dB/dtau with the bottom-LAYER mean gradient is up to
+    20 % high here (tau ~ p^2 on 30 layers); the gradient at the bottom LEVEL is
+    within 3.5 %. An isotropic B(T_b) bottom (DISORT lamber) would give ~0.55x.
+    Interior fluxes do not depend on the lower boundary.
+    """
+    import numpy as np
+
+    wlo, whi = 200.0, 400.0
+    opt = pyharp.ToonMcKay89Options()
+    opt.wave_lower([wlo])
+    opt.wave_upper([whi])
+    opt.flags("planck")
+    toon = pyharp.ToonMcKay89(opt)
+
+    def planck(T):  # band radiance, the same function Toon uses
+        return pyharp.bbflux_wavenumber(wlo, whi, torch.tensor(T)).numpy().reshape(-1)
+
+    def column(tau_b, nexp, kappa, nlay, extend=0.0):
+        p = np.logspace(0.0, -3.0, nlay + 1)  # p / p_bottom, bottom -> top
+        if extend:
+            pe = (extend / tau_b) ** (1.0 / nexp)
+            d = 3.0 / nlay
+            k = int(math.ceil(math.log10(pe) / d))
+            p = np.concatenate([10 ** (d * np.arange(k, 0, -1)), p])
+        tau = tau_b * p**nexp
+        return tau[:-1] - tau[1:], 140.0 * p**kappa, len(p) - nlay - 1
+
+    for tau_b, nexp, kappa in [(100.0, 2, 0.1), (10.0, 2, 0.3), (100.0, 1, 0.1)]:
+        nlay = 30
+        dtau, tlev, _ = column(tau_b, nexp, kappa, nlay)
+        prop = torch.zeros(1, 1, nlay, 3)
+        prop[0, 0, :, 0] = torch.tensor(dtau)
+        bc = {
+            "albedo": torch.zeros(1, 1),
+            "temis": torch.ones(1, 1),
+            "btemp": torch.tensor([tlev[0]]),
+            "ttemp": torch.zeros(1),
+        }
+        flx = toon(prop, temf=torch.tensor(tlev)[None, :], **bc)[0, 0]
+        net = (flx[:, 0] - flx[:, 1]).numpy()
+
+        dt2, t2, ib = column(tau_b, nexp, kappa, nlay, extend=50 * tau_b + 50)
+        up, dn = _exact_lw_flux(dt2, planck(t2))
+        ref = (up - dn)[ib:]
+
+        r_bot = net[0] / ref[0]
+        mid = nlay // 2
+        r_mid = net[mid] / ref[mid]
+        print(f"  tau_b={tau_b:g} tau~p^{nexp} kappa={kappa}: bottom net/truth={r_bot:.4f}, mid={r_mid:.6f}")
+        assert abs(r_bot - 1.0) < 0.05, (
+            f"Toon LW bottom net flux off the continued column by {r_bot - 1:+.3f} "
+            f"(tau_b={tau_b}, tau~p^{nexp}, kappa={kappa})"
+        )
+        assert abs(r_mid - 1.0) < 2e-3, f"Toon LW interior net flux off by {r_mid - 1:+.2e}"
+
+
 if __name__ == "__main__":
     print("test_toon_sw_pure_absorption")
     test_toon_sw_pure_absorption()
@@ -460,4 +546,8 @@ if __name__ == "__main__":
 
     print("test_toon_lw_isothermal_scattering")
     test_toon_lw_isothermal_scattering()
+    print("PASSED")
+
+    print("test_toon_lw_deep_bottom_matches_continued_column")
+    test_toon_lw_deep_bottom_matches_continued_column()
     print("PASSED")
