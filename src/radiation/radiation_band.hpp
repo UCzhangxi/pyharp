@@ -177,6 +177,9 @@ class RadiationBandImpl : public torch::nn::Cloneable<RadiationBandImpl> {
   //! bin spectrum
   torch::Tensor spectrum;
 
+  //! disort intensity (nwave, ncol, nphi, ntau, numu), kept if usrang is set
+  torch::Tensor intensity;
+
   //! all opacities
   std::map<std::string, torch::nn::AnyModule> opacities;
 

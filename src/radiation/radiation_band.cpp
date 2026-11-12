@@ -299,6 +299,8 @@ void RadiationBandImpl::reset() {
 
   // create bin spectrum holder
   spectrum = register_buffer("spectrum", torch::tensor({0.}, torch::kFloat64));
+  intensity =
+      register_buffer("intensity", torch::tensor({0.}, torch::kFloat64));
 }
 
 torch::Tensor RadiationBandImpl::forward(
@@ -412,6 +414,16 @@ torch::Tensor RadiationBandImpl::forward(
     if (options->verbose()) {
       std::cout << "  Done running rt solver without temperatures."
                 << std::endl;
+    }
+  }
+
+  // keep the intensities at the user polar angles (umu > 0 up) and the user
+  // optical depths (utau from the top) when DISORT computes them
+  if (options->solver_name() == "disort") {
+    auto const& flag = rtsolver.get<disort::Disort>()->options->ds().flag;
+    if (flag.usrang && !flag.onlyfl) {
+      TORCH_CHECK(flag.usrtau, "intensity output needs flag usrtau");
+      intensity.set_(rtsolver.get<disort::Disort>()->gather_rad());
     }
   }
 
