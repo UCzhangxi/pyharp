@@ -62,8 +62,8 @@ def test_linear_source_gives_linear_limb_law(tmp_path):
 
 
 # H(mu) for conservative isotropic scattering: Kawabata (2016, Astrophys. Space
-# Sci. 361, 373; arXiv:1611.10197) Table 6, omega0 = 1; to 4 decimals these are
-# Chandrasekhar (1960, Radiative Transfer) Table XI, p. 125
+# Sci. 361, 373; arXiv:1611.10197) Table 6, omega0 = 1; Chandrasekhar (1960,
+# Radiative Transfer) Table XI, p. 125 agrees to 2e-4
 H_TABLE = {0.05: 1.1365748, 0.1: 1.2473504, 0.2: 1.4503514, 0.3: 1.6425223,
            0.4: 1.8292756, 0.5: 2.0127788, 0.6: 2.1941330, 0.7: 2.3739749,
            0.8: 2.5527043, 0.9: 2.7305877, 1.0: 2.9078105}
@@ -78,9 +78,9 @@ def milne(tmp_path, nstr, umu):
 
 def test_grey_scattering_follows_chandrasekhar_h_law(tmp_path):
     umu = np.array(sorted(H_TABLE))
-    inten, _ = milne(tmp_path, 16, umu)
+    inten, _ = milne(tmp_path, 32, umu)  # 16 streams: 7e-5 off at mu = 0.05
     h = np.array([H_TABLE[m] for m in umu])
-    np.testing.assert_allclose(inten / inten[-1], h / h[-1], rtol=2e-4)
+    np.testing.assert_allclose(inten / inten[-1], h / h[-1], rtol=1e-6)
 
 
 @pytest.mark.parametrize("ssa", [0.0, 1.0])
